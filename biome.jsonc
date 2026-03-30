@@ -17,17 +17,23 @@
   "files": {
     "includes": [
       "**",
+      "**/src/**/*",
+      "**/.vscode/**/*",
+      "**/index.html",
+      "**/vite.config.ts",
       "!**/dist",
-      "!**/node_modules",
-      "!**/nix/store",
-      "!**/*/build",
       "!**/.turbo",
-      "!**/.nitro",
       "!**/.vinxi",
+      "!**/.nitro",
+      "!**/*/build",
+      "!**/.tanstack",
       "!**/.coverage",
-      "!**/pnpm-lock.yaml",
+      "!**/nix/store",
       "!**/.pnpm-store",
-      "!**/.tanstack"
+      "!**/*/generated",
+      "!**/node_modules",
+      "!**/pnpm-lock.yaml",
+      "!**/src/routeTree.gen.ts"
     ]
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
