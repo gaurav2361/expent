@@ -8,7 +8,10 @@ export const Route = createFileRoute("/sign-up")({
 
 function RouteComponent() {
   return (
-    <AuthPage>
+    <AuthPage
+      author="Sarah Jenkins"
+      quote="Setting up my business profile was incredibly intuitive. The best onboarding experience I've had."
+    >
       <SignUp />
     </AuthPage>
   );
