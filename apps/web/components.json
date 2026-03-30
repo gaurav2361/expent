@@ -1,0 +1,27 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-nova",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "../../packages/ui/src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@/components",
+    "hooks": "@/hooks",
+    "lib": "@/lib",
+    "utils": "@expent/ui/lib/utils",
+    "ui": "@expent/ui/components"
+  },
+  "registries": {
+    "@efferd": "https://efferd.com/r/{name}.json",
+    "@lucide-animated": "https://lucide-animated.com/r/{name}.json"
+  },
+  "rtl": false,
+  "menuColor": "default",
+  "menuAccent": "subtle"
+}

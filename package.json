@@ -1,0 +1,22 @@
+{
+  "name": "expent",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "check": "biome check --no-errors-on-unmatched --files-ignore-unknown=true",
+    "lint": "biome lint --write --no-errors-on-unmatched",
+    "format": "biome format --write --no-errors-on-unmatched",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.9",
+    "turbo": "^2.8.21",
+    "typescript": "6.0.2"
+  },
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=24"
+  }
+}

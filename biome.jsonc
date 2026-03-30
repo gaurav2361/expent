@@ -1,0 +1,83 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.9/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120,
+    "attributePosition": "auto"
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/node_modules",
+      "!**/nix/store",
+      "!**/*/build",
+      "!**/.turbo",
+      "!**/.nitro",
+      "!**/.vinxi",
+      "!**/.coverage",
+      "!**/pnpm-lock.yaml",
+      "!**/.pnpm-store",
+      "!**/.tanstack"
+    ]
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": { "useArrowFunction": "error" },
+      "correctness": {
+        "noUnsafeFinally": "warn",
+        "noUnusedVariables": "warn",
+        "noUnusedImports": "error"
+      },
+      "security": { "noGlobalEval": "error" },
+      "style": {
+        "useBlockStatements": "off",
+        "useConst": "error"
+      },
+      "suspicious": {
+        "noDoubleEquals": "error",
+        "noExplicitAny": "error",
+        "useNamespaceKeyword": "error",
+        "noVar": "error",
+        "noCommentText": "error",
+        "noDuplicateJsxProps": "error",
+        "noExtraNonNullAssertion": "error",
+        "noShadowRestrictedNames": "error",
+        "noUnsafeDeclarationMerging": "error",
+        "useGetterReturn": "error",
+        "noDebugger": "warn"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "quoteStyle": "double",
+      "attributePosition": "auto"
+    }
+  },
+  "css": {
+    "parser": {
+      "cssModules": true,
+      "tailwindDirectives": true
+    }
+  }
+}
