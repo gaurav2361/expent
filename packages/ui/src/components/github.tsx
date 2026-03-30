@@ -109,12 +109,7 @@ const GithubIcon = forwardRef<GithubIconHandle, GithubIconProps>(
     );
 
     return (
-      <div
-        className={cn(className)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        {...props}
-      >
+      <div className={cn(className)} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} {...props}>
         <svg
           fill="none"
           height={size}
@@ -132,12 +127,7 @@ const GithubIcon = forwardRef<GithubIconHandle, GithubIconProps>(
             initial="normal"
             variants={BODY_VARIANTS}
           />
-          <motion.path
-            animate={tailControls}
-            d="M9 18c-4.51 2-5-2-7-2"
-            initial="normal"
-            variants={TAIL_VARIANTS}
-          />
+          <motion.path animate={tailControls} d="M9 18c-4.51 2-5-2-7-2" initial="normal" variants={TAIL_VARIANTS} />
         </svg>
       </div>
     );
