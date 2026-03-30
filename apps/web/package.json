@@ -1,0 +1,34 @@
+{
+  "name": "@expent/web",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expent/types": "workspace:*",
+    "@expent/ui": "workspace:*",
+    "@tailwindcss/vite": "^4.2.2",
+    "@tanstack/react-router": "^1.168.8",
+    "@tanstack/react-start": "^1.167.13",
+    "@tanstack/router-plugin": "^1.167.9",
+    "lucide-react": "^1.7.0",
+    "nitro": "latest",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwindcss": "^4.2.2",
+    "vite-tsconfig-paths": "^6.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.3"
+  }
+}
