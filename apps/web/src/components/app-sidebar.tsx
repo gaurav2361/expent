@@ -8,6 +8,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@expent/ui/components/sidebar";
+import { Link } from "@tanstack/react-router";
 import {
   BookOpenIcon,
   BotIcon,
@@ -154,11 +155,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem render={<a href="/dashboard" />}>
-            <div className="flex h-8 items-center px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <SidebarMenuItem>
+            <Link
+              to="/"
+              className="flex h-8 items-center px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+            >
               <Logo className="h-6 w-auto group-data-[collapsible=icon]:hidden" />
               <LogoIcon className="size-6 hidden group-data-[collapsible=icon]:block" />
-            </div>
+            </Link>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

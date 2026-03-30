@@ -1,6 +1,9 @@
 import appCss from "@expent/ui/globals.css?url";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { NotFoundPage } from "@/components/not-found";
 import { ThemeProvider } from "@/components/theme-provider";
+import { queryClient } from "@/lib/query-client";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -24,6 +27,7 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootDocument,
+  notFoundComponent: NotFoundPage,
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -33,9 +37,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          {children}
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+            {children}
+          </ThemeProvider>
+        </QueryClientProvider>
         <Scripts />
       </body>
     </html>

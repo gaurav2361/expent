@@ -25,7 +25,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@expent/ui/*": ["../../packages/ui/src/*"],
-      "@expent/types": ["../../packages/types/src/*"]
+      "@expent/types": ["../../packages/types/src/*"],
+      "content-collections": ["./.content-collections/generated"]
     }
   }
 }
