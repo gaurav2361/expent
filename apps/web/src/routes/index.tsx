@@ -2,13 +2,13 @@ import { Button } from "@expent/ui/components/button";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Logo } from "@/components/logo";
-import { auth } from "@/lib/auth";
+import { useSession } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({ component: App });
 
 function App() {
   const navigate = useNavigate();
-  const session = auth.useSession();
+  const session = useSession();
 
   useEffect(() => {
     if (session.data) {

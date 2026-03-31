@@ -19,6 +19,7 @@
     "@tanstack/router-plugin": "^1.167.9",
     "@types/pg": "^8.20.0",
     "better-auth": "^1.5.6",
+    "better-sqlite3": "^12.8.0",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
     "nitro": "latest",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@content-collections/core": "^0.14.3",
     "@content-collections/vite": "^0.2.9",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

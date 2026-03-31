@@ -1,4 +1,4 @@
-use better_auth::adapters::SqlxAdapter;
+use better_auth::adapters::SqliteAdapter;
 use better_auth::plugins::{EmailPasswordPlugin, SessionManagementPlugin};
 use better_auth::{AuthBuilder, AuthConfig, BetterAuth, AuthRequest, HttpMethod};
 use axum::{
@@ -15,7 +15,7 @@ pub struct AuthSession {
 impl<S> FromRequestParts<S> for AuthSession
 where
     S: Send + Sync,
-    Arc<BetterAuth<SqlxAdapter>>: FromRef<S>,
+    Arc<BetterAuth<SqliteAdapter>>: FromRef<S>,
 {
     type Rejection = (StatusCode, String);
 
@@ -60,7 +60,7 @@ where
     }
 }
 
-pub async fn init_auth(database_url: &str) -> Result<Arc<BetterAuth<SqlxAdapter>>, Box<dyn std::error::Error>> {
+pub async fn init_auth(database_url: &str) -> Result<Arc<BetterAuth<SqliteAdapter>>, Box<dyn std::error::Error>> {
     let auth_secret = env::var("BETTER_AUTH_SECRET")
         .or_else(|_| env::var("BETTERAUTH_SECRET"))
         .expect("BETTER_AUTH_SECRET must be set");
@@ -84,7 +84,7 @@ pub async fn init_auth(database_url: &str) -> Result<Arc<BetterAuth<SqlxAdapter>
     trusted_origins.sort();
     trusted_origins.dedup();
 
-    let adapter = SqlxAdapter::new(database_url).await?;
+    let adapter = SqliteAdapter::new(database_url).await?;
 
     let enable_signup = env::var("ENABLE_SIGNUP")
         .map(|v| v != "false")
