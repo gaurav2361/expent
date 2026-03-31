@@ -53,13 +53,11 @@ export function SignIn() {
         <AuthDivider>OR</AuthDivider>
 
         <form className="space-y-2 text-center" onSubmit={handleSignIn}>
-          <p className="text-muted-foreground text-xs">
-            Enter your credentials to sign in
-          </p>
+          <p className="text-muted-foreground text-xs">Enter your credentials to sign in</p>
           <InputGroup>
-            <InputGroupInput 
-              placeholder="your.email@example.com" 
-              type="email" 
+            <InputGroupInput
+              placeholder="your.email@example.com"
+              type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -70,9 +68,9 @@ export function SignIn() {
           </InputGroup>
 
           <InputGroup>
-            <InputGroupInput 
-              placeholder="Password" 
-              type="password" 
+            <InputGroupInput
+              placeholder="Password"
+              type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

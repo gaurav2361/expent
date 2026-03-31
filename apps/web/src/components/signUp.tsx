@@ -58,20 +58,20 @@ export function SignUp() {
 
         <form className="space-y-2" onSubmit={handleSignUp}>
           <InputGroup>
-            <InputGroupInput 
-              placeholder="Name" 
-              type="text" 
-              required 
+            <InputGroupInput
+              placeholder="Name"
+              type="text"
+              required
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </InputGroup>
-          
+
           <InputGroup>
-            <InputGroupInput 
-              placeholder="m@example.com" 
-              type="email" 
-              required 
+            <InputGroupInput
+              placeholder="m@example.com"
+              type="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -82,19 +82,19 @@ export function SignUp() {
 
           <div className="grid grid-cols-2 gap-2">
             <InputGroup>
-              <InputGroupInput 
-                placeholder="Password" 
-                type="password" 
-                required 
+              <InputGroupInput
+                placeholder="Password"
+                type="password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </InputGroup>
             <InputGroup>
-              <InputGroupInput 
-                placeholder="Confirm Password" 
-                type="password" 
-                required 
+              <InputGroupInput
+                placeholder="Confirm Password"
+                type="password"
+                required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
