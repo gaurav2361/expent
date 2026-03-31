@@ -28,12 +28,6 @@ function SubscriptionsComponent() {
   const navigate = useNavigate();
   const session = useSession();
 
-  useEffect(() => {
-    if (!session.isPending && !session.data) {
-      navigate({ to: "/sign-in" });
-    }
-  }, [session.data, session.isPending, navigate]);
-
   const {
     data: potentialSubs,
     isLoading,
@@ -50,6 +44,12 @@ function SubscriptionsComponent() {
     },
     enabled: !!session.data,
   });
+
+  useEffect(() => {
+    if (!session.isPending && !session.data) {
+      navigate({ to: "/sign-in" });
+    }
+  }, [session.data, session.isPending, navigate]);
 
   if (session.isPending) {
     return <div className="flex h-screen items-center justify-center">Loading session...</div>;
