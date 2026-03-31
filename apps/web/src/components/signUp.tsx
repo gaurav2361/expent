@@ -2,14 +2,45 @@
 
 import { Button } from "@expent/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@expent/ui/components/input-group";
-import { Link } from "@tanstack/react-router";
-import { AtSignIcon, ChevronLeftIcon, SparklesIcon } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { AtSignIcon, ChevronLeftIcon } from "lucide-react";
 import { AuthDivider } from "@/components/auth-divider";
 import { AuthShades } from "@/components/auth-shades";
 import { SocialLogins } from "@/components/auth-social";
 import { Logo } from "@/components/logo";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 
 export function SignUp() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    setIsLoading(true);
+    const { data, error } = await authClient.signUp.email({
+      email,
+      password,
+      name,
+    });
+
+    setIsLoading(false);
+    if (error) {
+      alert(error.message || "Failed to sign up");
+    } else {
+      navigate({ to: "/dashboard" });
+    }
+  };
+
   return (
     <div className="relative flex min-h-screen flex-col justify-center px-8">
       <AuthShades variant="flipped" />
@@ -22,12 +53,28 @@ export function SignUp() {
         <Logo className="h-4.5 lg:hidden mx-auto" />
         <div className="flex flex-col space-y-1 text-center">
           <h1 className="font-bold text-2xl tracking-wide">Create your account</h1>
-          <p className="text-sm text-muted-foreground">Enter your email below to create your account</p>
+          <p className="text-sm text-muted-foreground">Enter your details below to create your account</p>
         </div>
 
-        <form className="space-y-2">
+        <form className="space-y-2" onSubmit={handleSignUp}>
           <InputGroup>
-            <InputGroupInput placeholder="m@example.com" type="email" required />
+            <InputGroupInput 
+              placeholder="Name" 
+              type="text" 
+              required 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </InputGroup>
+          
+          <InputGroup>
+            <InputGroupInput 
+              placeholder="m@example.com" 
+              type="email" 
+              required 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
             <InputGroupAddon align="inline-start">
               <AtSignIcon />
             </InputGroupAddon>
@@ -35,15 +82,27 @@ export function SignUp() {
 
           <div className="grid grid-cols-2 gap-2">
             <InputGroup>
-              <InputGroupInput placeholder="Password" type="password" required />
+              <InputGroupInput 
+                placeholder="Password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </InputGroup>
             <InputGroup>
-              <InputGroupInput placeholder="Confirm Password" type="password" required />
+              <InputGroupInput 
+                placeholder="Confirm Password" 
+                type="password" 
+                required 
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
             </InputGroup>
           </div>
 
-          <Button className="w-full" type="button">
-            Create account
+          <Button className="w-full" type="submit" disabled={isLoading}>
+            {isLoading ? "Creating account..." : "Create account"}
           </Button>
         </form>
 
