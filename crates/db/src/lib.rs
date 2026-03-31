@@ -1,7 +1,7 @@
+use chrono::{DateTime, Duration, FixedOffset, Utc};
+use rust_decimal::Decimal;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
-use rust_decimal::Decimal;
-use chrono::{DateTime, FixedOffset, Utc, Duration};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -70,7 +70,7 @@ impl SmartMerge {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 user_id: Set(user_id.to_string()),
                 amount: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
-                direction: Set("OUT".to_string()), 
+                direction: Set("OUT".to_string()),
                 date: Set(ocr_data.date.unwrap_or_else(|| Utc::now().into())),
                 source: Set("OCR".to_string()),
                 status: Set("COMPLETED".to_string()),
@@ -82,7 +82,7 @@ impl SmartMerge {
 
             let metadata = entities::transaction_metadata::ActiveModel {
                 transaction_id: Set(result.id.clone()),
-                upi_txn_id: Set(ocr_data.upi_id.clone()), 
+                upi_txn_id: Set(ocr_data.upi_id.clone()),
                 app_txn_id: Set(None),
                 app_name: Set(None),
                 contact_number: Set(None),
@@ -104,7 +104,7 @@ impl SmartMerge {
             let purchase = entities::purchase::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 transaction_id: Set(txn.id.clone()),
-                vendor: Set("Extracted Vendor".to_string()), 
+                vendor: Set("Extracted Vendor".to_string()),
                 total: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
                 order_id: Set(None),
             };
@@ -194,10 +194,12 @@ impl SmartMerge {
         }
 
         if request.status == "GROUP_INVITE" {
-            let metadata: serde_json::Value = serde_json::from_value(request.transaction_data.clone())
-                .map_err(|e| DbErr::Custom(format!("Failed to parse invite data: {}", e)))?;
-            
-            let group_id = metadata["group_id"].as_str()
+            let metadata: serde_json::Value =
+                serde_json::from_value(request.transaction_data.clone())
+                    .map_err(|e| DbErr::Custom(format!("Failed to parse invite data: {}", e)))?;
+
+            let group_id = metadata["group_id"]
+                .as_str()
                 .ok_or(DbErr::Custom("Missing group_id in invite".to_string()))?;
 
             let user_group = entities::user_group::ActiveModel {
@@ -212,15 +214,23 @@ impl SmartMerge {
             return request.update(db).await;
         }
 
-        let original_txn: serde_json::Value = serde_json::from_value(request.transaction_data.clone())
-            .map_err(|e| DbErr::Custom(format!("Failed to parse transaction data: {}", e)))?;
+        let original_txn: serde_json::Value =
+            serde_json::from_value(request.transaction_data.clone())
+                .map_err(|e| DbErr::Custom(format!("Failed to parse transaction data: {}", e)))?;
 
         let mirrored_txn = entities::transaction::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
             user_id: Set(receiver_id.to_string()),
-            amount: Set(original_txn["amount"].as_str().and_then(|s| Decimal::from_str(s).ok()).unwrap_or(Decimal::ZERO)),
-            direction: Set("IN".to_string()), 
-            date: Set(original_txn["date"].as_str().and_then(|s| DateTime::parse_from_rfc3339(s).ok()).map(|d| d.with_timezone(&FixedOffset::east_opt(0).unwrap())).unwrap_or_else(|| Utc::now().into())),
+            amount: Set(original_txn["amount"]
+                .as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or(Decimal::ZERO)),
+            direction: Set("IN".to_string()),
+            date: Set(original_txn["date"]
+                .as_str()
+                .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                .map(|d| d.with_timezone(&FixedOffset::east_opt(0).unwrap()))
+                .unwrap_or_else(|| Utc::now().into())),
             source: Set("P2P".to_string()),
             status: Set("COMPLETED".to_string()),
             purpose_tag: Set(original_txn["purpose"].as_str().map(|s| s.to_string())),
@@ -249,7 +259,10 @@ impl SmartMerge {
 
         let mut groups: HashMap<(String, Decimal), Vec<DateTime<FixedOffset>>> = HashMap::new();
         for txn in transactions {
-            let name = txn.purpose_tag.clone().unwrap_or_else(|| "Unknown".to_string());
+            let name = txn
+                .purpose_tag
+                .clone()
+                .unwrap_or_else(|| "Unknown".to_string());
             let entry = groups.entry((name, txn.amount)).or_default();
             entry.push(txn.date);
         }
@@ -258,14 +271,14 @@ impl SmartMerge {
         for ((name, amount), mut dates) in groups {
             if dates.len() >= 2 {
                 dates.sort();
-                
+
                 let mut detected_cycle = None;
                 let start_date = dates[0];
                 let last_date = dates.last().unwrap().clone();
 
                 for i in 0..dates.len() - 1 {
-                    let diff = (dates[i+1] - dates[i]).num_days();
-                    
+                    let diff = (dates[i + 1] - dates[i]).num_days();
+
                     if (6..=8).contains(&diff) {
                         detected_cycle = Some("WEEKLY");
                     } else if (27..=33).contains(&diff) {

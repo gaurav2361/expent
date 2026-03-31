@@ -4,7 +4,10 @@ use ts_rs::TS;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, TS)]
 #[sea_orm(table_name = "transaction_metadata")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/transaction_metadata.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/transaction_metadata.ts"
+)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub transaction_id: String,

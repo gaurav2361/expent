@@ -4,7 +4,10 @@ use ts_rs::TS;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, TS)]
 #[sea_orm(table_name = "sub_alerts")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/sub_alert.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/sub_alert.ts"
+)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,

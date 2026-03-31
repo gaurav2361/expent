@@ -14,13 +14,36 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(Users::Id).string().primary_key())
                     .col(ColumnDef::new(Users::Name).string().not_null())
-                    .col(ColumnDef::new(Users::Email).string().unique_key().not_null())
-                    .col(ColumnDef::new(Users::EmailVerified).boolean().not_null().default(false))
+                    .col(
+                        ColumnDef::new(Users::Email)
+                            .string()
+                            .unique_key()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Users::EmailVerified)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
                     .col(ColumnDef::new(Users::Image).string())
                     .col(ColumnDef::new(Users::Phone).string())
-                    .col(ColumnDef::new(Users::IsActive).boolean().not_null().default(true))
-                    .col(ColumnDef::new(Users::CreatedAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Users::UpdatedAt).timestamp_with_time_zone().not_null())
+                    .col(
+                        ColumnDef::new(Users::IsActive)
+                            .boolean()
+                            .not_null()
+                            .default(true),
+                    )
+                    .col(
+                        ColumnDef::new(Users::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Users::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -32,10 +55,27 @@ impl MigrationTrait for Migration {
                     .table(Sessions::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(Sessions::Id).string().primary_key())
-                    .col(ColumnDef::new(Sessions::ExpiresAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Sessions::Token).string().unique_key().not_null())
-                    .col(ColumnDef::new(Sessions::CreatedAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Sessions::UpdatedAt).timestamp_with_time_zone().not_null())
+                    .col(
+                        ColumnDef::new(Sessions::ExpiresAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Sessions::Token)
+                            .string()
+                            .unique_key()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Sessions::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Sessions::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Sessions::IpAddress).string())
                     .col(ColumnDef::new(Sessions::UserAgent).string())
                     .col(ColumnDef::new(Sessions::UserId).string().not_null())
@@ -67,8 +107,16 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Accounts::RefreshTokenExpiresAt).timestamp_with_time_zone())
                     .col(ColumnDef::new(Accounts::Scope).string())
                     .col(ColumnDef::new(Accounts::Password).string())
-                    .col(ColumnDef::new(Accounts::CreatedAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Accounts::UpdatedAt).timestamp_with_time_zone().not_null())
+                    .col(
+                        ColumnDef::new(Accounts::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Accounts::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-accounts-user_id")
@@ -87,9 +135,17 @@ impl MigrationTrait for Migration {
                     .table(Verifications::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(Verifications::Id).string().primary_key())
-                    .col(ColumnDef::new(Verifications::Identifier).string().not_null())
+                    .col(
+                        ColumnDef::new(Verifications::Identifier)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Verifications::Value).string().not_null())
-                    .col(ColumnDef::new(Verifications::ExpiresAt).timestamp_with_time_zone().not_null())
+                    .col(
+                        ColumnDef::new(Verifications::ExpiresAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Verifications::CreatedAt).timestamp_with_time_zone())
                     .col(ColumnDef::new(Verifications::UpdatedAt).timestamp_with_time_zone())
                     .to_owned(),
@@ -104,8 +160,18 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(UserUpiIds::Id).string().primary_key())
                     .col(ColumnDef::new(UserUpiIds::UserId).string().not_null())
-                    .col(ColumnDef::new(UserUpiIds::UpiId).string().unique_key().not_null())
-                    .col(ColumnDef::new(UserUpiIds::IsPrimary).boolean().not_null().default(false))
+                    .col(
+                        ColumnDef::new(UserUpiIds::UpiId)
+                            .string()
+                            .unique_key()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(UserUpiIds::IsPrimary)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
                     .col(ColumnDef::new(UserUpiIds::Label).string())
                     .foreign_key(
                         ForeignKey::create()
@@ -126,7 +192,12 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Contacts::Id).string().primary_key())
                     .col(ColumnDef::new(Contacts::Name).string().not_null())
                     .col(ColumnDef::new(Contacts::Phone).string())
-                    .col(ColumnDef::new(Contacts::IsPinned).boolean().not_null().default(false))
+                    .col(
+                        ColumnDef::new(Contacts::IsPinned)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -137,10 +208,22 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(ContactIdentifiers::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(ContactIdentifiers::Id).string().primary_key())
-                    .col(ColumnDef::new(ContactIdentifiers::ContactId).string().not_null())
+                    .col(
+                        ColumnDef::new(ContactIdentifiers::Id)
+                            .string()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(ContactIdentifiers::ContactId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(ContactIdentifiers::Type).string().not_null())
-                    .col(ColumnDef::new(ContactIdentifiers::Value).string().not_null())
+                    .col(
+                        ColumnDef::new(ContactIdentifiers::Value)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(ContactIdentifiers::LinkedUserId).string())
                     .foreign_key(
                         ForeignKey::create()
@@ -160,7 +243,11 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(ContactLinks::UserId).string().not_null())
                     .col(ColumnDef::new(ContactLinks::ContactId).string().not_null())
-                    .primary_key(Index::create().col(ContactLinks::UserId).col(ContactLinks::ContactId))
+                    .primary_key(
+                        Index::create()
+                            .col(ContactLinks::UserId)
+                            .col(ContactLinks::ContactId),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-contact_links-user_id")
@@ -187,7 +274,11 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Transactions::UserId).string().not_null())
                     .col(ColumnDef::new(Transactions::Amount).decimal().not_null())
                     .col(ColumnDef::new(Transactions::Direction).string().not_null())
-                    .col(ColumnDef::new(Transactions::Date).timestamp_with_time_zone().not_null())
+                    .col(
+                        ColumnDef::new(Transactions::Date)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Transactions::Source).string().not_null())
                     .col(ColumnDef::new(Transactions::Status).string().not_null())
                     .col(ColumnDef::new(Transactions::PurposeTag).string())
@@ -207,7 +298,11 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(TransactionMetadata::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(TransactionMetadata::TransactionId).string().primary_key())
+                    .col(
+                        ColumnDef::new(TransactionMetadata::TransactionId)
+                            .string()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(TransactionMetadata::UpiTxnId).string())
                     .col(ColumnDef::new(TransactionMetadata::AppTxnId).string())
                     .col(ColumnDef::new(TransactionMetadata::AppName).string())
@@ -215,7 +310,10 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-transaction_metadata-transaction_id")
-                            .from(TransactionMetadata::Table, TransactionMetadata::TransactionId)
+                            .from(
+                                TransactionMetadata::Table,
+                                TransactionMetadata::TransactionId,
+                            )
                             .to(Transactions::Table, Transactions::Id),
                     )
                     .to_owned(),
@@ -228,9 +326,21 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(TransactionSources::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(TransactionSources::Id).string().primary_key())
-                    .col(ColumnDef::new(TransactionSources::TransactionId).string().not_null())
-                    .col(ColumnDef::new(TransactionSources::SourceType).string().not_null())
+                    .col(
+                        ColumnDef::new(TransactionSources::Id)
+                            .string()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(TransactionSources::TransactionId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(TransactionSources::SourceType)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(TransactionSources::R2FileUrl).string())
                     .col(ColumnDef::new(TransactionSources::RawMetadata).json())
                     .foreign_key(
@@ -250,7 +360,11 @@ impl MigrationTrait for Migration {
                     .table(TxnParties::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(TxnParties::Id).string().primary_key())
-                    .col(ColumnDef::new(TxnParties::TransactionId).string().not_null())
+                    .col(
+                        ColumnDef::new(TxnParties::TransactionId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(TxnParties::UserId).string())
                     .col(ColumnDef::new(TxnParties::ContactId).string())
                     .col(ColumnDef::new(TxnParties::Role).string().not_null())
@@ -271,9 +385,21 @@ impl MigrationTrait for Migration {
                     .table(P2PRequests::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(P2PRequests::Id).string().primary_key())
-                    .col(ColumnDef::new(P2PRequests::SenderUserId).string().not_null())
-                    .col(ColumnDef::new(P2PRequests::ReceiverEmail).string().not_null())
-                    .col(ColumnDef::new(P2PRequests::TransactionData).json().not_null())
+                    .col(
+                        ColumnDef::new(P2PRequests::SenderUserId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(P2PRequests::ReceiverEmail)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(P2PRequests::TransactionData)
+                            .json()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(P2PRequests::Status).string().not_null())
                     .col(ColumnDef::new(P2PRequests::LinkedTxnId).string())
                     .foreign_key(
@@ -293,11 +419,23 @@ impl MigrationTrait for Migration {
                     .table(BankStatementRows::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(BankStatementRows::Id).string().primary_key())
-                    .col(ColumnDef::new(BankStatementRows::Date).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(BankStatementRows::Description).string().not_null())
+                    .col(
+                        ColumnDef::new(BankStatementRows::Date)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(BankStatementRows::Description)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(BankStatementRows::Debit).decimal())
                     .col(ColumnDef::new(BankStatementRows::Credit).decimal())
-                    .col(ColumnDef::new(BankStatementRows::Balance).decimal().not_null())
+                    .col(
+                        ColumnDef::new(BankStatementRows::Balance)
+                            .decimal()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -308,9 +446,21 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(StatementTxnMatches::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(StatementTxnMatches::RowId).string().not_null())
-                    .col(ColumnDef::new(StatementTxnMatches::TransactionId).string().not_null())
-                    .col(ColumnDef::new(StatementTxnMatches::Confidence).decimal().not_null())
+                    .col(
+                        ColumnDef::new(StatementTxnMatches::RowId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StatementTxnMatches::TransactionId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StatementTxnMatches::Confidence)
+                            .decimal()
+                            .not_null(),
+                    )
                     .primary_key(
                         Index::create()
                             .col(StatementTxnMatches::RowId)
@@ -325,7 +475,10 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-statement_txn_matches-transaction_id")
-                            .from(StatementTxnMatches::Table, StatementTxnMatches::TransactionId)
+                            .from(
+                                StatementTxnMatches::Table,
+                                StatementTxnMatches::TransactionId,
+                            )
                             .to(Transactions::Table, Transactions::Id),
                     )
                     .to_owned(),
@@ -343,8 +496,16 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Subscriptions::Name).string().not_null())
                     .col(ColumnDef::new(Subscriptions::Amount).decimal().not_null())
                     .col(ColumnDef::new(Subscriptions::Cycle).string().not_null())
-                    .col(ColumnDef::new(Subscriptions::StartDate).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Subscriptions::NextChargeDate).timestamp_with_time_zone().not_null())
+                    .col(
+                        ColumnDef::new(Subscriptions::StartDate)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Subscriptions::NextChargeDate)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Subscriptions::DetectionKeywords).json())
                     .foreign_key(
                         ForeignKey::create()
@@ -362,16 +523,39 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(SubscriptionCharges::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(SubscriptionCharges::Id).string().primary_key())
-                    .col(ColumnDef::new(SubscriptionCharges::SubscriptionId).string().not_null())
+                    .col(
+                        ColumnDef::new(SubscriptionCharges::Id)
+                            .string()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(SubscriptionCharges::SubscriptionId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(SubscriptionCharges::TransactionId).string())
-                    .col(ColumnDef::new(SubscriptionCharges::ChargedOn).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(SubscriptionCharges::Amount).decimal().not_null())
-                    .col(ColumnDef::new(SubscriptionCharges::Status).string().not_null())
+                    .col(
+                        ColumnDef::new(SubscriptionCharges::ChargedOn)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SubscriptionCharges::Amount)
+                            .decimal()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SubscriptionCharges::Status)
+                            .string()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-subscription_charges-subscription_id")
-                            .from(SubscriptionCharges::Table, SubscriptionCharges::SubscriptionId)
+                            .from(
+                                SubscriptionCharges::Table,
+                                SubscriptionCharges::SubscriptionId,
+                            )
                             .to(Subscriptions::Table, Subscriptions::Id),
                     )
                     .to_owned(),
@@ -385,7 +569,11 @@ impl MigrationTrait for Migration {
                     .table(SubAlerts::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(SubAlerts::Id).string().primary_key())
-                    .col(ColumnDef::new(SubAlerts::SubscriptionId).string().not_null())
+                    .col(
+                        ColumnDef::new(SubAlerts::SubscriptionId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(SubAlerts::DaysBefore).integer().not_null())
                     .col(ColumnDef::new(SubAlerts::SentAt).timestamp_with_time_zone())
                     .col(ColumnDef::new(SubAlerts::Channel).string().not_null())
@@ -427,7 +615,11 @@ impl MigrationTrait for Migration {
                     .table(PurchaseItems::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(PurchaseItems::Id).string().primary_key())
-                    .col(ColumnDef::new(PurchaseItems::PurchaseId).string().not_null())
+                    .col(
+                        ColumnDef::new(PurchaseItems::PurchaseId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(PurchaseItems::Name).string().not_null())
                     .col(ColumnDef::new(PurchaseItems::Quantity).integer().not_null())
                     .col(ColumnDef::new(PurchaseItems::Price).decimal().not_null())
@@ -460,27 +652,69 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(PurchaseImports::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(PurchaseItems::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Purchases::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(SubAlerts::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(SubscriptionCharges::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Subscriptions::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(StatementTxnMatches::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(BankStatementRows::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(P2PRequests::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(TxnParties::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(TransactionSources::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(TransactionMetadata::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Transactions::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(ContactLinks::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(ContactIdentifiers::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Contacts::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(UserUpiIds::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Verifications::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Accounts::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Sessions::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Users::Table).to_owned()).await?;
+        manager
+            .drop_table(Table::drop().table(PurchaseImports::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(PurchaseItems::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Purchases::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(SubAlerts::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(SubscriptionCharges::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Subscriptions::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(StatementTxnMatches::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(BankStatementRows::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(P2PRequests::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(TxnParties::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(TransactionSources::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(TransactionMetadata::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Transactions::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(ContactLinks::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(ContactIdentifiers::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Contacts::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(UserUpiIds::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Verifications::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Accounts::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Sessions::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Users::Table).to_owned())
+            .await?;
 
         Ok(())
     }

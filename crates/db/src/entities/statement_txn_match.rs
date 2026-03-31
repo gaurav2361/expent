@@ -4,7 +4,10 @@ use ts_rs::TS;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, TS)]
 #[sea_orm(table_name = "statement_txn_matches")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/statement_txn_match.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/statement_txn_match.ts"
+)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub row_id: String,

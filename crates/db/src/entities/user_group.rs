@@ -4,7 +4,10 @@ use ts_rs::TS;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, TS)]
 #[sea_orm(table_name = "user_groups")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/user_group.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/user_group.ts"
+)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub user_id: String,
