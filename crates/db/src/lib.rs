@@ -40,11 +40,8 @@ impl SmartMerge {
 
         // 2. If existing found, link to it (Smart Merge)
         if !existing_txns.is_empty() {
-            // For now, just return the first match
-            // In reality, we'd check UPI ID in metadata
             let txn = existing_txns[0].clone();
             
-            // Link new source to existing txn
             let source = entities::transaction_source::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 transaction_id: Set(txn.id.clone()),
@@ -99,13 +96,11 @@ impl SmartMerge {
         receiver_email: &str,
         txn_id: &str,
     ) -> Result<entities::p2p_request::Model, DbErr> {
-        // Fetch original transaction
         let txn = entities::transaction::Entity::find_by_id(txn_id.to_string())
             .one(db)
             .await?
             .ok_or(DbErr::Custom("Transaction not found".to_string()))?;
 
-        // Create request
         let request = entities::p2p_request::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
             sender_user_id: Set(sender_id.to_string()),
@@ -116,5 +111,64 @@ impl SmartMerge {
         };
 
         request.insert(db).await
+    }
+
+    pub async fn accept_p2p_request(
+        db: &DatabaseConnection,
+        receiver_id: &str,
+        request_id: &str,
+    ) -> Result<entities::p2p_request::Model, DbErr> {
+        let request = entities::p2p_request::Entity::find_by_id(request_id.to_string())
+            .one(db)
+            .await?
+            .ok_or(DbErr::Custom("Request not found".to_string()))?;
+
+        if request.status != "PENDING" {
+            return Err(DbErr::Custom("Request is not pending".to_string()));
+        }
+
+        let original_txn: entities::transaction::Model = serde_json::from_value(request.transaction_data.clone())
+            .map_err(|e| DbErr::Custom(format!("Failed to parse transaction data: {}", e)))?;
+
+        let mirrored_txn = entities::transaction::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            user_id: Set(receiver_id.to_string()),
+            amount: Set(original_txn.amount),
+            direction: Set(if original_txn.direction == "OUT" { "IN".to_string() } else { "OUT".to_string() }),
+            date: Set(original_txn.date),
+            source: Set("P2P".to_string()),
+            status: Set("COMPLETED".to_string()),
+            purpose_tag: Set(original_txn.purpose_tag),
+        };
+
+        let result_txn = mirrored_txn.insert(db).await?;
+
+        let mut request: entities::p2p_request::ActiveModel = request.into();
+        request.status = Set("MAPPED".to_string());
+        request.linked_txn_id = Set(Some(result_txn.id));
+
+        request.update(db).await
+    }
+
+    pub async fn list_transactions(
+        db: &DatabaseConnection,
+        user_id: &str,
+    ) -> Result<Vec<entities::transaction::Model>, DbErr> {
+        entities::transaction::Entity::find()
+            .filter(entities::transaction::Column::UserId.eq(user_id))
+            .order_by_desc(entities::transaction::Column::Date)
+            .all(db)
+            .await
+    }
+
+    pub async fn list_pending_p2p_requests(
+        db: &DatabaseConnection,
+        email: &str,
+    ) -> Result<Vec<entities::p2p_request::Model>, DbErr> {
+        entities::p2p_request::Entity::find()
+            .filter(entities::p2p_request::Column::ReceiverEmail.eq(email))
+            .filter(entities::p2p_request::Column::Status.eq("PENDING"))
+            .all(db)
+            .await
     }
 }
