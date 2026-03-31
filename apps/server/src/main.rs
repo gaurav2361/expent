@@ -1,6 +1,7 @@
 mod auth;
 
 use crate::auth::AuthSession;
+use crate::auth::adapter::SqliteAdapter;
 use aws_sdk_s3::presigning::PresigningConfig;
 use axum::{
     Router,
@@ -8,10 +9,12 @@ use axum::{
     http::{HeaderName, HeaderValue, Method, StatusCode},
     routing::{get, post},
 };
+use better_auth::AxumIntegration;
 use db::{OcrResult, SmartMerge, SplitDetail};
 use sea_orm::{Database, DatabaseConnection};
 use serde::Deserialize;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -20,7 +23,14 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[derive(Clone)]
 struct AppState {
     db: DatabaseConnection,
+    auth: Arc<better_auth::BetterAuth<SqliteAdapter>>,
     s3_client: aws_sdk_s3::Client,
+}
+
+impl FromRef<AppState> for Arc<better_auth::BetterAuth<SqliteAdapter>> {
+    fn from_ref(state: &AppState) -> Self {
+        state.auth.clone()
+    }
 }
 
 impl FromRef<AppState> for DatabaseConnection {
@@ -34,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG")
-                .unwrap_or_else(|_| "info,server=debug,sqlx=info".into()),
+                .unwrap_or_else(|_| "info,server=debug,better_auth=debug,sqlx=info".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -44,6 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     let db = Database::connect(&database_url).await?;
+    let auth = auth::init_auth(db.clone()).await?;
 
     // S3/R2 Setup
     let endpoint = std::env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set");
@@ -66,8 +77,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let state = AppState {
         db,
+        auth: auth.clone(),
         s3_client,
     };
+
+    let auth_router = auth.clone().axum_router();
 
     let api_router = Router::new()
         .route("/transactions", get(list_transactions_handler))
@@ -87,6 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/upload/presigned", post(get_presigned_url_handler));
 
     let app = Router::new()
+        .nest("/api/auth", auth_router.with_state(auth.clone()))
         .nest("/api", api_router)
         .layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(
@@ -158,7 +173,7 @@ async fn list_pending_p2p_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::p2p_request::Model>>, (StatusCode, String)> {
-    let email = session.user.email.clone();
+    let email = session.user.email.clone().ok_or((StatusCode::BAD_REQUEST, "Email missing".to_string()))?;
     let result = SmartMerge::list_pending_p2p_requests(&state.db, &email)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
