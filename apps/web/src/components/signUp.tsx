@@ -9,7 +9,7 @@ import { AuthShades } from "@/components/auth-shades";
 import { SocialLogins } from "@/components/auth-social";
 import { Logo } from "@/components/logo";
 import { useState } from "react";
-import { authClient } from "@/lib/auth-client";
+import { signUp } from "@/lib/auth";
 
 export function SignUp() {
   const [email, setEmail] = useState("");
@@ -27,7 +27,7 @@ export function SignUp() {
     }
 
     setIsLoading(true);
-    const { data, error } = await authClient.signUp.email({
+    const { data, error } = await signUp.email({
       email,
       password,
       name,
