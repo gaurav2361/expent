@@ -1,7 +1,7 @@
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
-use chrono::{DateTime, FixedOffset, Datelike, Utc, Duration};
+use chrono::{DateTime, FixedOffset, Utc, Duration};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -260,8 +260,8 @@ impl SmartMerge {
                 dates.sort();
                 
                 let mut detected_cycle = None;
-                let mut start_date = dates[0];
-                let mut last_date = dates.last().unwrap().clone();
+                let start_date = dates[0];
+                let last_date = dates.last().unwrap().clone();
 
                 for i in 0..dates.len() - 1 {
                     let diff = (dates[i+1] - dates[i]).num_days();

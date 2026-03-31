@@ -19,7 +19,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@expent/ui/components/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { PlusIcon, UsersIcon, UserPlusIcon, ReceiptIcon, ChevronRightIcon } from "lucide-react";
+import { PlusIcon, UsersIcon, UserPlusIcon, ReceiptIcon, ChevronRightIcon, InfoIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@expent/ui/components/tooltip";
 
 export const Route = createFileRoute("/dashboard/p2p/shared")({
   component: SharedLedgersComponent,
@@ -98,45 +99,66 @@ function GroupDetails({ group }: { group: any }) {
     });
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <ReceiptIcon className="h-4 w-4" /> Group Activity
+                    <ReceiptIcon className="h-4 w-4 text-primary" /> Recent Activity
                 </h3>
+                <div className="flex gap-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
+                                <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Transactions shared directly with this group</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
             </div>
             
             {isLoading ? (
-                <div className="text-center py-10 text-muted-foreground">Loading activity...</div>
+                <div className="space-y-3">
+                    <div className="h-12 w-full bg-muted animate-pulse rounded-md" />
+                    <div className="h-12 w-full bg-muted animate-pulse rounded-md" />
+                    <div className="h-12 w-full bg-muted animate-pulse rounded-md" />
+                </div>
             ) : !transactions || transactions.length === 0 ? (
-                <div className="text-center py-10 border rounded-lg border-dashed text-muted-foreground">
-                    No shared transactions in this ledger yet.
+                <div className="text-center py-16 border rounded-xl border-dashed bg-muted/10">
+                    <ReceiptIcon className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">No shared transactions yet.</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Upload a receipt and use 'Split' to see it here.</p>
                 </div>
             ) : (
-                <div className="rounded-md border overflow-hidden">
+                <div className="rounded-xl border overflow-hidden bg-background">
                     <Table>
-                        <TableHeader className="bg-muted/50">
+                        <TableHeader className="bg-muted/30">
                             <TableRow>
-                                <TableHead className="w-[100px]">Date</TableHead>
+                                <TableHead className="px-4">Date</TableHead>
                                 <TableHead>Description</TableHead>
-                                <TableHead>Paid By</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right px-4">Amount</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {transactions.map((txn: any) => (
-                                <TableRow key={txn.id}>
-                                    <TableCell className="text-xs">
-                                        {new Date(txn.date).toLocaleDateString()}
+                                <TableRow key={txn.id} className="hover:bg-muted/20 transition-colors">
+                                    <TableCell className="px-4 text-xs text-muted-foreground">
+                                        {new Date(txn.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
                                     </TableCell>
                                     <TableCell className="font-medium">
-                                        {txn.purpose_tag || "Shared Expense"}
+                                        <div className="flex flex-col">
+                                            <span>{txn.purpose_tag || "Group Expense"}</span>
+                                            <span className="text-[10px] text-muted-foreground italic">via {txn.source}</span>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline" className="text-[10px]">
-                                            {txn.user_id === "me" ? "You" : "Member"}
+                                        <Badge variant="secondary" className="text-[10px] h-5">
+                                            {txn.status}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="text-right font-mono font-bold">
+                                    <TableCell className="text-right px-4 font-mono font-bold text-sm">
                                         ₹{parseFloat(txn.amount).toLocaleString()}
                                     </TableCell>
                                 </TableRow>
@@ -145,6 +167,23 @@ function GroupDetails({ group }: { group: any }) {
                     </Table>
                 </div>
             )}
+
+            {/* Split Visualization Placeholder */}
+            <div className="pt-4 mt-4 border-t border-dashed">
+                <h4 className="text-sm font-semibold mb-3">Itemized Split Status</h4>
+                <div className="grid gap-2">
+                    <div className="p-3 rounded-lg border bg-muted/10 flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs text-primary">CH</div>
+                            <div>
+                                <p className="font-medium">Shared with 3 people</p>
+                                <p className="text-[10px] text-muted-foreground">₹450.00 total split value</p>
+                            </div>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] border-orange-200 text-orange-700 bg-orange-50">2 Pending</Badge>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
@@ -256,10 +295,12 @@ function SharedLedgersComponent() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {/* Sidebar List of Groups */}
             <div className="lg:col-span-1 space-y-4">
                 {isLoading ? (
-                    <div className="text-center py-10">Loading ledgers...</div>
+                    <div className="space-y-3">
+                        <div className="h-24 w-full bg-muted animate-pulse rounded-lg" />
+                        <div className="h-24 w-full bg-muted animate-pulse rounded-lg" />
+                    </div>
                 ) : groups?.length === 0 ? (
                     <Card className="border-dashed">
                         <CardContent className="flex flex-col items-center justify-center py-10 text-center">
@@ -271,25 +312,25 @@ function SharedLedgersComponent() {
                     groups.map((group: any) => (
                         <Card 
                             key={group.id} 
-                            className={`hover:border-primary/50 transition-all cursor-pointer group ${selectedGroup?.id === group.id ? 'border-primary ring-1 ring-primary/20' : ''}`}
+                            className={`hover:border-primary/50 transition-all cursor-pointer group ${selectedGroup?.id === group.id ? 'border-primary ring-1 ring-primary/20 shadow-sm' : ''}`}
                             onClick={() => setSelectedGroup(group)}
                         >
                             <CardHeader className="p-4 space-y-0">
                                 <div className="flex items-start justify-between">
                                     <div className="space-y-1">
                                         <CardTitle className="text-base">{group.name}</CardTitle>
-                                        <CardDescription className="text-xs line-clamp-1">{group.description || "Personal Shared Ledger"}</CardDescription>
+                                        <CardDescription className="text-xs line-clamp-1 italic">{group.description || "Active Shared Ledger"}</CardDescription>
                                     </div>
                                     <InviteDialog groupId={group.id} groupName={group.name} />
                                 </div>
                             </CardHeader>
                             <CardContent className="px-4 pb-4 pt-0">
                                 <div className="flex items-center justify-between mt-2">
-                                    <div className="flex items-center text-[10px] text-muted-foreground">
+                                    <div className="flex items-center text-[10px] text-muted-foreground font-medium">
                                         <UsersIcon className="mr-1 h-3 w-3" />
                                         Created {new Date(group.created_at).toLocaleDateString()}
                                     </div>
-                                    <ChevronRightIcon className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                                    <ChevronRightIcon className={`h-4 w-4 text-muted-foreground transition-transform ${selectedGroup?.id === group.id ? 'translate-x-1 text-primary' : 'group-hover:translate-x-1'}`} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -297,18 +338,20 @@ function SharedLedgersComponent() {
                 )}
             </div>
 
-            {/* Main Content Area: Group Details */}
             <div className="lg:col-span-2">
                 {selectedGroup ? (
-                    <Card className="min-h-[400px]">
-                        <CardHeader className="border-b bg-muted/30">
+                    <Card className="min-h-[500px] shadow-md border-primary/5">
+                        <CardHeader className="border-b bg-muted/10">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <CardTitle className="text-xl">{selectedGroup.name}</CardTitle>
-                                    <CardDescription>{selectedGroup.description || "Shared Ledger Details"}</CardDescription>
+                                    <CardTitle className="text-xl flex items-center gap-2">
+                                        {selectedGroup.name}
+                                        <Badge variant="outline" className="text-[10px] font-normal px-2">ID: {selectedGroup.id.substring(0, 8)}</Badge>
+                                    </CardTitle>
+                                    <CardDescription>{selectedGroup.description || "Shared ledger details and activity."}</CardDescription>
                                 </div>
-                                <Button variant="outline" size="sm">
-                                    <UsersIcon className="mr-2 h-4 w-4" /> Manage Members
+                                <Button variant="outline" size="sm" className="shadow-none">
+                                    <UsersIcon className="mr-2 h-4 w-4" /> Members
                                 </Button>
                             </div>
                         </CardHeader>
@@ -317,11 +360,13 @@ function SharedLedgersComponent() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <Card className="flex flex-col items-center justify-center min-h-[400px] border-dashed">
-                        <UsersIcon className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                        <h3 className="text-lg font-medium text-muted-foreground">Select a ledger to view details</h3>
-                        <p className="text-sm text-muted-foreground/60 max-w-xs text-center mt-2">
-                            Choose a shared ledger from the left to see group activity, split status, and manage members.
+                    <Card className="flex flex-col items-center justify-center min-h-[500px] border-dashed bg-muted/5">
+                        <div className="bg-muted p-4 rounded-full mb-4">
+                            <UsersIcon className="h-10 w-10 text-muted-foreground/40" />
+                        </div>
+                        <h3 className="text-lg font-medium text-muted-foreground">Select a Ledger</h3>
+                        <p className="text-sm text-muted-foreground/60 max-w-xs text-center mt-2 px-6">
+                            Choose a shared ledger from the left sidebar to view group activity, pending splits, and manage your circle.
                         </p>
                     </Card>
                 )}
