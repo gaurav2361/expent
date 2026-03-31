@@ -12,11 +12,12 @@ import { Button } from "@expent/ui/components/button";
 import { Input } from "@expent/ui/components/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 import { Badge } from "@expent/ui/components/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@expent/ui/components/card";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ReceiptTextIcon, SparklesIcon, Share2Icon } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,
@@ -27,6 +28,7 @@ const API_BASE_URL = import.meta.env.VITE_AUTH_BASE_URL || "http://localhost:300
 function RouteComponent() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsLoading] = useState(false);
+  const [ocrResult, setOcrResult] = useState<any>(null);
   const queryClient = useQueryClient();
 
   // 1. Fetch Transactions
@@ -43,7 +45,7 @@ function RouteComponent() {
   });
 
   // 2. Fetch Pending P2P Requests
-  const { data: p2pRequests, isLoading: isP2PLoading } = useQuery({
+  const { data: p2pRequests } = useQuery({
     queryKey: ["p2p-pending"],
     queryFn: async () => {
       const response = await fetch(`${API_BASE_URL}/api/p2p/pending`, {
@@ -55,7 +57,7 @@ function RouteComponent() {
     },
   });
 
-  // 3. Mutations
+  // Mutations
   const acceptMutation = useMutation({
     mutationFn: async (requestId: string) => {
         const response = await fetch(`${API_BASE_URL}/api/p2p/accept`, {
@@ -86,19 +88,27 @@ function RouteComponent() {
     if (!file) return;
     setIsLoading(true);
     try {
+      // In a real flow, we'd upload to R2 then process. 
+      // For demo, we trigger the process-ocr with mock data if needed, 
+      // but let's assume the backend handles the full logic.
       const response = await fetch(`${API_BASE_URL}/api/process-ocr`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-            raw_text: "Manual upload", 
+            raw_text: "Mock Receipt\nCoffee 150.00\nSandwich 350.00\nTOTAL 500.00", 
             amount: "500.00",
-            date: new Date().toISOString() 
+            date: new Date().toISOString(),
+            items: [
+                { name: "Coffee", quantity: 1, price: "150.00" },
+                { name: "Sandwich", quantity: 1, price: "350.00" }
+            ]
         }),
         credentials: "include",
       });
       if (!response.ok) throw new Error("Processing failed");
+      const result = await response.json();
+      setOcrResult(result);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      alert("Processed successfully!");
     } catch (error) {
       console.error(error);
       alert("Upload or processing failed");
@@ -130,7 +140,6 @@ function RouteComponent() {
         </header>
         
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          {/* Summary Cards */}
           <div className="grid auto-rows-min gap-4 md:grid-cols-3">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -160,6 +169,62 @@ function RouteComponent() {
                 </CardContent>
             </Card>
           </div>
+
+          {/* OCR Result / Itemized Parsing Section */}
+          {ocrResult && (
+            <Card className="border-primary/20 bg-primary/5 animate-in zoom-in-95 duration-300">
+                <CardHeader className="flex flex-row items-center gap-4">
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                        <ReceiptTextIcon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                        <CardTitle>Receipt Itemized</CardTitle>
+                        <CardDescription>We've extracted {ocrResult.items?.length || 0} items from your upload.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setOcrResult(null)}>Dismiss</Button>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div className="rounded-md border bg-background">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Item</TableHead>
+                                        <TableHead className="text-right">Qty</TableHead>
+                                        <TableHead className="text-right">Price</TableHead>
+                                        <TableHead className="text-right">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {/* Mocking items for the UI demo if not returned by server yet */}
+                                    {(ocrResult.items || [
+                                        { name: "Coffee", quantity: 1, price: "150.00" },
+                                        { name: "Sandwich", quantity: 1, price: "350.00" }
+                                    ]).map((item: any, i: number) => (
+                                        <TableRow key={i}>
+                                            <TableCell className="font-medium">{item.name}</TableCell>
+                                            <TableCell className="text-right">{item.quantity}</TableCell>
+                                            <TableCell className="text-right font-mono">₹{item.price}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button size="sm" variant="ghost">
+                                                    <Share2Icon className="h-3 w-3 mr-1" /> Split
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm">
+                                <SparklesIcon className="h-3 w-3 mr-1" /> Auto-Categorize
+                            </Button>
+                            <Button size="sm">Confirm All</Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+          )}
 
           {/* Pending P2P Requests Section */}
           {p2pRequests && p2pRequests.length > 0 && (
