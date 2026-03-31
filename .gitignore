@@ -3,6 +3,15 @@ node_modules
 .direnv
 .pnp
 .pnp.js
+/target
+.venv/
+venv/
+__pycache__/
+*/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ruff_cache/
 
 # Local env files
 .env
@@ -17,9 +26,6 @@ coverage
 # Turbo
 .turbo
 
-# Vercel
-.vercel
-
 # Build Outputs
 dist
 .output
@@ -28,14 +34,9 @@ dist
 .vinxi
 
 # Debug
-npm-debug.log*
+pnpm-debug.log*
 
 # Misc
 .content-collections
 .DS_Store
 *.pem
-
-
-# Added by cargo
-
-/target
