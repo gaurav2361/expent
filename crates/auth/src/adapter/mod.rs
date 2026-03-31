@@ -16,6 +16,3 @@ impl SqliteAdapter {
         Self { db }
     }
 }
-
-// Note: DatabaseAdapter is blanket-implemented by better-auth
-// when all 10 persistence traits are implemented.
