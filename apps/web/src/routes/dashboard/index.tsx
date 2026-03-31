@@ -18,17 +18,20 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReceiptTextIcon, SparklesIcon, Share2Icon } from "lucide-react";
+import { SplitDialog } from "@/components/split-dialog";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,
 });
 
-const API_BASE_URL = import.meta.env.VITE_AUTH_BASE_URL || "http://localhost:3001";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
 function RouteComponent() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<any>(null);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [selectedTxn, setSelectedTxn] = useState<{id: string, amount: string} | null>(null);
   const queryClient = useQueryClient();
 
   // 1. Fetch Transactions
@@ -88,25 +91,40 @@ function RouteComponent() {
     if (!file) return;
     setIsLoading(true);
     try {
-      // In a real flow, we'd upload to R2 then process. 
-      // For demo, we trigger the process-ocr with mock data if needed, 
-      // but let's assume the backend handles the full logic.
-      const response = await fetch(`${API_BASE_URL}/api/process-ocr`, {
+      const presignedRes = await fetch(`${API_BASE_URL}/api/upload/presigned`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            raw_text: "Mock Receipt\nCoffee 150.00\nSandwich 350.00\nTOTAL 500.00", 
-            amount: "500.00",
-            date: new Date().toISOString(),
-            items: [
-                { name: "Coffee", quantity: 1, price: "150.00" },
-                { name: "Sandwich", quantity: 1, price: "350.00" }
-            ]
+        body: JSON.stringify({
+          contentType: file.type,
+          fileName: file.name,
         }),
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Processing failed");
-      const result = await response.json();
+
+      if (!presignedRes.ok) throw new Error("Failed to get presigned URL");
+      const { url, key } = await presignedRes.json();
+
+      const uploadRes = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      if (!uploadRes.ok) throw new Error("Failed to upload to R2");
+
+      const processRes = await fetch(`${API_BASE_URL}/api/process-ocr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            raw_text: "Uploaded file", 
+            amount: "0.00",
+            date: new Date().toISOString() 
+        }),
+        credentials: "include",
+      });
+
+      if (!processRes.ok) throw new Error("Processing failed");
+      const result = await processRes.json();
       setOcrResult(result);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
     } catch (error) {
@@ -115,6 +133,11 @@ function RouteComponent() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const triggerSplit = (id: string, amount: string) => {
+    setSelectedTxn({ id, amount });
+    setSplitDialogOpen(true);
   };
 
   return (
@@ -196,17 +219,13 @@ function RouteComponent() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {/* Mocking items for the UI demo if not returned by server yet */}
-                                    {(ocrResult.items || [
-                                        { name: "Coffee", quantity: 1, price: "150.00" },
-                                        { name: "Sandwich", quantity: 1, price: "350.00" }
-                                    ]).map((item: any, i: number) => (
+                                    {(ocrResult.items || []).map((item: any, i: number) => (
                                         <TableRow key={i}>
                                             <TableCell className="font-medium">{item.name}</TableCell>
                                             <TableCell className="text-right">{item.quantity}</TableCell>
                                             <TableCell className="text-right font-mono">₹{item.price}</TableCell>
                                             <TableCell className="text-right">
-                                                <Button size="sm" variant="ghost">
+                                                <Button size="sm" variant="ghost" onClick={() => triggerSplit(ocrResult.id, item.price)}>
                                                     <Share2Icon className="h-3 w-3 mr-1" /> Split
                                                 </Button>
                                             </TableCell>
@@ -237,11 +256,15 @@ function RouteComponent() {
                         {p2pRequests.map((req: any) => (
                             <div key={req.id} className="flex items-center justify-between border-b border-orange-100 dark:border-orange-900/50 pb-2 last:border-0">
                                 <div>
-                                    <p className="font-semibold text-sm">{req.sender_user_id} shared a transaction</p>
-                                    <p className="text-xs text-muted-foreground">Amount: ₹{parseFloat(req.transaction_data.amount).toLocaleString()}</p>
+                                    <p className="font-semibold text-sm">
+                                        {req.status === "GROUP_INVITE" ? "Group Invitation" : `${req.sender_user_id} shared a transaction`}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {req.status === "GROUP_INVITE" ? `You've been invited to join ${req.transaction_data.group_name}` : `Amount: ₹${parseFloat(req.transaction_data.amount).toLocaleString()}`}
+                                    </p>
                                 </div>
                                 <Button size="sm" variant="outline" className="border-orange-300 hover:bg-orange-100" onClick={() => acceptMutation.mutate(req.id)}>
-                                    {acceptMutation.isPending ? "Accepting..." : "Merge & Accept"}
+                                    {acceptMutation.isPending ? "..." : (req.status === "GROUP_INVITE" ? "Join Group" : "Merge & Accept")}
                                 </Button>
                             </div>
                         ))}
@@ -252,8 +275,9 @@ function RouteComponent() {
 
           {/* Recent Transactions Table */}
           <Card className="flex-1 overflow-hidden">
-            <CardHeader className="px-6 py-4">
+            <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
                 <CardTitle>Recent Transactions</CardTitle>
+                <Button variant="outline" size="sm">View All</Button>
             </CardHeader>
             <CardContent className="p-0">
                 <Table>
@@ -263,7 +287,7 @@ function RouteComponent() {
                             <TableHead>Direction</TableHead>
                             <TableHead>Amount</TableHead>
                             <TableHead>Source</TableHead>
-                            <TableHead className="text-right px-6">Status</TableHead>
+                            <TableHead className="text-right px-6">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -286,7 +310,9 @@ function RouteComponent() {
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground italic">{txn.source}</TableCell>
                                 <TableCell className="text-right px-6">
-                                    <Badge variant="outline" className="text-[10px] uppercase font-semibold">{txn.status}</Badge>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => triggerSplit(txn.id, txn.amount)}>
+                                        <Share2Icon className="h-4 w-4" />
+                                    </Button>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -295,6 +321,15 @@ function RouteComponent() {
             </CardContent>
           </Card>
         </div>
+
+        {selectedTxn && (
+            <SplitDialog 
+                open={splitDialogOpen} 
+                onOpenChange={setSplitDialogOpen} 
+                transactionId={selectedTxn.id} 
+                totalAmount={selectedTxn.amount} 
+            />
+        )}
       </SidebarInset>
     </SidebarProvider>
   );

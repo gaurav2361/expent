@@ -7,7 +7,7 @@ use axum::{
 use better_auth::{AuthConfig, AxumIntegration, AuthBuilder, AuthRequest, HttpMethod};
 use better_auth::plugins::EmailPasswordPlugin;
 use better_auth::adapters::SqlxAdapter;
-use db::{SmartMerge, OcrResult};
+use db::{SmartMerge, OcrResult, SplitDetail};
 use sea_orm::{DatabaseConnection, Database};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -15,11 +15,14 @@ use std::collections::HashMap;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use serde::{Deserialize};
+use aws_sdk_s3::presigning::PresigningConfig;
+use std::time::Duration;
 
 #[derive(Clone)]
 struct AppState {
     db: DatabaseConnection,
     auth: Arc<better_auth::BetterAuth<SqlxAdapter>>,
+    s3_client: aws_sdk_s3::Client,
 }
 
 #[tokio::main]
@@ -46,20 +49,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()
         .await?;
 
+    // S3/R2 Setup
+    let endpoint = std::env::var("R2_ENDPOINT").expect("R2_ENDPOINT must be set");
+    let s3_config = aws_config::from_env()
+        .endpoint_url(endpoint)
+        .load()
+        .await;
+    let s3_client = aws_sdk_s3::Client::new(&s3_config);
+
     let auth = Arc::new(auth_instance);
-    let state = AppState { db, auth: auth.clone() };
+    let state = AppState { db, auth: auth.clone(), s3_client };
 
     let auth_router = auth.clone().axum_router().with_state(auth.clone());
 
     let api_router = Router::new()
         .route("/transactions", get(list_transactions_handler))
+        .route("/transactions/split", post(split_transaction_handler))
         .route("/p2p/pending", get(list_pending_p2p_handler))
         .route("/process-ocr", post(process_ocr_handler))
         .route("/p2p/create", post(create_p2p_handler))
         .route("/p2p/accept", post(accept_p2p_handler))
         .route("/groups", get(list_groups_handler))
         .route("/groups/create", post(create_group_handler))
+        .route("/groups/invite", post(invite_to_group_handler))
         .route("/groups/:id/transactions", get(list_group_transactions_handler))
+        .route("/subscriptions/detect", get(detect_subscriptions_handler))
+        .route("/upload/presigned", post(get_presigned_url_handler))
         .with_state(state);
 
     let app = Router::new()
@@ -141,6 +156,30 @@ async fn list_transactions_handler(
     Ok(Json(result))
 }
 
+#[derive(Deserialize)]
+struct SplitTransactionRequest {
+    transaction_id: String,
+    splits: Vec<SplitDetail>,
+}
+
+async fn split_transaction_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<SplitTransactionRequest>,
+) -> Result<Json<Vec<db::entities::p2p_request::Model>>, (StatusCode, String)> {
+    let (user_id, _) = get_user_data(&state.auth, headers).await?;
+    let result = SmartMerge::split_transaction(
+        &state.db, 
+        &user_id, 
+        &payload.transaction_id, 
+        payload.splits
+    )
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(result))
+}
+
 async fn list_pending_p2p_handler(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -190,11 +229,6 @@ async fn create_p2p_handler(
     Ok(Json(result))
 }
 
-#[derive(Deserialize)]
-struct AcceptP2PRequest {
-    request_id: String,
-}
-
 async fn accept_p2p_handler(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -213,6 +247,11 @@ async fn accept_p2p_handler(
 }
 
 #[derive(Deserialize)]
+struct AcceptP2PRequest {
+    request_id: String,
+}
+
+#[derive(Deserialize)]
 struct CreateGroupRequest {
     name: String,
     description: Option<String>,
@@ -225,6 +264,25 @@ async fn create_group_handler(
 ) -> Result<Json<db::entities::group::Model>, (StatusCode, String)> {
     let (user_id, _) = get_user_data(&state.auth, headers).await?;
     let result = SmartMerge::create_group(&state.db, &user_id, &payload.name, payload.description)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
+    Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+struct InviteGroupRequest {
+    group_id: String,
+    receiver_email: String,
+}
+
+async fn invite_to_group_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<InviteGroupRequest>,
+) -> Result<Json<db::entities::p2p_request::Model>, (StatusCode, String)> {
+    let (user_id, _) = get_user_data(&state.auth, headers).await?;
+    let result = SmartMerge::invite_to_group(&state.db, &user_id, &payload.receiver_email, &payload.group_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     
@@ -254,4 +312,58 @@ async fn list_group_transactions_handler(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     
     Ok(Json(result))
+}
+
+async fn detect_subscriptions_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<db::entities::subscription::Model>>, (StatusCode, String)> {
+    let (user_id, _) = get_user_data(&state.auth, headers).await?;
+    let result = SmartMerge::detect_subscriptions(&state.db, &user_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
+    Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+struct PresignedUrlRequest {
+    #[serde(rename = "contentType")]
+    content_type: String,
+    #[serde(rename = "fileName")]
+    file_name: String,
+}
+
+#[derive(serde::Serialize)]
+struct PresignedUrlResponse {
+    url: String,
+    key: String,
+}
+
+async fn get_presigned_url_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<PresignedUrlRequest>,
+) -> Result<Json<PresignedUrlResponse>, (StatusCode, String)> {
+    let (user_id, _) = get_user_data(&state.auth, headers).await?;
+    
+    let bucket_name = std::env::var("R2_BUCKET_NAME").expect("R2_BUCKET_NAME must be set");
+    let key = format!("{}/{}-{}", user_id, uuid::Uuid::new_v4(), payload.file_name);
+
+    let presigning_config = PresigningConfig::expires_in(Duration::from_secs(3600))
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let presigned_request = state.s3_client
+        .put_object()
+        .bucket(bucket_name)
+        .key(&key)
+        .content_type(payload.content_type)
+        .presigned(presigning_config)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(PresignedUrlResponse {
+        url: presigned_request.uri().to_string(),
+        key,
+    }))
 }
