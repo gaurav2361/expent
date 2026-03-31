@@ -18,7 +18,7 @@ pub struct Model {
     pub cycle: String, // MONTHLY, YEARLY
     pub start_date: DateTimeWithTimeZone,
     pub next_charge_date: DateTimeWithTimeZone,
-    pub detection_keywords: Option<Vec<String>>,
+    pub detection_keywords: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
