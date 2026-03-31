@@ -19,22 +19,28 @@ export function SignUp() {
       </Button>
 
       <div className="mx-auto space-y-4 sm:w-sm">
-        <Logo className="h-4.5 lg:hidden" />
-        <div className="flex flex-col space-y-1">
-          <div className="flex items-center gap-2 text-primary">
-            <SparklesIcon className="h-4 w-4" />
-            <span className="font-mono font-medium text-xs uppercase tracking-wider">Start for free</span>
-          </div>
+        <Logo className="h-4.5 lg:hidden mx-auto" />
+        <div className="flex flex-col space-y-1 text-center">
           <h1 className="font-bold text-2xl tracking-wide">Create your account</h1>
+          <p className="text-sm text-muted-foreground">Enter your email below to create your account</p>
         </div>
 
         <form className="space-y-2">
           <InputGroup>
-            <InputGroupInput placeholder="your.email@example.com" type="email" />
+            <InputGroupInput placeholder="m@example.com" type="email" required />
             <InputGroupAddon align="inline-start">
               <AtSignIcon />
             </InputGroupAddon>
           </InputGroup>
+
+          <div className="grid grid-cols-2 gap-2">
+            <InputGroup>
+              <InputGroupInput placeholder="Password" type="password" required />
+            </InputGroup>
+            <InputGroup>
+              <InputGroupInput placeholder="Confirm Password" type="password" required />
+            </InputGroup>
+          </div>
 
           <Button className="w-full" type="button">
             Create account
@@ -45,8 +51,8 @@ export function SignUp() {
 
         <SocialLogins />
 
-        <div className="flex flex-col space-y-4 mt-8">
-          <p className="text-muted-foreground text-sm text-center">
+        <div className="flex flex-col space-y-4 mt-8 text-center">
+          <p className="text-muted-foreground text-sm">
             By signing up, you agree to our{" "}
             <a className="underline underline-offset-4 hover:text-primary" href="#">
               Terms
@@ -58,7 +64,7 @@ export function SignUp() {
             .
           </p>
 
-          <p className="text-muted-foreground text-sm text-center">
+          <p className="text-muted-foreground text-sm">
             Already have an account?{" "}
             <Link className="font-semibold text-primary underline underline-offset-4" to="/sign-in">
               Sign in

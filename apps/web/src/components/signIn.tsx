@@ -19,8 +19,8 @@ export function SignIn() {
       </Button>
 
       <div className="mx-auto space-y-4 sm:w-sm">
-        <Logo className="h-4.5 lg:hidden" />
-        <div className="flex flex-col space-y-1">
+        <Logo className="h-4.5 lg:hidden mx-auto" />
+        <div className="flex flex-col space-y-1 text-center">
           <h1 className="font-bold text-2xl tracking-wide">Sign In or Join Now!</h1>
           <p className="text-base text-muted-foreground">login or create your expent account.</p>
         </div>
@@ -29,8 +29,8 @@ export function SignIn() {
 
         <AuthDivider>OR</AuthDivider>
 
-        <form className="space-y-2">
-          <p className="text-start text-muted-foreground text-xs">
+        <form className="space-y-2 text-center">
+          <p className="text-muted-foreground text-xs">
             Enter your email address to sign in or create an account
           </p>
           <InputGroup>
@@ -45,7 +45,7 @@ export function SignIn() {
           </Button>
         </form>
 
-        <div className="flex flex-col space-y-4 mt-8">
+        <div className="flex flex-col space-y-4 mt-8 text-center">
           <p className="text-muted-foreground text-sm">
             By clicking continue, you agree to our{" "}
             <a className="underline underline-offset-4 hover:text-primary" href="#">
