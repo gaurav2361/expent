@@ -8,7 +8,7 @@ use axum::{
     http::{HeaderName, HeaderValue, Method, StatusCode},
     routing::{get, post},
 };
-use better_auth::adapters::SqlxAdapter;
+use better_auth::adapters::SqliteAdapter;
 use better_auth::AxumIntegration;
 use db::{OcrResult, SmartMerge, SplitDetail};
 use sea_orm::{Database, DatabaseConnection};
@@ -23,11 +23,11 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[derive(Clone)]
 struct AppState {
     db: DatabaseConnection,
-    auth: Arc<better_auth::BetterAuth<SqlxAdapter>>,
+    auth: Arc<better_auth::BetterAuth<SqliteAdapter>>,
     s3_client: aws_sdk_s3::Client,
 }
 
-impl FromRef<AppState> for Arc<better_auth::BetterAuth<SqlxAdapter>> {
+impl FromRef<AppState> for Arc<better_auth::BetterAuth<SqliteAdapter>> {
     fn from_ref(state: &AppState) -> Self {
         state.auth.clone()
     }

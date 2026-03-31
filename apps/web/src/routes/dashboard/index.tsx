@@ -19,7 +19,7 @@ import { ReceiptTextIcon, Share2Icon, SparklesIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SplitDialog } from "@/components/split-dialog";
-import { auth } from "@/lib/auth";
+import { useSession } from "@/lib/auth";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,
@@ -29,7 +29,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const session = auth.useSession();
+  const session = useSession();
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsLoading] = useState(false);

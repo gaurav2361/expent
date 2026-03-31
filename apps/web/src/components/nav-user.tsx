@@ -10,7 +10,7 @@ import {
 } from "@expent/ui/components/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@expent/ui/components/sidebar";
 import { ChevronsUpDownIcon, SparklesIcon, BadgeCheckIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { signOut, useSession } from "@/lib/auth";
 import { useNavigate } from "@tanstack/react-router";
 
 export function NavUser({
@@ -23,13 +23,13 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
-  const session = auth.useSession();
+  const session = useSession();
   const navigate = useNavigate();
 
   const user = session.data?.user || _user;
 
   const handleLogout = async () => {
-    await auth.signOut();
+    await signOut();
     navigate({ to: "/" });
   };
 
