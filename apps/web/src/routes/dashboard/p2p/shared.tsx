@@ -29,7 +29,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
-import { authClient } from "@/lib/auth-client";
+import { auth } from "@/lib/auth";
 
 export const Route = createFileRoute("/dashboard/p2p/shared")({
   component: SharedLedgersComponent,
@@ -202,7 +202,7 @@ function GroupDetails({ group }: { group: any }) {
 
 function SharedLedgersComponent() {
   const navigate = useNavigate();
-  const session = authClient.useSession();
+  const session = auth.useSession();
   const queryClient = useQueryClient();
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");

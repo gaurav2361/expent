@@ -16,7 +16,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CalendarIcon, CreditCardIcon, SparklesIcon } from "lucide-react";
 import { useEffect } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
-import { authClient } from "@/lib/auth-client";
+import { auth } from "@/lib/auth";
 
 export const Route = createFileRoute("/dashboard/subscriptions")({
   component: SubscriptionsComponent,
@@ -26,7 +26,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080
 
 function SubscriptionsComponent() {
   const navigate = useNavigate();
-  const session = authClient.useSession();
+  const session = auth.useSession();
 
   useEffect(() => {
     if (!session.isPending && !session.data) {

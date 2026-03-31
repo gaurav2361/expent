@@ -1,17 +1,18 @@
+mod auth;
+
+use crate::auth::AuthSession;
 use aws_sdk_s3::presigning::PresigningConfig;
 use axum::{
     Router,
-    extract::{Json, Path, State},
-    http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode},
+    extract::{FromRef, Json, Path, State},
+    http::{HeaderName, HeaderValue, Method, StatusCode},
     routing::{get, post},
 };
 use better_auth::adapters::SqlxAdapter;
-use better_auth::plugins::EmailPasswordPlugin;
-use better_auth::{AuthBuilder, AuthConfig, AuthRequest, AxumIntegration, HttpMethod};
+use better_auth::AxumIntegration;
 use db::{OcrResult, SmartMerge, SplitDetail};
 use sea_orm::{Database, DatabaseConnection};
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -24,6 +25,18 @@ struct AppState {
     db: DatabaseConnection,
     auth: Arc<better_auth::BetterAuth<SqlxAdapter>>,
     s3_client: aws_sdk_s3::Client,
+}
+
+impl FromRef<AppState> for Arc<better_auth::BetterAuth<SqlxAdapter>> {
+    fn from_ref(state: &AppState) -> Self {
+        state.auth.clone()
+    }
+}
+
+impl FromRef<AppState> for DatabaseConnection {
+    fn from_ref(state: &AppState) -> Self {
+        state.db.clone()
+    }
 }
 
 #[tokio::main]
@@ -39,25 +52,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let auth_secret = std::env::var("BETTER_AUTH_SECRET").expect("BETTER_AUTH_SECRET must be set");
-    let base_url =
-        std::env::var("BETTER_AUTH_BASE_URL").unwrap_or_else(|_| "http://localhost:8080".into());
 
     let db = Database::connect(&database_url).await?;
-    let adapter = SqlxAdapter::new(&database_url).await?;
-
-    let auth_instance = AuthBuilder::new(
-        AuthConfig::new(auth_secret)
-            .base_url(base_url)
-            .trusted_origins(vec![
-                "http://localhost:3000".to_string(),
-                "http://127.0.0.1:3000".to_string(),
-            ]),
-    )
-    .database(adapter)
-    .plugin(EmailPasswordPlugin::new())
-    .build()
-    .await?;
+    let auth = auth::init_auth(&database_url).await?;
 
     // S3/R2 Setup
     let endpoint = std::env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set");
@@ -78,14 +75,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await;
     let s3_client = aws_sdk_s3::Client::new(&s3_config);
 
-    let auth = Arc::new(auth_instance);
     let state = AppState {
         db,
         auth: auth.clone(),
         s3_client,
     };
 
-    let auth_router = auth.clone().axum_router().with_state(auth.clone());
+    let auth_router = auth.clone().axum_router();
 
     let api_router = Router::new()
         .route("/transactions", get(list_transactions_handler))
@@ -102,11 +98,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get(list_group_transactions_handler),
         )
         .route("/subscriptions/detect", get(detect_subscriptions_handler))
-        .route("/upload/presigned", post(get_presigned_url_handler))
-        .with_state(state);
+        .route("/upload/presigned", post(get_presigned_url_handler));
 
     let app = Router::new()
-        .nest("/api/auth", auth_router)
+        .nest("/api/auth", auth_router.with_state(auth.clone()))
         .nest("/api", api_router)
         .layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(
@@ -131,7 +126,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ])
                 .allow_credentials(true),
         )
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .with_state(state);
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "8080".into());
     let addr: SocketAddr = format!("0.0.0.0:{}", port).parse()?;
@@ -143,77 +139,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[derive(Deserialize)]
-struct SessionResponse {
-    session: SessionInfo,
-    user: UserInfo,
-}
-
-#[derive(Deserialize)]
-struct SessionInfo {
-    #[serde(rename = "userId")]
-    user_id: String,
-}
-
-#[derive(Deserialize)]
-struct UserInfo {
-    email: String,
-}
-
-async fn get_user_data(
-    auth: &better_auth::BetterAuth<SqlxAdapter>,
-    headers: HeaderMap,
-) -> Result<(String, String), (StatusCode, String)> {
-    let mut mapped_headers = HashMap::new();
-    for (name, value) in headers.iter() {
-        if let Ok(val_str) = value.to_str() {
-            mapped_headers.insert(name.as_str().to_string(), val_str.to_string());
-        }
-    }
-
-    let auth_req = AuthRequest::from_parts(
-        HttpMethod::Get,
-        "/get-session".to_string(),
-        mapped_headers,
-        None,
-        HashMap::new(),
-    );
-
-    let response = auth.handle_request(auth_req).await.map_err(|e| {
-        tracing::error!("Auth handle_request error: {:?}", e);
-        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-    })?;
-
-    if response.status != 200 {
-        tracing::warn!("Auth session check failed with status: {}", response.status);
-        return Err((StatusCode::UNAUTHORIZED, "Unauthorized".to_string()));
-    }
-
-    let body_bytes = response.body;
-    if body_bytes.is_empty() {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Empty response body".to_string(),
-        ));
-    }
-
-    let session_data: SessionResponse = serde_json::from_slice(&body_bytes).map_err(|e| {
-        tracing::error!("Failed to parse session JSON: {}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to parse session: {}", e),
-        )
-    })?;
-
-    Ok((session_data.session.user_id, session_data.user.email))
-}
-
 async fn list_transactions_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
 ) -> Result<Json<Vec<db::entities::transaction::Model>>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
-    let result = SmartMerge::list_transactions(&state.db, &user_id)
+    let result = SmartMerge::list_transactions(&state.db, &session.user.id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -228,12 +158,11 @@ struct SplitTransactionRequest {
 
 async fn split_transaction_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
     Json(payload): Json<SplitTransactionRequest>,
 ) -> Result<Json<Vec<db::entities::p2p_request::Model>>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
     let result =
-        SmartMerge::split_transaction(&state.db, &user_id, &payload.transaction_id, payload.splits)
+        SmartMerge::split_transaction(&state.db, &session.user.id, &payload.transaction_id, payload.splits)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -242,9 +171,9 @@ async fn split_transaction_handler(
 
 async fn list_pending_p2p_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
 ) -> Result<Json<Vec<db::entities::p2p_request::Model>>, (StatusCode, String)> {
-    let (_, email) = get_user_data(&state.auth, headers).await?;
+    let email = session.user.email.ok_or((StatusCode::BAD_REQUEST, "User email missing".to_string()))?;
     let result = SmartMerge::list_pending_p2p_requests(&state.db, &email)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -254,11 +183,10 @@ async fn list_pending_p2p_handler(
 
 async fn process_ocr_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
     Json(ocr_data): Json<OcrResult>,
 ) -> Result<Json<db::entities::transaction::Model>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
-    let result = SmartMerge::process_ocr(&state.db, &user_id, ocr_data)
+    let result = SmartMerge::process_ocr(&state.db, &session.user.id, ocr_data)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -273,13 +201,12 @@ struct CreateP2PRequest {
 
 async fn create_p2p_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
     Json(payload): Json<CreateP2PRequest>,
 ) -> Result<Json<db::entities::p2p_request::Model>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
     let result = SmartMerge::create_p2p_request(
         &state.db,
-        &user_id,
+        &session.user.id,
         &payload.receiver_email,
         &payload.transaction_id,
     )
@@ -291,11 +218,10 @@ async fn create_p2p_handler(
 
 async fn accept_p2p_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
     Json(payload): Json<AcceptP2PRequest>,
 ) -> Result<Json<db::entities::p2p_request::Model>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
-    let result = SmartMerge::accept_p2p_request(&state.db, &user_id, &payload.request_id)
+    let result = SmartMerge::accept_p2p_request(&state.db, &session.user.id, &payload.request_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -315,11 +241,10 @@ struct CreateGroupRequest {
 
 async fn create_group_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
     Json(payload): Json<CreateGroupRequest>,
 ) -> Result<Json<db::entities::group::Model>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
-    let result = SmartMerge::create_group(&state.db, &user_id, &payload.name, payload.description)
+    let result = SmartMerge::create_group(&state.db, &session.user.id, &payload.name, payload.description)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -334,13 +259,12 @@ struct InviteGroupRequest {
 
 async fn invite_to_group_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
     Json(payload): Json<InviteGroupRequest>,
 ) -> Result<Json<db::entities::p2p_request::Model>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
     let result = SmartMerge::invite_to_group(
         &state.db,
-        &user_id,
+        &session.user.id,
         &payload.receiver_email,
         &payload.group_id,
     )
@@ -352,10 +276,9 @@ async fn invite_to_group_handler(
 
 async fn list_groups_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
 ) -> Result<Json<Vec<db::entities::group::Model>>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
-    let result = SmartMerge::list_groups(&state.db, &user_id)
+    let result = SmartMerge::list_groups(&state.db, &session.user.id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -364,10 +287,9 @@ async fn list_groups_handler(
 
 async fn list_group_transactions_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _session: AuthSession,
     Path(group_id): Path<String>,
 ) -> Result<Json<Vec<db::entities::transaction::Model>>, (StatusCode, String)> {
-    let _ = get_user_data(&state.auth, headers).await?;
     let result = SmartMerge::list_group_transactions(&state.db, &group_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -377,10 +299,9 @@ async fn list_group_transactions_handler(
 
 async fn detect_subscriptions_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
 ) -> Result<Json<Vec<db::entities::subscription::Model>>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
-    let result = SmartMerge::detect_subscriptions(&state.db, &user_id)
+    let result = SmartMerge::detect_subscriptions(&state.db, &session.user.id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -403,13 +324,11 @@ struct PresignedUrlResponse {
 
 async fn get_presigned_url_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    session: AuthSession,
     Json(payload): Json<PresignedUrlRequest>,
 ) -> Result<Json<PresignedUrlResponse>, (StatusCode, String)> {
-    let (user_id, _) = get_user_data(&state.auth, headers).await?;
-
     let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
-    let key = format!("{}/{}-{}", user_id, uuid::Uuid::new_v4(), payload.file_name);
+    let key = format!("{}/{}-{}", session.user.id, uuid::Uuid::new_v4(), payload.file_name);
 
     let presigning_config = PresigningConfig::expires_in(Duration::from_secs(3600))
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
