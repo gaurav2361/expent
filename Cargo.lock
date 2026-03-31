@@ -3297,6 +3297,14 @@ dependencies = [
 [[package]]
 name = "ocr"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "image",
+ "ocrs",
+ "reqwest 0.12.28",
+ "rten",
+ "tracing",
+]
 
 [[package]]
 name = "ocrs"
@@ -4788,13 +4796,11 @@ dependencies = [
  "dotenvy",
  "http 1.4.0",
  "http-body-util",
- "image",
- "ocrs",
+ "ocr",
  "rand 0.8.5",
  "reqwest 0.12.28",
  "resend-rs",
  "rstest",
- "rten",
  "sea-orm",
  "serde",
  "serde_json",

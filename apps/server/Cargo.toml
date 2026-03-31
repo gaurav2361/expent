@@ -26,9 +26,7 @@ sea-orm            = { version = "1.1.19", features = ["sqlx-sqlite", "runtime-t
 aws-config         = "1.5"
 aws-sdk-s3         = "1.73"
 http               = "1.2"
-ocrs               = "0.12.2"
-rten               = "0.24.0"
-image              = "0.25"
+ocr                = { path = "../../crates/ocr", version = "0.1.0" }
 anyhow             = "1.0"
 
 [dev-dependencies]
