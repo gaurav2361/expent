@@ -2,7 +2,7 @@ import { Button } from "@expent/ui/components/button";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Logo } from "@/components/logo";
-import { useSession } from "@/lib/auth";
+import { useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/")({ component: App });
 

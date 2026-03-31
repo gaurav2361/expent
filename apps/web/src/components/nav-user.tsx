@@ -10,7 +10,7 @@ import {
 } from "@expent/ui/components/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@expent/ui/components/sidebar";
 import { ChevronsUpDownIcon, SparklesIcon, BadgeCheckIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react";
-import { signOut, useSession } from "@/lib/auth";
+import { signOut, useSession } from "@/lib/auth-client";
 import { useNavigate } from "@tanstack/react-router";
 
 export function NavUser({

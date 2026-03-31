@@ -14,4 +14,7 @@ export default defineConfig({
     // which works much better across monorepo workspace boundaries.
     tsconfigPaths: true,
   },
+  ssr: {
+    external: ["better-sqlite3"],
+  },
 });

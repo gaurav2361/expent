@@ -29,7 +29,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
-import { useSession } from "@/lib/auth";
+import { useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/dashboard/p2p/shared")({
   component: SharedLedgersComponent,
