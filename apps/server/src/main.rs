@@ -1,9 +1,7 @@
 mod auth;
-mod ocr;
 
 use crate::auth::AuthSession;
 use crate::auth::adapter::SqliteAdapter;
-use crate::ocr::OcrService;
 use aws_sdk_s3::presigning::PresigningConfig;
 use axum::{
     Router,
@@ -13,6 +11,7 @@ use axum::{
 };
 use better_auth::AxumIntegration;
 use db::{OcrResult, SmartMerge, SplitDetail};
+use ocr::OcrService;
 use sea_orm::{Database, DatabaseConnection};
 use serde::Deserialize;
 use std::net::SocketAddr;
