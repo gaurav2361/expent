@@ -1,113 +1,72 @@
-use better_auth::adapters::SqliteAdapter;
-use better_auth::plugins::{EmailPasswordPlugin, SessionManagementPlugin};
-use better_auth::{AuthBuilder, AuthConfig, BetterAuth, AuthRequest, HttpMethod};
 use axum::{
     extract::{FromRequestParts, FromRef},
     http::{request::Parts, StatusCode},
 };
-use std::collections::HashMap;
-use std::env;
-use std::sync::Arc;
+use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
+use serde::{Deserialize, Serialize};
+
+// We'll use the entities from our own db crate
+use db::entities::{user, session};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthUser {
+    pub id: String,
+    pub email: String,
+    pub name: String,
+}
+
 pub struct AuthSession {
-    pub user: better_auth::types_mod::User,
+    pub user: AuthUser,
 }
 
 impl<S> FromRequestParts<S> for AuthSession
 where
     S: Send + Sync,
-    Arc<BetterAuth<SqliteAdapter>>: FromRef<S>,
+    DatabaseConnection: FromRef<S>,
 {
     type Rejection = (StatusCode, String);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let auth = Arc::from_ref(state);
+        let db = DatabaseConnection::from_ref(state);
 
-        let mut mapped_headers = HashMap::new();
-        for (name, value) in parts.headers.iter() {
-            if let Ok(val_str) = value.to_str() {
-                mapped_headers.insert(name.as_str().to_string(), val_str.to_string());
+        // Get token from cookie or Authorization header
+        let token = parts.headers.get("Authorization")
+            .and_then(|h| h.to_str().ok())
+            .and_then(|s| s.strip_prefix("Bearer "))
+            .or_else(|| {
+                parts.headers.get("cookie")
+                    .and_then(|h| h.to_str().ok())
+                    .and_then(|s| {
+                        s.split(';')
+                            .find(|p| p.trim().starts_with("better-auth.session-token="))
+                            .map(|p| p.trim().split('=').nth(1).unwrap_or(""))
+                    })
+            });
+
+        let token = match token {
+            Some(t) => t,
+            None => return Err((StatusCode::UNAUTHORIZED, "Missing session token".to_string())),
+        };
+
+        // Query session and user
+        let session_user = session::Entity::find()
+            .filter(session::Column::Token.eq(token))
+            .find_also_related(user::Entity)
+            .one(&db)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        match session_user {
+            Some((_sess, Some(u))) => {
+                Ok(AuthSession {
+                    user: AuthUser {
+                        id: u.id,
+                        email: u.email,
+                        name: u.name,
+                    },
+                })
             }
+            _ => Err((StatusCode::UNAUTHORIZED, "Invalid or expired session".to_string())),
         }
-
-        let auth_req = AuthRequest::from_parts(
-            HttpMethod::Get,
-            "/get-session".to_string(),
-            mapped_headers,
-            None,
-            HashMap::new(),
-        );
-
-        let response = auth.handle_request(auth_req).await.map_err(|e| {
-            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-        })?;
-
-        if response.status != 200 {
-            return Err((StatusCode::UNAUTHORIZED, "Unauthorized".to_string()));
-        }
-
-        #[derive(serde::Deserialize)]
-        struct SessionResponse {
-            user: better_auth::types_mod::User,
-        }
-
-        let session_data: SessionResponse = serde_json::from_slice(&response.body).map_err(|e| {
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to parse session: {}", e))
-        })?;
-
-        Ok(AuthSession {
-            user: session_data.user,
-        })
     }
-}
-
-pub async fn init_auth(database_url: &str) -> Result<Arc<BetterAuth<SqliteAdapter>>, Box<dyn std::error::Error>> {
-    let auth_secret = env::var("BETTER_AUTH_SECRET")
-        .or_else(|_| env::var("BETTERAUTH_SECRET"))
-        .expect("BETTER_AUTH_SECRET must be set");
-    
-    let base_url = env::var("BETTER_AUTH_BASE_URL")
-        .or_else(|_| env::var("BASE_URL"))
-        .unwrap_or_else(|_| "http://localhost:8080".into());
-
-    let cors_origin = env::var("CORS_ORIGIN").unwrap_or_default();
-    
-    let mut trusted_origins = vec![
-        "http://localhost:3000".to_string(),
-        "http://127.0.0.1:3000".to_string(),
-        base_url.clone(),
-    ];
-
-    if !cors_origin.is_empty() {
-        trusted_origins.extend(cors_origin.split(',').map(|s| s.trim().to_string()));
-    }
-
-    trusted_origins.sort();
-    trusted_origins.dedup();
-
-    let adapter = SqliteAdapter::new(database_url).await?;
-
-    let enable_signup = env::var("ENABLE_SIGNUP")
-        .map(|v| v != "false")
-        .unwrap_or(true);
-
-    let require_email_verification = env::var("REQUIRE_EMAIL_VERIFICATION")
-        .map(|v| v != "false")
-        .unwrap_or(false);
-
-    let auth_instance = AuthBuilder::new(
-        AuthConfig::new(auth_secret)
-            .base_url(base_url)
-            .trusted_origins(trusted_origins),
-    )
-    .database(adapter)
-    .plugin(
-        EmailPasswordPlugin::new()
-            .enable_signup(enable_signup)
-            .require_email_verification(require_email_verification),
-    )
-    .plugin(SessionManagementPlugin::new())
-    .build()
-    .await?;
-
-    Ok(Arc::new(auth_instance))
 }

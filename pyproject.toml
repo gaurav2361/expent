@@ -1,15 +1,15 @@
 [project]
-name = "expent"
-version = "0.1.0"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "easyocr",
+  "pdfplumber",
+  "boto3",
+  "requests",
+  "python-multipart",
+]
 description = "Add your description here"
+name = "expent"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "fastapi",
-    "uvicorn",
-    "easyocr",
-    "pdfplumber",
-    "boto3",
-    "requests",
-    "python-multipart"
-]
+version = "0.1.0"

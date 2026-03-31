@@ -84,6 +84,7 @@
 
                 # Utilities
                 just
+                sql-studio
               ]
               ++ lib.optionals stdenv.isDarwin [
                 libiconv
