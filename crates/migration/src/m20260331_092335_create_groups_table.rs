@@ -34,7 +34,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-user_groups-user_id")
                             .from(UserGroups::Table, UserGroups::UserId)
-                            .to(User::Table, User::Id)
+                            .to(Users::Table, Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
@@ -96,7 +96,7 @@ enum UserGroups {
 }
 
 #[derive(DeriveIden)]
-enum User {
+enum Users {
     Table,
     Id,
 }

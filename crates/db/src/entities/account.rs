@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, TS)]
-#[sea_orm(table_name = "account")]
+#[sea_orm(table_name = "accounts")]
 #[ts(export, export_to = "../../../packages/types/src/db/generated/account.ts")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]

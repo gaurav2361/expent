@@ -6,92 +6,92 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // User
+        // Users
         manager
             .create_table(
                 Table::create()
-                    .table(User::Table)
+                    .table(Users::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(User::Id).string().primary_key())
-                    .col(ColumnDef::new(User::Name).string().not_null())
-                    .col(ColumnDef::new(User::Email).string().unique_key().not_null())
-                    .col(ColumnDef::new(User::EmailVerified).boolean().not_null().default(false))
-                    .col(ColumnDef::new(User::Image).string())
-                    .col(ColumnDef::new(User::Phone).string())
-                    .col(ColumnDef::new(User::IsActive).boolean().not_null().default(true))
-                    .col(ColumnDef::new(User::CreatedAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(User::UpdatedAt).timestamp_with_time_zone().not_null())
+                    .col(ColumnDef::new(Users::Id).string().primary_key())
+                    .col(ColumnDef::new(Users::Name).string().not_null())
+                    .col(ColumnDef::new(Users::Email).string().unique_key().not_null())
+                    .col(ColumnDef::new(Users::EmailVerified).boolean().not_null().default(false))
+                    .col(ColumnDef::new(Users::Image).string())
+                    .col(ColumnDef::new(Users::Phone).string())
+                    .col(ColumnDef::new(Users::IsActive).boolean().not_null().default(true))
+                    .col(ColumnDef::new(Users::CreatedAt).timestamp_with_time_zone().not_null())
+                    .col(ColumnDef::new(Users::UpdatedAt).timestamp_with_time_zone().not_null())
                     .to_owned(),
             )
             .await?;
 
-        // Session
+        // Sessions
         manager
             .create_table(
                 Table::create()
-                    .table(Session::Table)
+                    .table(Sessions::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Session::Id).string().primary_key())
-                    .col(ColumnDef::new(Session::ExpiresAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Session::Token).string().unique_key().not_null())
-                    .col(ColumnDef::new(Session::CreatedAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Session::UpdatedAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Session::IpAddress).string())
-                    .col(ColumnDef::new(Session::UserAgent).string())
-                    .col(ColumnDef::new(Session::UserId).string().not_null())
+                    .col(ColumnDef::new(Sessions::Id).string().primary_key())
+                    .col(ColumnDef::new(Sessions::ExpiresAt).timestamp_with_time_zone().not_null())
+                    .col(ColumnDef::new(Sessions::Token).string().unique_key().not_null())
+                    .col(ColumnDef::new(Sessions::CreatedAt).timestamp_with_time_zone().not_null())
+                    .col(ColumnDef::new(Sessions::UpdatedAt).timestamp_with_time_zone().not_null())
+                    .col(ColumnDef::new(Sessions::IpAddress).string())
+                    .col(ColumnDef::new(Sessions::UserAgent).string())
+                    .col(ColumnDef::new(Sessions::UserId).string().not_null())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-session-user_id")
-                            .from(Session::Table, Session::UserId)
-                            .to(User::Table, User::Id)
+                            .name("fk-sessions-user_id")
+                            .from(Sessions::Table, Sessions::UserId)
+                            .to(Users::Table, Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
             .await?;
 
-        // Account
+        // Accounts
         manager
             .create_table(
                 Table::create()
-                    .table(Account::Table)
+                    .table(Accounts::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Account::Id).string().primary_key())
-                    .col(ColumnDef::new(Account::AccountId).string().not_null())
-                    .col(ColumnDef::new(Account::ProviderId).string().not_null())
-                    .col(ColumnDef::new(Account::UserId).string().not_null())
-                    .col(ColumnDef::new(Account::AccessToken).string())
-                    .col(ColumnDef::new(Account::RefreshToken).string())
-                    .col(ColumnDef::new(Account::IdToken).string())
-                    .col(ColumnDef::new(Account::AccessTokenExpiresAt).timestamp_with_time_zone())
-                    .col(ColumnDef::new(Account::RefreshTokenExpiresAt).timestamp_with_time_zone())
-                    .col(ColumnDef::new(Account::Scope).string())
-                    .col(ColumnDef::new(Account::Password).string())
-                    .col(ColumnDef::new(Account::CreatedAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Account::UpdatedAt).timestamp_with_time_zone().not_null())
+                    .col(ColumnDef::new(Accounts::Id).string().primary_key())
+                    .col(ColumnDef::new(Accounts::AccountId).string().not_null())
+                    .col(ColumnDef::new(Accounts::ProviderId).string().not_null())
+                    .col(ColumnDef::new(Accounts::UserId).string().not_null())
+                    .col(ColumnDef::new(Accounts::AccessToken).string())
+                    .col(ColumnDef::new(Accounts::RefreshToken).string())
+                    .col(ColumnDef::new(Accounts::IdToken).string())
+                    .col(ColumnDef::new(Accounts::AccessTokenExpiresAt).timestamp_with_time_zone())
+                    .col(ColumnDef::new(Accounts::RefreshTokenExpiresAt).timestamp_with_time_zone())
+                    .col(ColumnDef::new(Accounts::Scope).string())
+                    .col(ColumnDef::new(Accounts::Password).string())
+                    .col(ColumnDef::new(Accounts::CreatedAt).timestamp_with_time_zone().not_null())
+                    .col(ColumnDef::new(Accounts::UpdatedAt).timestamp_with_time_zone().not_null())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-account-user_id")
-                            .from(Account::Table, Account::UserId)
-                            .to(User::Table, User::Id)
+                            .name("fk-accounts-user_id")
+                            .from(Accounts::Table, Accounts::UserId)
+                            .to(Users::Table, Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
             .await?;
 
-        // Verification
+        // Verifications
         manager
             .create_table(
                 Table::create()
-                    .table(Verification::Table)
+                    .table(Verifications::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Verification::Id).string().primary_key())
-                    .col(ColumnDef::new(Verification::Identifier).string().not_null())
-                    .col(ColumnDef::new(Verification::Value).string().not_null())
-                    .col(ColumnDef::new(Verification::ExpiresAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Verification::CreatedAt).timestamp_with_time_zone())
-                    .col(ColumnDef::new(Verification::UpdatedAt).timestamp_with_time_zone())
+                    .col(ColumnDef::new(Verifications::Id).string().primary_key())
+                    .col(ColumnDef::new(Verifications::Identifier).string().not_null())
+                    .col(ColumnDef::new(Verifications::Value).string().not_null())
+                    .col(ColumnDef::new(Verifications::ExpiresAt).timestamp_with_time_zone().not_null())
+                    .col(ColumnDef::new(Verifications::CreatedAt).timestamp_with_time_zone())
+                    .col(ColumnDef::new(Verifications::UpdatedAt).timestamp_with_time_zone())
                     .to_owned(),
             )
             .await?;
@@ -111,7 +111,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-user_upi_ids-user_id")
                             .from(UserUpiIds::Table, UserUpiIds::UserId)
-                            .to(User::Table, User::Id),
+                            .to(Users::Table, Users::Id),
                     )
                     .to_owned(),
             )
@@ -165,7 +165,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-contact_links-user_id")
                             .from(ContactLinks::Table, ContactLinks::UserId)
-                            .to(User::Table, User::Id),
+                            .to(Users::Table, Users::Id),
                     )
                     .foreign_key(
                         ForeignKey::create()
@@ -195,7 +195,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-transactions-user_id")
                             .from(Transactions::Table, Transactions::UserId)
-                            .to(User::Table, User::Id),
+                            .to(Users::Table, Users::Id),
                     )
                     .to_owned(),
             )
@@ -280,7 +280,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-p2p_requests-sender_user_id")
                             .from(P2PRequests::Table, P2PRequests::SenderUserId)
-                            .to(User::Table, User::Id),
+                            .to(Users::Table, Users::Id),
                     )
                     .to_owned(),
             )
@@ -350,7 +350,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-subscriptions-user_id")
                             .from(Subscriptions::Table, Subscriptions::UserId)
-                            .to(User::Table, User::Id),
+                            .to(Users::Table, Users::Id),
                     )
                     .to_owned(),
             )
@@ -477,17 +477,17 @@ impl MigrationTrait for Migration {
         manager.drop_table(Table::drop().table(ContactIdentifiers::Table).to_owned()).await?;
         manager.drop_table(Table::drop().table(Contacts::Table).to_owned()).await?;
         manager.drop_table(Table::drop().table(UserUpiIds::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Verification::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Account::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Session::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(User::Table).to_owned()).await?;
+        manager.drop_table(Table::drop().table(Verifications::Table).to_owned()).await?;
+        manager.drop_table(Table::drop().table(Accounts::Table).to_owned()).await?;
+        manager.drop_table(Table::drop().table(Sessions::Table).to_owned()).await?;
+        manager.drop_table(Table::drop().table(Users::Table).to_owned()).await?;
 
         Ok(())
     }
 }
 
 #[derive(DeriveIden)]
-enum User {
+enum Users {
     Table,
     Id,
     Name,
@@ -501,7 +501,7 @@ enum User {
 }
 
 #[derive(DeriveIden)]
-enum Session {
+enum Sessions {
     Table,
     Id,
     ExpiresAt,
@@ -514,7 +514,7 @@ enum Session {
 }
 
 #[derive(DeriveIden)]
-enum Account {
+enum Accounts {
     Table,
     Id,
     AccountId,
@@ -532,7 +532,7 @@ enum Account {
 }
 
 #[derive(DeriveIden)]
-enum Verification {
+enum Verifications {
     Table,
     Id,
     Identifier,
