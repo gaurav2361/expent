@@ -10,146 +10,72 @@ import {
 } from "@expent/ui/components/sidebar";
 import { Link } from "@tanstack/react-router";
 import {
-  BookOpenIcon,
-  BotIcon,
-  FrameIcon,
-  LifeBuoyIcon,
-  MapIcon,
-  PieChartIcon,
-  SendIcon,
+  LayoutDashboardIcon,
+  ReceiptIcon,
+  UsersIcon,
+  RepeatIcon,
   Settings2Icon,
-  TerminalSquareIcon,
+  MessageSquareShareIcon,
 } from "lucide-react";
 import type * as React from "react";
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import { Logo, LogoIcon } from "./logo";
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "User",
+    email: "user@example.com",
+    avatar: "",
   },
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: <TerminalSquareIcon />,
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: <LayoutDashboardIcon />,
       isActive: true,
+    },
+    {
+      title: "Transactions",
+      url: "/dashboard/transactions",
+      icon: <ReceiptIcon />,
+    },
+    {
+      title: "P2P & Sharing",
+      url: "/dashboard/p2p",
+      icon: <MessageSquareShareIcon />,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Pending Requests",
+          url: "/dashboard/p2p/pending",
         },
         {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
+          title: "Shared Ledgers",
+          url: "/dashboard/p2p/shared",
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: <BotIcon />,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
+      title: "Subscriptions",
+      url: "/dashboard/subscriptions",
+      icon: <RepeatIcon />,
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: <BookOpenIcon />,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: <Settings2Icon />,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
+      title: "Contacts",
+      url: "/dashboard/contacts",
+      icon: <UsersIcon />,
     },
   ],
   navSecondary: [
     {
-      title: "Support",
-      url: "#",
-      icon: <LifeBuoyIcon />,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: <SendIcon />,
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: <FrameIcon />,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: <PieChartIcon />,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: <MapIcon />,
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: <Settings2Icon />,
     },
   ],
 };
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
@@ -157,7 +83,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <Link
-              to="/"
+              to="/dashboard"
               className="flex h-8 items-center px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
             >
               <Logo className="h-6 w-auto group-data-[collapsible=icon]:hidden" />
@@ -168,7 +94,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
