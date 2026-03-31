@@ -13,12 +13,13 @@ import { Input } from "@expent/ui/components/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 import { Badge } from "@expent/ui/components/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@expent/ui/components/card";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/app-sidebar";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReceiptTextIcon, SparklesIcon, Share2Icon } from "lucide-react";
 import { SplitDialog } from "@/components/split-dialog";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,
@@ -27,12 +28,29 @@ export const Route = createFileRoute("/dashboard/")({
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
 function RouteComponent() {
+  const navigate = useNavigate();
+  const session = authClient.useSession();
+  
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<any>(null);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{id: string, amount: string} | null>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!session.isPending && !session.data) {
+        navigate({ to: "/sign-in" });
+    }
+  }, [session.data, session.isPending, navigate]);
+
+  if (session.isPending) {
+    return <div className="flex h-screen items-center justify-center">Loading session...</div>;
+  }
+
+  if (!session.data) {
+    return null;
+  }
 
   // 1. Fetch Transactions
   const { data: transactions, isLoading: isTxnsLoading } = useQuery({

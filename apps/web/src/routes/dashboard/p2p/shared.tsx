@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@expent/ui/components/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@expent/ui/components/separator";
@@ -18,9 +18,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 import { Badge } from "@expent/ui/components/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlusIcon, UsersIcon, UserPlusIcon, ReceiptIcon, ChevronRightIcon, InfoIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@expent/ui/components/tooltip";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/dashboard/p2p/shared")({
   component: SharedLedgersComponent,
@@ -143,7 +144,7 @@ function GroupDetails({ group }: { group: any }) {
                         </TableHeader>
                         <TableBody>
                             {transactions.map((txn: any) => (
-                                <TableRow key={txn.id} className="hover:bg-muted/20 transition-colors">
+                                <TableRow key={txn.id}>
                                     <TableCell className="px-4 text-xs text-muted-foreground">
                                         {new Date(txn.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
                                     </TableCell>
@@ -168,7 +169,6 @@ function GroupDetails({ group }: { group: any }) {
                 </div>
             )}
 
-            {/* Split Visualization Placeholder */}
             <div className="pt-4 mt-4 border-t border-dashed">
                 <h4 className="text-sm font-semibold mb-3">Itemized Split Status</h4>
                 <div className="grid gap-2">
@@ -189,11 +189,19 @@ function GroupDetails({ group }: { group: any }) {
 }
 
 function SharedLedgersComponent() {
+  const navigate = useNavigate();
+  const session = authClient.useSession();
   const queryClient = useQueryClient();
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
+
+  useEffect(() => {
+    if (!session.isPending && !session.data) {
+        navigate({ to: "/sign-in" });
+    }
+  }, [session.data, session.isPending, navigate]);
 
   const { data: groups, isLoading } = useQuery({
     queryKey: ["groups"],
@@ -205,6 +213,7 @@ function SharedLedgersComponent() {
       if (!response.ok) throw new Error("Failed to fetch groups");
       return response.json();
     },
+    enabled: !!session.data,
   });
 
   const createMutation = useMutation({
@@ -225,6 +234,14 @@ function SharedLedgersComponent() {
         setNewGroupDesc("");
     }
   });
+
+  if (session.isPending) {
+    return <div className="flex h-screen items-center justify-center">Loading session...</div>;
+  }
+
+  if (!session.data) {
+    return null;
+  }
 
   return (
     <SidebarProvider>

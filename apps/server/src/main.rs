@@ -91,7 +91,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/auth", auth_router)
         .merge(api_router)
         .layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024))
-        .layer(CorsLayer::permissive());
+        .layer(
+            CorsLayer::new()
+                .allow_origin("http://localhost:3000".parse::<axum::http::HeaderValue>().unwrap())
+                .allow_methods([
+                    axum::http::Method::GET,
+                    axum::http::Method::POST,
+                    axum::http::Method::PUT,
+                    axum::http::Method::DELETE,
+                    axum::http::Method::OPTIONS,
+                ])
+                .allow_headers([
+                    axum::http::header::CONTENT_TYPE,
+                    axum::http::header::AUTHORIZATION,
+                    axum::http::header::ACCEPT,
+                    axum::http::header::COOKIE,
+                ])
+                .allow_credentials(true),
+        );
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3001".into());
     let addr: SocketAddr = format!("0.0.0.0:{}", port).parse()?;

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@expent/ui/components/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@expent/ui/components/separator";
@@ -15,6 +15,8 @@ import { Button } from "@expent/ui/components/button";
 import { Badge } from "@expent/ui/components/badge";
 import { useQuery } from "@tanstack/react-query";
 import { SparklesIcon, CalendarIcon, CreditCardIcon } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/dashboard/subscriptions")({
   component: SubscriptionsComponent,
@@ -23,6 +25,15 @@ export const Route = createFileRoute("/dashboard/subscriptions")({
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
 function SubscriptionsComponent() {
+  const navigate = useNavigate();
+  const session = authClient.useSession();
+
+  useEffect(() => {
+    if (!session.isPending && !session.data) {
+        navigate({ to: "/sign-in" });
+    }
+  }, [session.data, session.isPending, navigate]);
+
   const { data: potentialSubs, isLoading, refetch } = useQuery({
     queryKey: ["subscriptions-detect"],
     queryFn: async () => {
@@ -33,7 +44,16 @@ function SubscriptionsComponent() {
       if (!response.ok) throw new Error("Failed to detect subscriptions");
       return response.json();
     },
+    enabled: !!session.data,
   });
+
+  if (session.isPending) {
+    return <div className="flex h-screen items-center justify-center">Loading session...</div>;
+  }
+
+  if (!session.data) {
+    return null;
+  }
 
   return (
     <SidebarProvider>
