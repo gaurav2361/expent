@@ -13,6 +13,7 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardP2pSharedRouteImport } from './routes/dashboard/p2p/shared'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -34,18 +35,25 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/dashboard/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardP2pSharedRoute = DashboardP2pSharedRouteImport.update({
+  id: '/dashboard/p2p/shared',
+  path: '/dashboard/p2p/shared',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/p2p/shared': typeof DashboardP2pSharedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/p2p/shared': typeof DashboardP2pSharedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,25 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/p2p/shared': typeof DashboardP2pSharedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/sign-up' | '/dashboard/'
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/sign-up'
+    | '/dashboard/'
+    | '/dashboard/p2p/shared'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sign-in' | '/sign-up' | '/dashboard'
-  id: '__root__' | '/' | '/sign-in' | '/sign-up' | '/dashboard/'
+  to: '/' | '/sign-in' | '/sign-up' | '/dashboard' | '/dashboard/p2p/shared'
+  id:
+    | '__root__'
+    | '/'
+    | '/sign-in'
+    | '/sign-up'
+    | '/dashboard/'
+    | '/dashboard/p2p/shared'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +87,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardP2pSharedRoute: typeof DashboardP2pSharedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +120,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/p2p/shared': {
+      id: '/dashboard/p2p/shared'
+      path: '/dashboard/p2p/shared'
+      fullPath: '/dashboard/p2p/shared'
+      preLoaderRoute: typeof DashboardP2pSharedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +135,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardP2pSharedRoute: DashboardP2pSharedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
