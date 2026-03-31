@@ -2,8 +2,8 @@ use crate::auth::adapter::SqliteAdapter;
 use async_trait::async_trait;
 use better_auth::types_mod::{AuthError, AuthResult, CreateSession, Session, SessionOps};
 use chrono::{DateTime, Utc};
-use sea_orm::{EntityTrait, Set, ActiveModelTrait, ColumnTrait, QueryFilter, prelude::Expr};
 use db::entities::session;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, prelude::Expr};
 
 #[async_trait]
 impl SessionOps for SqliteAdapter {
@@ -25,8 +25,9 @@ impl SessionOps for SqliteAdapter {
             user_id: Set(data.user_id.clone()),
         };
 
-        active_model.insert(&self.db).await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+        active_model.insert(&self.db).await.map_err(|e| {
+            AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+        })?;
 
         Ok(Session {
             id,
@@ -48,7 +49,9 @@ impl SessionOps for SqliteAdapter {
             .filter(session::Column::Token.eq(token))
             .one(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         Ok(model.map(map_model_to_session))
     }
@@ -58,19 +61,27 @@ impl SessionOps for SqliteAdapter {
             .filter(session::Column::UserId.eq(user_id))
             .all(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         Ok(models.into_iter().map(map_model_to_session).collect())
     }
 
-    async fn update_session_expiry(&self, token: &str, expires_at: DateTime<Utc>) -> AuthResult<()> {
+    async fn update_session_expiry(
+        &self,
+        token: &str,
+        expires_at: DateTime<Utc>,
+    ) -> AuthResult<()> {
         session::Entity::update_many()
             .col_expr(session::Column::ExpiresAt, Expr::value(expires_at))
             .col_expr(session::Column::UpdatedAt, Expr::value(Utc::now()))
             .filter(session::Column::Token.eq(token))
             .exec(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
         Ok(())
     }
 
@@ -79,7 +90,9 @@ impl SessionOps for SqliteAdapter {
             .filter(session::Column::Token.eq(token))
             .exec(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
         Ok(())
     }
 
@@ -88,7 +101,9 @@ impl SessionOps for SqliteAdapter {
             .filter(session::Column::UserId.eq(user_id))
             .exec(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
         Ok(())
     }
 
@@ -97,11 +112,17 @@ impl SessionOps for SqliteAdapter {
             .filter(session::Column::ExpiresAt.lt(Utc::now()))
             .exec(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
         Ok(res.rows_affected as usize)
     }
 
-    async fn update_session_active_organization(&self, _token: &str, _organization_id: Option<&str>) -> AuthResult<Self::Session> {
+    async fn update_session_active_organization(
+        &self,
+        _token: &str,
+        _organization_id: Option<&str>,
+    ) -> AuthResult<Self::Session> {
         Err(AuthError::NotImplemented("OrganizationOps".to_string()))
     }
 }

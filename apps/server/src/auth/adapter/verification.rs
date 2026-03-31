@@ -4,14 +4,17 @@ use better_auth::types_mod::{
     AuthError, AuthResult, CreateVerification, Verification, VerificationOps,
 };
 use chrono::Utc;
-use sea_orm::{EntityTrait, Set, ActiveModelTrait, ColumnTrait, QueryFilter};
 use db::entities::verification;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 #[async_trait]
 impl VerificationOps for SqliteAdapter {
     type Verification = Verification;
 
-    async fn create_verification(&self, data: CreateVerification) -> AuthResult<Self::Verification> {
+    async fn create_verification(
+        &self,
+        data: CreateVerification,
+    ) -> AuthResult<Self::Verification> {
         let id = uuid::Uuid::now_v7().to_string();
         let now = Utc::now();
 
@@ -24,8 +27,9 @@ impl VerificationOps for SqliteAdapter {
             updated_at: Set(Some(now.into())),
         };
 
-        active_model.insert(&self.db).await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+        active_model.insert(&self.db).await.map_err(|e| {
+            AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+        })?;
 
         Ok(Verification {
             id,
@@ -37,28 +41,43 @@ impl VerificationOps for SqliteAdapter {
         })
     }
 
-    async fn get_verification(&self, identifier: &str, value: &str) -> AuthResult<Option<Self::Verification>> {
+    async fn get_verification(
+        &self,
+        identifier: &str,
+        value: &str,
+    ) -> AuthResult<Option<Self::Verification>> {
         let model = verification::Entity::find()
             .filter(verification::Column::Identifier.eq(identifier))
             .filter(verification::Column::Value.eq(value))
             .one(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         Ok(model.map(map_model_to_verification))
     }
 
-    async fn get_verification_by_value(&self, value: &str) -> AuthResult<Option<Self::Verification>> {
+    async fn get_verification_by_value(
+        &self,
+        value: &str,
+    ) -> AuthResult<Option<Self::Verification>> {
         let model = verification::Entity::find()
             .filter(verification::Column::Value.eq(value))
             .one(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         Ok(model.map(map_model_to_verification))
     }
 
-    async fn consume_verification(&self, identifier: &str, value: &str) -> AuthResult<Option<Self::Verification>> {
+    async fn consume_verification(
+        &self,
+        identifier: &str,
+        value: &str,
+    ) -> AuthResult<Option<Self::Verification>> {
         let v = self.get_verification(identifier, value).await?;
         if let Some(ref ver) = v {
             self.delete_verification(&ver.id).await?;
@@ -70,7 +89,9 @@ impl VerificationOps for SqliteAdapter {
         verification::Entity::delete_by_id(id.to_string())
             .exec(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
         Ok(())
     }
 
@@ -79,7 +100,9 @@ impl VerificationOps for SqliteAdapter {
             .filter(verification::Column::ExpiresAt.lt(Utc::now()))
             .exec(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
         Ok(res.rows_affected as usize)
     }
 }

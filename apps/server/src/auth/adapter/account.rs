@@ -4,8 +4,8 @@ use better_auth::types_mod::{
     Account, AccountOps, AuthError, AuthResult, CreateAccount, UpdateAccount,
 };
 use chrono::Utc;
-use sea_orm::{EntityTrait, Set, ActiveModelTrait, ColumnTrait, QueryFilter};
 use db::entities::account;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 #[async_trait]
 impl AccountOps for SqliteAdapter {
@@ -31,8 +31,9 @@ impl AccountOps for SqliteAdapter {
             updated_at: Set(now),
         };
 
-        active_model.insert(&self.db).await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+        active_model.insert(&self.db).await.map_err(|e| {
+            AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+        })?;
 
         Ok(Account {
             id,
@@ -51,13 +52,19 @@ impl AccountOps for SqliteAdapter {
         })
     }
 
-    async fn get_account(&self, provider: &str, account_id: &str) -> AuthResult<Option<Self::Account>> {
+    async fn get_account(
+        &self,
+        provider: &str,
+        account_id: &str,
+    ) -> AuthResult<Option<Self::Account>> {
         let model = account::Entity::find()
             .filter(account::Column::ProviderId.eq(provider))
             .filter(account::Column::AccountId.eq(account_id))
             .one(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         Ok(model.map(map_model_to_account))
     }
@@ -67,7 +74,9 @@ impl AccountOps for SqliteAdapter {
             .filter(account::Column::UserId.eq(user_id))
             .all(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         Ok(models.into_iter().map(map_model_to_account).collect())
     }
@@ -80,7 +89,9 @@ impl AccountOps for SqliteAdapter {
         account::Entity::delete_by_id(id.to_string())
             .exec(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
         Ok(())
     }
 }

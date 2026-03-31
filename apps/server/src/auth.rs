@@ -1,20 +1,19 @@
-use better_auth::plugins::{EmailPasswordPlugin, SessionManagementPlugin};
-use better_auth::{AuthBuilder, AuthConfig, BetterAuth, AuthRequest, HttpMethod};
 use axum::{
-    extract::{FromRequestParts, FromRef},
-    http::{request::Parts, StatusCode},
+    extract::{FromRef, FromRequestParts},
+    http::{StatusCode, request::Parts},
 };
+use better_auth::plugins::{EmailPasswordPlugin, SessionManagementPlugin};
+use better_auth::{AuthBuilder, AuthConfig, AuthRequest, BetterAuth, HttpMethod};
+use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
-use sea_orm::DatabaseConnection;
 
 pub mod adapter;
 use crate::auth::adapter::SqliteAdapter;
 
 pub struct AuthSession {
     pub user: better_auth::types_mod::User,
-    pub session: better_auth::types_mod::Session,
 }
 
 impl<S> FromRequestParts<S> for AuthSession
@@ -42,9 +41,10 @@ where
             HashMap::new(),
         );
 
-        let response = auth.handle_request(auth_req).await.map_err(|e| {
-            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-        })?;
+        let response = auth
+            .handle_request(auth_req)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
         if response.status != 200 {
             return Err((StatusCode::UNAUTHORIZED, "Unauthorized".to_string()));
@@ -52,34 +52,41 @@ where
 
         #[derive(serde::Deserialize)]
         struct SessionResponse {
-            session: better_auth::types_mod::Session,
             user: better_auth::types_mod::User,
         }
 
-        let session_data: SessionResponse = serde_json::from_slice(&response.body).map_err(|e| {
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to parse session: {}", e))
-        })?;
+        let session_data: SessionResponse =
+            serde_json::from_slice(&response.body).map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to parse session: {}", e),
+                )
+            })?;
 
-        tracing::info!("🔑 Auth Session extracted for user: {}", session_data.user.email.as_deref().unwrap_or("unknown"));
+        tracing::info!(
+            "🔑 Auth Session extracted for user: {}",
+            session_data.user.email.as_deref().unwrap_or("unknown")
+        );
 
         Ok(AuthSession {
-            session: session_data.session,
             user: session_data.user,
         })
     }
 }
 
-pub async fn init_auth(db: DatabaseConnection) -> Result<Arc<BetterAuth<SqliteAdapter>>, Box<dyn std::error::Error>> {
+pub async fn init_auth(
+    db: DatabaseConnection,
+) -> Result<Arc<BetterAuth<SqliteAdapter>>, Box<dyn std::error::Error>> {
     let auth_secret = env::var("BETTER_AUTH_SECRET")
         .or_else(|_| env::var("BETTERAUTH_SECRET"))
         .expect("BETTER_AUTH_SECRET must be set");
-    
+
     let base_url = env::var("BETTER_AUTH_BASE_URL")
         .or_else(|_| env::var("BASE_URL"))
         .unwrap_or_else(|_| "http://localhost:8080".into());
 
     let cors_origin = env::var("CORS_ORIGIN").unwrap_or_default();
-    
+
     let mut trusted_origins = vec![
         "http://localhost:3000".to_string(),
         "http://127.0.0.1:3000".to_string(),

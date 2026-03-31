@@ -1,11 +1,13 @@
 mod auth;
+mod ocr;
 
 use crate::auth::AuthSession;
 use crate::auth::adapter::SqliteAdapter;
+use crate::ocr::OcrService;
 use aws_sdk_s3::presigning::PresigningConfig;
 use axum::{
     Router,
-    extract::{FromRef, Json, Path, State},
+    extract::{FromRef, Json, Multipart, Path, State},
     http::{HeaderName, HeaderValue, Method, StatusCode},
     routing::{get, post},
 };
@@ -25,6 +27,7 @@ struct AppState {
     db: DatabaseConnection,
     auth: Arc<better_auth::BetterAuth<SqliteAdapter>>,
     s3_client: aws_sdk_s3::Client,
+    ocr_service: Arc<OcrService>,
 }
 
 impl FromRef<AppState> for Arc<better_auth::BetterAuth<SqliteAdapter>> {
@@ -46,11 +49,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::env::var("RUST_LOG")
                 .unwrap_or_else(|_| "info,server=debug,better_auth=debug,sqlx=info".into()),
         ))
-        .with(tracing_subscriber::fmt::layer()
-            .with_target(false)
-            .with_thread_ids(true)
-            .with_line_number(true)
-            .with_file(true)
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_target(false)
+                .with_thread_ids(true)
+                .with_line_number(true)
+                .with_file(true),
         )
         .init();
 
@@ -60,6 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let db = Database::connect(&database_url).await?;
     let auth = auth::init_auth(db.clone()).await?;
+    let ocr_service = Arc::new(OcrService::new().await?);
 
     // S3/R2 Setup
     let endpoint = std::env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set");
@@ -84,6 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         db,
         auth: auth.clone(),
         s3_client,
+        ocr_service,
     };
 
     let auth_router = auth.clone().axum_router();
@@ -103,7 +109,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get(list_group_transactions_handler),
         )
         .route("/subscriptions/detect", get(detect_subscriptions_handler))
-        .route("/upload/presigned", post(get_presigned_url_handler));
+        .route("/upload/presigned", post(get_presigned_url_handler))
+        .route("/upload", post(direct_upload_handler))
+        .route("/process-image-ocr", post(process_image_ocr_handler));
 
     let app = Router::new()
         .nest("/api/auth", auth_router.with_state(auth.clone()))
@@ -166,10 +174,14 @@ async fn split_transaction_handler(
     session: AuthSession,
     Json(payload): Json<SplitTransactionRequest>,
 ) -> Result<Json<Vec<db::entities::p2p_request::Model>>, (StatusCode, String)> {
-    let result =
-        SmartMerge::split_transaction(&state.db, &session.user.id, &payload.transaction_id, payload.splits)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let result = SmartMerge::split_transaction(
+        &state.db,
+        &session.user.id,
+        &payload.transaction_id,
+        payload.splits,
+    )
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(result))
 }
@@ -178,7 +190,11 @@ async fn list_pending_p2p_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::p2p_request::Model>>, (StatusCode, String)> {
-    let email = session.user.email.clone().ok_or((StatusCode::BAD_REQUEST, "Email missing".to_string()))?;
+    let email = session
+        .user
+        .email
+        .clone()
+        .ok_or((StatusCode::BAD_REQUEST, "Email missing".to_string()))?;
     let result = SmartMerge::list_pending_p2p_requests(&state.db, &email)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -249,9 +265,14 @@ async fn create_group_handler(
     session: AuthSession,
     Json(payload): Json<CreateGroupRequest>,
 ) -> Result<Json<db::entities::group::Model>, (StatusCode, String)> {
-    let result = SmartMerge::create_group(&state.db, &session.user.id, &payload.name, payload.description)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let result = SmartMerge::create_group(
+        &state.db,
+        &session.user.id,
+        &payload.name,
+        payload.description,
+    )
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(result))
 }
@@ -333,7 +354,12 @@ async fn get_presigned_url_handler(
     Json(payload): Json<PresignedUrlRequest>,
 ) -> Result<Json<PresignedUrlResponse>, (StatusCode, String)> {
     let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
-    let key = format!("{}/{}-{}", session.user.id, uuid::Uuid::new_v4(), payload.file_name);
+    let key = format!(
+        "{}/{}-{}",
+        session.user.id,
+        uuid::Uuid::new_v4(),
+        payload.file_name
+    );
 
     let presigning_config = PresigningConfig::expires_in(Duration::from_secs(3600))
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -352,4 +378,111 @@ async fn get_presigned_url_handler(
         url: presigned_request.uri().to_string(),
         key,
     }))
+}
+
+async fn direct_upload_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    mut multipart: Multipart,
+) -> Result<Json<PresignedUrlResponse>, (StatusCode, String)> {
+    let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
+
+    let mut file_data = None;
+    let mut file_name = String::new();
+    let mut content_type = String::new();
+
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?
+    {
+        let name = field.name().unwrap_or_default().to_string();
+        if name == "file" {
+            file_name = field.file_name().unwrap_or("unnamed").to_string();
+            content_type = field
+                .content_type()
+                .unwrap_or("application/octet-stream")
+                .to_string();
+            file_data = Some(
+                field
+                    .bytes()
+                    .await
+                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?,
+            );
+            break;
+        }
+    }
+
+    let data = file_data.ok_or((StatusCode::BAD_REQUEST, "No file uploaded".to_string()))?;
+    let key = format!("{}/{}-{}", session.user.id, uuid::Uuid::new_v4(), file_name);
+
+    state
+        .s3_client
+        .put_object()
+        .bucket(bucket_name)
+        .key(&key)
+        .content_type(content_type)
+        .body(data.into())
+        .send()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(PresignedUrlResponse {
+        url: format!(
+            "https://{}.r2.cloudflarestorage.com/{}",
+            std::env::var("S3_BUCKET_NAME").unwrap(),
+            key
+        ),
+        key,
+    }))
+}
+
+#[derive(Deserialize)]
+struct ProcessImageOcrRequest {
+    key: String,
+}
+
+async fn process_image_ocr_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Json(payload): Json<ProcessImageOcrRequest>,
+) -> Result<Json<db::entities::transaction::Model>, (StatusCode, String)> {
+    let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
+
+    let response = state
+        .s3_client
+        .get_object()
+        .bucket(bucket_name)
+        .key(&payload.key)
+        .send()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let bytes = response
+        .body
+        .collect()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .into_bytes();
+
+    let text = state
+        .ocr_service
+        .process_image(&bytes)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Basic extraction logic (placeholder - should be improved)
+    // In a real scenario, you'd parse 'text' for amount, date, etc.
+    let ocr_data = OcrResult {
+        raw_text: text,
+        amount: None,
+        date: None,
+        upi_id: None,
+        items: vec![],
+    };
+
+    let result = SmartMerge::process_ocr(&state.db, &session.user.id, ocr_data)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(result))
 }

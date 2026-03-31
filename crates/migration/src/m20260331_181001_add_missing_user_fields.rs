@@ -12,10 +12,14 @@ impl MigrationTrait for Migration {
             ColumnDef::new(Users::Role).string().to_owned(),
             ColumnDef::new(Users::Banned).boolean().to_owned(),
             ColumnDef::new(Users::BanReason).string().to_owned(),
-            ColumnDef::new(Users::BanExpires).timestamp_with_time_zone().to_owned(),
+            ColumnDef::new(Users::BanExpires)
+                .timestamp_with_time_zone()
+                .to_owned(),
             ColumnDef::new(Users::TwoFactorEnabled).boolean().to_owned(),
             ColumnDef::new(Users::PhoneNumber).string().to_owned(),
-            ColumnDef::new(Users::PhoneNumberVerified).boolean().to_owned(),
+            ColumnDef::new(Users::PhoneNumberVerified)
+                .boolean()
+                .to_owned(),
             ColumnDef::new(Users::Metadata).json().to_owned(),
         ];
 
@@ -29,7 +33,7 @@ impl MigrationTrait for Migration {
                 )
                 .await?;
         }
-        
+
         Ok(())
     }
 

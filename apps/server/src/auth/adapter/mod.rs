@@ -1,10 +1,10 @@
 use sea_orm::DatabaseConnection;
 
-pub mod user;
-pub mod session;
 pub mod account;
-pub mod verification;
 pub mod others;
+pub mod session;
+pub mod user;
+pub mod verification;
 
 #[derive(Clone)]
 pub struct SqliteAdapter {

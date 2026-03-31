@@ -33,7 +33,7 @@ function RouteComponent() {
   const queryClient = useQueryClient();
 
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [ocrResult, setOcrResult] = useState<any>(null);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
@@ -109,37 +109,26 @@ function RouteComponent() {
 
   const handleUpload = async () => {
     if (!file) return;
-    setIsLoading(true);
+    setIsUploading(true);
     try {
-      const presignedRes = await fetch(`${API_BASE_URL}/api/upload/presigned`, {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Upload directly to our server, which proxies to R2
+      const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contentType: file.type,
-          fileName: file.name,
-        }),
+        body: formData,
         credentials: "include",
       });
 
-      if (!presignedRes.ok) throw new Error("Failed to get presigned URL");
-      const { url, key } = await presignedRes.json();
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const { key } = await uploadRes.json();
 
-      const uploadRes = await fetch(url, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
-      });
-
-      if (!uploadRes.ok) throw new Error("Failed to upload to R2");
-
-      const processRes = await fetch(`${API_BASE_URL}/api/process-ocr`, {
+      // Trigger OCR processing on the server
+      const processRes = await fetch(`${API_BASE_URL}/api/process-image-ocr`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          raw_text: "Uploaded file",
-          amount: "0.00",
-          date: new Date().toISOString(),
-        }),
+        body: JSON.stringify({ key }),
         credentials: "include",
       });
 
@@ -151,7 +140,7 @@ function RouteComponent() {
       console.error(error);
       alert("Upload or processing failed");
     } finally {
-      setIsLoading(false);
+      setIsUploading(false);
     }
   };
 
@@ -225,7 +214,7 @@ function RouteComponent() {
                 <div>
                   <CardTitle>Receipt Itemized</CardTitle>
                   <CardDescription>
-                    We've extracted {ocrResult.items?.length || 0} items from your upload.
+                    We've extracted items and data from your upload.
                   </CardDescription>
                 </div>
                 <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setOcrResult(null)}>
@@ -234,31 +223,36 @@ function RouteComponent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="rounded-md border bg-background">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Item</TableHead>
-                          <TableHead className="text-right">Qty</TableHead>
-                          <TableHead className="text-right">Price</TableHead>
-                          <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(ocrResult.items || []).map((item: any, i: number) => (
-                          <TableRow key={i}>
-                            <TableCell className="font-medium">{item.name}</TableCell>
-                            <TableCell className="text-right">{item.quantity}</TableCell>
-                            <TableCell className="text-right font-mono">₹{item.price}</TableCell>
-                            <TableCell className="text-right">
-                              <Button size="sm" variant="ghost" onClick={() => triggerSplit(ocrResult.id, item.price)}>
-                                <Share2Icon className="h-3 w-3 mr-1" /> Split
-                              </Button>
-                            </TableCell>
+                  {ocrResult.items && ocrResult.items.length > 0 && (
+                    <div className="rounded-md border bg-background">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Item</TableHead>
+                            <TableHead className="text-right">Qty</TableHead>
+                            <TableHead className="text-right">Price</TableHead>
+                            <TableHead className="text-right">Action</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {ocrResult.items.map((item: any, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{item.name}</TableCell>
+                              <TableCell className="text-right">{item.quantity}</TableCell>
+                              <TableCell className="text-right font-mono">₹{item.price}</TableCell>
+                              <TableCell className="text-right">
+                                <Button size="sm" variant="ghost" onClick={() => triggerSplit(ocrResult.id, item.price)}>
+                                  <Share2Icon className="h-3 w-3 mr-1" /> Split
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                  <div className="bg-muted/50 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap overflow-auto max-h-40">
+                    {ocrResult.raw_text}
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" size="sm">
