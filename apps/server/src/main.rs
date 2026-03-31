@@ -47,14 +47,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG")
-                .unwrap_or_else(|_| "info,server=debug,better_auth=debug,sqlx=info".into()),
+                .unwrap_or_else(|_| "info,server=debug,better_auth=debug,sqlx=warn".into()),
         ))
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_target(false)
-                .with_thread_ids(true)
-                .with_line_number(true)
-                .with_file(true),
+        .with(tracing_subscriber::fmt::layer()
+            .pretty()
+            .with_target(false)
+            .with_thread_ids(false)
+            .with_file(false)
+            .with_line_number(false)
         )
         .init();
 
