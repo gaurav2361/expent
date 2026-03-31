@@ -1,7 +1,5 @@
-mod auth;
-
-use crate::auth::AuthSession;
-use crate::auth::adapter::SqliteAdapter;
+use auth::{AuthSession, init_auth};
+use auth::adapter::SqliteAdapter;
 use aws_sdk_s3::presigning::PresigningConfig;
 use axum::{
     Router,
@@ -62,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     let db = Database::connect(&database_url).await?;
-    let auth = auth::init_auth(db.clone()).await?;
+    let auth = init_auth(db.clone()).await?;
     let ocr_service = Arc::new(OcrService::new().await?);
 
     // S3/R2 Setup

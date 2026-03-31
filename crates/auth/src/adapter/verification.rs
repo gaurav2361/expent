@@ -1,4 +1,4 @@
-use crate::auth::adapter::SqliteAdapter;
+use crate::adapter::SqliteAdapter;
 use async_trait::async_trait;
 use better_auth::types_mod::{
     AuthError, AuthResult, CreateVerification, Verification, VerificationOps,
