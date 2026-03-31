@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let access_key_id = std::env::var("S3_ACCESS_KEY_ID").expect("S3_ACCESS_KEY_ID must be set");
     let secret_access_key = std::env::var("S3_SECRET_ACCESS_KEY").expect("S3_SECRET_ACCESS_KEY must be set");
     
-    let s3_config = aws_config::from_env()
+    let s3_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
         .endpoint_url(endpoint)
         .credentials_provider(aws_sdk_s3::config::Credentials::new(
             access_key_id,
@@ -82,7 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/groups", get(list_groups_handler))
         .route("/groups/create", post(create_group_handler))
         .route("/groups/invite", post(invite_to_group_handler))
-        .route("/groups/:id/transactions", get(list_group_transactions_handler))
+        .route("/groups/{id}/transactions", get(list_group_transactions_handler))
         .route("/subscriptions/detect", get(detect_subscriptions_handler))
         .route("/upload/presigned", post(get_presigned_url_handler))
         .with_state(state);
