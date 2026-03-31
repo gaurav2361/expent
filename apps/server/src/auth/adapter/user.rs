@@ -3,16 +3,19 @@ use async_trait::async_trait;
 use better_auth::types_mod::{
     AuthError, AuthResult, CreateUser, ListUsersParams, UpdateUser, User, UserOps,
 };
-use chrono::{DateTime, Utc, FixedOffset};
-use sea_orm::{EntityTrait, Set, ActiveModelTrait, QueryOrder, QueryFilter, ColumnTrait};
+use chrono::{DateTime, FixedOffset, Utc};
 use db::entities::user;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 
 #[async_trait]
 impl UserOps for SqliteAdapter {
     type User = User;
 
     async fn create_user(&self, data: CreateUser) -> AuthResult<Self::User> {
-        let id = data.id.clone().unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
+        let id = data
+            .id
+            .clone()
+            .unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
         let now: DateTime<FixedOffset> = Utc::now().into();
 
         let active_model = user::ActiveModel {
@@ -34,20 +37,26 @@ impl UserOps for SqliteAdapter {
             two_factor_enabled: Set(Some(false)),
             phone_number: Set(None),
             phone_number_verified: Set(Some(false)),
+            associated_contact_id: Set(None),
             metadata: Set(data.metadata),
         };
 
-        active_model.insert(&self.db).await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+        active_model.insert(&self.db).await.map_err(|e| {
+            AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+        })?;
 
-        self.get_user_by_id(&id).await?.ok_or(AuthError::UserNotFound)
+        self.get_user_by_id(&id)
+            .await?
+            .ok_or(AuthError::UserNotFound)
     }
 
     async fn get_user_by_id(&self, id: &str) -> AuthResult<Option<Self::User>> {
         let model = user::Entity::find_by_id(id.to_string())
             .one(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         Ok(model.map(map_model_to_user))
     }
@@ -57,7 +66,9 @@ impl UserOps for SqliteAdapter {
             .filter(user::Column::Email.eq(email))
             .one(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         Ok(model.map(map_model_to_user))
     }
@@ -67,7 +78,9 @@ impl UserOps for SqliteAdapter {
             .filter(user::Column::Username.eq(username))
             .one(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         Ok(model.map(map_model_to_user))
     }
@@ -76,33 +89,58 @@ impl UserOps for SqliteAdapter {
         let model = user::Entity::find_by_id(id.to_string())
             .one(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?
             .ok_or(AuthError::UserNotFound)?;
 
         let mut active_model: user::ActiveModel = model.into();
         active_model.updated_at = Set(Utc::now().into());
 
-        if let Some(name) = update.name { active_model.name = Set(name); }
-        if let Some(email) = update.email { active_model.email = Set(email); }
-        if let Some(ev) = update.email_verified { active_model.email_verified = Set(ev); }
-        if let Some(image) = update.image { active_model.image = Set(Some(image)); }
-        if let Some(username) = update.username { active_model.username = Set(Some(username)); }
-        if let Some(role) = update.role { active_model.role = Set(Some(role)); }
-        if let Some(banned) = update.banned { active_model.banned = Set(Some(banned)); }
-        if let Some(ban_reason) = update.ban_reason { active_model.ban_reason = Set(Some(ban_reason)); }
-        if let Some(ban_expires) = update.ban_expires { active_model.ban_expires = Set(Some(ban_expires.into())); }
+        if let Some(name) = update.name {
+            active_model.name = Set(name);
+        }
+        if let Some(email) = update.email {
+            active_model.email = Set(email);
+        }
+        if let Some(ev) = update.email_verified {
+            active_model.email_verified = Set(ev);
+        }
+        if let Some(image) = update.image {
+            active_model.image = Set(Some(image));
+        }
+        if let Some(username) = update.username {
+            active_model.username = Set(Some(username));
+        }
+        if let Some(role) = update.role {
+            active_model.role = Set(Some(role));
+        }
+        if let Some(banned) = update.banned {
+            active_model.banned = Set(Some(banned));
+        }
+        if let Some(ban_reason) = update.ban_reason {
+            active_model.ban_reason = Set(Some(ban_reason));
+        }
+        if let Some(ban_expires) = update.ban_expires {
+            active_model.ban_expires = Set(Some(ban_expires.into()));
+        }
 
-        active_model.update(&self.db).await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+        active_model.update(&self.db).await.map_err(|e| {
+            AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+        })?;
 
-        self.get_user_by_id(id).await?.ok_or(AuthError::UserNotFound)
+        self.get_user_by_id(id)
+            .await?
+            .ok_or(AuthError::UserNotFound)
     }
 
     async fn delete_user(&self, id: &str) -> AuthResult<()> {
         user::Entity::delete_by_id(id.to_string())
             .exec(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
         Ok(())
     }
 
@@ -111,7 +149,9 @@ impl UserOps for SqliteAdapter {
             .order_by_desc(user::Column::CreatedAt)
             .all(&self.db)
             .await
-            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+            .map_err(|e| {
+                AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string()))
+            })?;
 
         let count = models.len();
         let users = models.into_iter().map(map_model_to_user).collect();
@@ -120,6 +160,18 @@ impl UserOps for SqliteAdapter {
 }
 
 fn map_model_to_user(m: user::Model) -> User {
+    let mut metadata = m.metadata.unwrap_or_default();
+
+    // Inject associated_contact_id into metadata for better-auth to see it
+    if let Some(contact_id) = m.associated_contact_id {
+        if let Some(obj) = metadata.as_object_mut() {
+            obj.insert(
+                "associated_contact_id".to_string(),
+                serde_json::Value::String(contact_id),
+            );
+        }
+    }
+
     User {
         id: m.id,
         name: Some(m.name),
@@ -135,6 +187,6 @@ fn map_model_to_user(m: user::Model) -> User {
         banned: m.banned.unwrap_or(false),
         ban_reason: m.ban_reason,
         ban_expires: m.ban_expires.map(|d| d.into()),
-        metadata: m.metadata.unwrap_or_default(),
+        metadata,
     }
 }

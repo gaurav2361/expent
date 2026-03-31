@@ -16,7 +16,7 @@ pub struct Model {
     pub is_active: bool,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
-    
+
     // Enhanced fields for better-auth and general usage
     pub username: Option<String>,
     pub display_username: Option<String>,
@@ -27,6 +27,7 @@ pub struct Model {
     pub two_factor_enabled: Option<bool>,
     pub phone_number: Option<String>,
     pub phone_number_verified: Option<bool>,
+    pub associated_contact_id: Option<String>,
     #[ts(type = "any")]
     pub metadata: Option<Json>,
 }
@@ -49,6 +50,12 @@ pub enum Relation {
     P2PRequests,
     #[sea_orm(has_many = "super::user_upi_id::Entity")]
     UpiIds,
+    #[sea_orm(
+        belongs_to = "super::contact::Entity",
+        from = "Column::AssociatedContactId",
+        to = "super::contact::Column::Id"
+    )]
+    AssociatedContact,
 }
 
 impl Related<super::session::Entity> for Entity {
@@ -96,6 +103,12 @@ impl Related<super::p2p_request::Entity> for Entity {
 impl Related<super::user_upi_id::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::UpiIds.def()
+    }
+}
+
+impl Related<super::contact::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AssociatedContact.def()
     }
 }
 

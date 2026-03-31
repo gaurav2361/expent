@@ -85,6 +85,7 @@
                 # Utilities
                 just
                 sql-studio
+                tesseract
               ]
               ++ lib.optionals stdenv.isDarwin [
                 libiconv
