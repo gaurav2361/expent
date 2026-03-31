@@ -19,7 +19,7 @@ import { ReceiptTextIcon, Share2Icon, SparklesIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SplitDialog } from "@/components/split-dialog";
-import { useSession } from "@/lib/auth";
+import { useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,

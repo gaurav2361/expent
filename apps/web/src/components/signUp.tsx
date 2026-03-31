@@ -9,7 +9,7 @@ import { AuthShades } from "@/components/auth-shades";
 import { SocialLogins } from "@/components/auth-social";
 import { Logo } from "@/components/logo";
 import { useState } from "react";
-import { signUp } from "@/lib/auth";
+import { signUp } from "@/lib/auth-client";
 
 export function SignUp() {
   const [email, setEmail] = useState("");

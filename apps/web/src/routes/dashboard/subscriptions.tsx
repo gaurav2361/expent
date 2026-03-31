@@ -16,7 +16,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CalendarIcon, CreditCardIcon, SparklesIcon } from "lucide-react";
 import { useEffect } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
-import { useSession } from "@/lib/auth";
+import { useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/dashboard/subscriptions")({
   component: SubscriptionsComponent,
