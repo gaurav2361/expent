@@ -2,7 +2,7 @@ use axum::{
     extract::{State, Json, Path},
     routing::{post, get},
     Router,
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, StatusCode, Method, HeaderValue, HeaderName},
 };
 use better_auth::{AuthConfig, AxumIntegration, AuthBuilder, AuthRequest, HttpMethod};
 use better_auth::plugins::EmailPasswordPlugin;
@@ -43,11 +43,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = Database::connect(&database_url).await?;
     let adapter = SqlxAdapter::new(&database_url).await?;
     
-    let auth_instance = AuthBuilder::new(AuthConfig::new(auth_secret).base_url(base_url))
-        .database(adapter)
-        .plugin(EmailPasswordPlugin::new())
-        .build()
-        .await?;
+    let auth_instance = AuthBuilder::new(
+        AuthConfig::new(auth_secret)
+            .base_url(base_url)
+            .trusted_origins(vec!["http://localhost:3000".to_string()])
+    )
+    .database(adapter)
+    .plugin(EmailPasswordPlugin::new())
+    .build()
+    .await?;
 
     // S3/R2 Setup
     let endpoint = std::env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set");
@@ -93,19 +97,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(
             CorsLayer::new()
-                .allow_origin("http://localhost:3000".parse::<axum::http::HeaderValue>().unwrap())
+                .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
                 .allow_methods([
-                    axum::http::Method::GET,
-                    axum::http::Method::POST,
-                    axum::http::Method::PUT,
-                    axum::http::Method::DELETE,
-                    axum::http::Method::OPTIONS,
+                    Method::GET,
+                    Method::POST,
+                    Method::PUT,
+                    Method::DELETE,
+                    Method::OPTIONS,
                 ])
                 .allow_headers([
                     axum::http::header::CONTENT_TYPE,
                     axum::http::header::AUTHORIZATION,
                     axum::http::header::ACCEPT,
                     axum::http::header::COOKIE,
+                    HeaderName::from_static("x-better-auth-origin"),
                 ])
                 .allow_credentials(true),
         );
