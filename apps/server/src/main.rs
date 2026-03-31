@@ -46,7 +46,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::env::var("RUST_LOG")
                 .unwrap_or_else(|_| "info,server=debug,better_auth=debug,sqlx=info".into()),
         ))
-        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::fmt::layer()
+            .with_target(false)
+            .with_thread_ids(true)
+            .with_line_number(true)
+            .with_file(true)
+        )
         .init();
 
     dotenvy::dotenv().ok();

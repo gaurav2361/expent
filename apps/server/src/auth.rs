@@ -60,6 +60,8 @@ where
             (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to parse session: {}", e))
         })?;
 
+        tracing::info!("🔑 Auth Session extracted for user: {}", session_data.user.email.as_deref().unwrap_or("unknown"));
+
         Ok(AuthSession {
             session: session_data.session,
             user: session_data.user,

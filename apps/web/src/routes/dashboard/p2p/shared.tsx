@@ -209,12 +209,6 @@ function SharedLedgersComponent() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
 
-  useEffect(() => {
-    if (!session.isPending && !session.data) {
-      navigate({ to: "/sign-in" });
-    }
-  }, [session.data, session.isPending, navigate]);
-
   const { data: groups, isLoading } = useQuery({
     queryKey: ["groups"],
     queryFn: async () => {
@@ -246,6 +240,12 @@ function SharedLedgersComponent() {
       setNewGroupDesc("");
     },
   });
+
+  useEffect(() => {
+    if (!session.isPending && !session.data) {
+      navigate({ to: "/sign-in" });
+    }
+  }, [session.data, session.isPending, navigate]);
 
   if (session.isPending) {
     return <div className="flex h-screen items-center justify-center">Loading session...</div>;

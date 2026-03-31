@@ -30,27 +30,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080
 function RouteComponent() {
   const navigate = useNavigate();
   const session = useSession();
+  const queryClient = useQueryClient();
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<any>(null);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!session.isPending && !session.data) {
-      navigate({ to: "/sign-in" });
-    }
-  }, [session.data, session.isPending, navigate]);
-
-  if (session.isPending) {
-    return <div className="flex h-screen items-center justify-center">Loading session...</div>;
-  }
-
-  if (!session.data) {
-    return null;
-  }
 
   // 1. Fetch Transactions
   const { data: transactions, isLoading: isTxnsLoading } = useQuery({
@@ -63,6 +49,7 @@ function RouteComponent() {
       if (!response.ok) throw new Error("Failed to fetch transactions");
       return response.json();
     },
+    enabled: !!session.data,
   });
 
   // 2. Fetch Pending P2P Requests
@@ -76,6 +63,7 @@ function RouteComponent() {
       if (!response.ok) throw new Error("Failed to fetch P2P requests");
       return response.json();
     },
+    enabled: !!session.data,
   });
 
   // Mutations
@@ -104,6 +92,20 @@ function RouteComponent() {
       return txn.direction === "IN" ? acc + amount : acc - amount;
     }, 0);
   }, [transactions]);
+
+  useEffect(() => {
+    if (!session.isPending && !session.data) {
+      navigate({ to: "/sign-in" });
+    }
+  }, [session.data, session.isPending, navigate]);
+
+  if (session.isPending) {
+    return <div className="flex h-screen items-center justify-center">Loading session...</div>;
+  }
+
+  if (!session.data) {
+    return null;
+  }
 
   const handleUpload = async () => {
     if (!file) return;
@@ -196,8 +198,8 @@ function RouteComponent() {
               </CardHeader>
               <CardContent className="flex gap-2">
                 <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="h-8 text-xs" />
-                <Button onClick={handleUpload} disabled={!file || isLoading} size="sm">
-                  {isLoading ? "..." : "Go"}
+                <Button onClick={handleUpload} disabled={!file || isUploading} size="sm">
+                  {isUploading ? "..." : "Go"}
                 </Button>
               </CardContent>
             </Card>

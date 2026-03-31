@@ -25,6 +25,16 @@ impl UserOps for SqliteAdapter {
             is_active: Set(true),
             created_at: Set(now),
             updated_at: Set(now),
+            username: Set(data.username),
+            display_username: Set(data.display_username),
+            role: Set(data.role.or(Some("user".to_string()))),
+            banned: Set(Some(false)),
+            ban_reason: Set(None),
+            ban_expires: Set(None),
+            two_factor_enabled: Set(Some(false)),
+            phone_number: Set(None),
+            phone_number_verified: Set(Some(false)),
+            metadata: Set(data.metadata),
         };
 
         active_model.insert(&self.db).await
@@ -52,8 +62,14 @@ impl UserOps for SqliteAdapter {
         Ok(model.map(map_model_to_user))
     }
 
-    async fn get_user_by_username(&self, _username: &str) -> AuthResult<Option<Self::User>> {
-        Ok(None)
+    async fn get_user_by_username(&self, username: &str) -> AuthResult<Option<Self::User>> {
+        let model = user::Entity::find()
+            .filter(user::Column::Username.eq(username))
+            .one(&self.db)
+            .await
+            .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
+
+        Ok(model.map(map_model_to_user))
     }
 
     async fn update_user(&self, id: &str, update: UpdateUser) -> AuthResult<Self::User> {
@@ -70,6 +86,11 @@ impl UserOps for SqliteAdapter {
         if let Some(email) = update.email { active_model.email = Set(email); }
         if let Some(ev) = update.email_verified { active_model.email_verified = Set(ev); }
         if let Some(image) = update.image { active_model.image = Set(Some(image)); }
+        if let Some(username) = update.username { active_model.username = Set(Some(username)); }
+        if let Some(role) = update.role { active_model.role = Set(Some(role)); }
+        if let Some(banned) = update.banned { active_model.banned = Set(Some(banned)); }
+        if let Some(ban_reason) = update.ban_reason { active_model.ban_reason = Set(Some(ban_reason)); }
+        if let Some(ban_expires) = update.ban_expires { active_model.ban_expires = Set(Some(ban_expires.into())); }
 
         active_model.update(&self.db).await
             .map_err(|e| AuthError::Database(better_auth::types_mod::DatabaseError::Query(e.to_string())))?;
@@ -107,13 +128,13 @@ fn map_model_to_user(m: user::Model) -> User {
         image: m.image,
         created_at: m.created_at.into(),
         updated_at: m.updated_at.into(),
-        username: None,
-        display_username: None,
-        two_factor_enabled: false,
-        role: Some("user".to_string()),
-        banned: false,
-        ban_reason: None,
-        ban_expires: None,
-        metadata: serde_json::Value::Null,
+        username: m.username,
+        display_username: m.display_username,
+        two_factor_enabled: m.two_factor_enabled.unwrap_or(false),
+        role: m.role,
+        banned: m.banned.unwrap_or(false),
+        ban_reason: m.ban_reason,
+        ban_expires: m.ban_expires.map(|d| d.into()),
+        metadata: m.metadata.unwrap_or_default(),
     }
 }
