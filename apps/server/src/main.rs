@@ -1,5 +1,5 @@
 use axum::{
-    extract::{State, Json},
+    extract::{State, Json, Path},
     routing::{post, get},
     Router,
     http::{HeaderMap, StatusCode},
@@ -57,6 +57,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/process-ocr", post(process_ocr_handler))
         .route("/p2p/create", post(create_p2p_handler))
         .route("/p2p/accept", post(accept_p2p_handler))
+        .route("/groups", get(list_groups_handler))
+        .route("/groups/create", post(create_group_handler))
+        .route("/groups/:id/transactions", get(list_group_transactions_handler))
         .with_state(state);
 
     let app = Router::new()
@@ -206,5 +209,49 @@ async fn accept_p2p_handler(
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
+    Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+struct CreateGroupRequest {
+    name: String,
+    description: Option<String>,
+}
+
+async fn create_group_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<CreateGroupRequest>,
+) -> Result<Json<db::entities::group::Model>, (StatusCode, String)> {
+    let (user_id, _) = get_user_data(&state.auth, headers).await?;
+    let result = SmartMerge::create_group(&state.db, &user_id, &payload.name, payload.description)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
+    Ok(Json(result))
+}
+
+async fn list_groups_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<db::entities::group::Model>>, (StatusCode, String)> {
+    let (user_id, _) = get_user_data(&state.auth, headers).await?;
+    let result = SmartMerge::list_groups(&state.db, &user_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
+    Ok(Json(result))
+}
+
+async fn list_group_transactions_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(group_id): Path<String>,
+) -> Result<Json<Vec<db::entities::transaction::Model>>, (StatusCode, String)> {
+    let _ = get_user_data(&state.auth, headers).await?;
+    let result = SmartMerge::list_group_transactions(&state.db, &group_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
     Ok(Json(result))
 }

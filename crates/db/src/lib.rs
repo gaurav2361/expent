@@ -6,11 +6,20 @@ use chrono::{DateTime, FixedOffset};
 pub mod entities;
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct LineItem {
+    pub name: String,
+    pub quantity: i32,
+    pub price: Decimal,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OcrResult {
     pub raw_text: String,
     pub amount: Option<Decimal>,
     pub date: Option<DateTime<FixedOffset>>,
     pub upi_id: Option<String>,
+    #[serde(default)]
+    pub items: Vec<LineItem>,
 }
 
 pub struct SmartMerge;
@@ -38,56 +47,80 @@ impl SmartMerge {
 
         let existing_txns = query.all(db).await?;
 
-        // 2. If existing found, link to it (Smart Merge)
-        if !existing_txns.is_empty() {
-            let txn = existing_txns[0].clone();
-            
+        let txn = if !existing_txns.is_empty() {
+            // 2. Link to existing
+            let existing = existing_txns[0].clone();
             let source = entities::transaction_source::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
-                transaction_id: Set(txn.id.clone()),
+                transaction_id: Set(existing.id.clone()),
                 source_type: Set("OCR_SCREENSHOT_MERGED".to_string()),
                 r2_file_url: Set(None),
                 raw_metadata: Set(Some(serde_json::to_value(&ocr_data).unwrap())),
             };
             source.insert(db).await?;
-            
-            return Ok(txn);
+            existing
+        } else {
+            // 3. Create NEW transaction
+            let new_txn = entities::transaction::ActiveModel {
+                id: Set(uuid::Uuid::now_v7().to_string()),
+                user_id: Set(user_id.to_string()),
+                amount: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
+                direction: Set("OUT".to_string()), 
+                date: Set(ocr_data.date.unwrap_or_else(|| chrono::Utc::now().into())),
+                source: Set("OCR".to_string()),
+                status: Set("COMPLETED".to_string()),
+                purpose_tag: Set(None),
+                group_id: Set(None),
+            };
+
+            let result = new_txn.insert(db).await?;
+
+            // 4. Save metadata
+            let metadata = entities::transaction_metadata::ActiveModel {
+                transaction_id: Set(result.id.clone()),
+                upi_txn_id: Set(ocr_data.upi_id.clone()), 
+                app_txn_id: Set(None),
+                app_name: Set(None),
+                contact_number: Set(None),
+            };
+            metadata.insert(db).await?;
+
+            let source = entities::transaction_source::ActiveModel {
+                id: Set(uuid::Uuid::now_v7().to_string()),
+                transaction_id: Set(result.id.clone()),
+                source_type: Set("OCR_SCREENSHOT".to_string()),
+                r2_file_url: Set(None),
+                raw_metadata: Set(Some(serde_json::to_value(&ocr_data).unwrap())),
+            };
+            source.insert(db).await?;
+            result
+        };
+
+        // 5. Handle Line Items (Purchases)
+        if !ocr_data.items.is_empty() {
+            let purchase = entities::purchase::ActiveModel {
+                id: Set(uuid::Uuid::now_v7().to_string()),
+                transaction_id: Set(txn.id.clone()),
+                vendor: Set("Extracted Vendor".to_string()), 
+                total: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
+                order_id: Set(None),
+            };
+            let p_result = purchase.insert(db).await?;
+
+            for item in ocr_data.items {
+                let p_item = entities::purchase_item::ActiveModel {
+                    id: Set(uuid::Uuid::now_v7().to_string()),
+                    purchase_id: Set(p_result.id.clone()),
+                    name: Set(item.name),
+                    quantity: Set(item.quantity),
+                    price: Set(item.price),
+                    sku: Set(None),
+                };
+                p_item.insert(db).await?;
+            }
         }
 
-        // 3. Create NEW transaction if no match
-        let new_txn = entities::transaction::ActiveModel {
-            id: Set(uuid::Uuid::now_v7().to_string()),
-            user_id: Set(user_id.to_string()),
-            amount: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
-            direction: Set("OUT".to_string()), 
-            date: Set(ocr_data.date.unwrap_or_else(|| chrono::Utc::now().into())),
-            source: Set("OCR".to_string()),
-            status: Set("COMPLETED".to_string()),
-            purpose_tag: Set(None),
-        };
-
-        let result = new_txn.insert(db).await?;
-
-        // 4. Save raw metadata
-        let metadata = entities::transaction_metadata::ActiveModel {
-            transaction_id: Set(result.id.clone()),
-            upi_txn_id: Set(ocr_data.upi_id.clone()), 
-            app_txn_id: Set(None),
-            app_name: Set(None),
-            contact_number: Set(None),
-        };
-        metadata.insert(db).await?;
-
-        let source = entities::transaction_source::ActiveModel {
-            id: Set(uuid::Uuid::now_v7().to_string()),
-            transaction_id: Set(result.id.clone()),
-            source_type: Set("OCR_SCREENSHOT".to_string()),
-            r2_file_url: Set(None),
-            raw_metadata: Set(Some(serde_json::to_value(&ocr_data).unwrap())),
-        };
-        source.insert(db).await?;
-
-        Ok(result)
+        Ok(txn)
     }
 
     pub async fn create_p2p_request(
@@ -139,6 +172,7 @@ impl SmartMerge {
             source: Set("P2P".to_string()),
             status: Set("COMPLETED".to_string()),
             purpose_tag: Set(original_txn.purpose_tag),
+            group_id: Set(original_txn.group_id),
         };
 
         let result_txn = mirrored_txn.insert(db).await?;
@@ -168,6 +202,52 @@ impl SmartMerge {
         entities::p2p_request::Entity::find()
             .filter(entities::p2p_request::Column::ReceiverEmail.eq(email))
             .filter(entities::p2p_request::Column::Status.eq("PENDING"))
+            .all(db)
+            .await
+    }
+
+    pub async fn create_group(
+        db: &DatabaseConnection,
+        user_id: &str,
+        name: &str,
+        description: Option<String>,
+    ) -> Result<entities::group::Model, DbErr> {
+        let group = entities::group::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            name: Set(name.to_string()),
+            description: Set(description),
+            created_at: Set(chrono::Utc::now().into()),
+        };
+        let result = group.insert(db).await?;
+
+        let user_group = entities::user_group::ActiveModel {
+            user_id: Set(user_id.to_string()),
+            group_id: Set(result.id.clone()),
+            role: Set("ADMIN".to_string()),
+        };
+        user_group.insert(db).await?;
+
+        Ok(result)
+    }
+
+    pub async fn list_groups(
+        db: &DatabaseConnection,
+        user_id: &str,
+    ) -> Result<Vec<entities::group::Model>, DbErr> {
+        entities::group::Entity::find()
+            .inner_join(entities::user_group::Entity)
+            .filter(entities::user_group::Column::UserId.eq(user_id))
+            .all(db)
+            .await
+    }
+
+    pub async fn list_group_transactions(
+        db: &DatabaseConnection,
+        group_id: &str,
+    ) -> Result<Vec<entities::transaction::Model>, DbErr> {
+        entities::transaction::Entity::find()
+            .filter(entities::transaction::Column::GroupId.eq(group_id))
+            .order_by_desc(entities::transaction::Column::Date)
             .all(db)
             .await
     }
