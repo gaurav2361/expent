@@ -13,6 +13,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::collections::HashMap;
 use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use serde::{Deserialize};
 use aws_sdk_s3::presigning::PresigningConfig;
@@ -29,7 +30,7 @@ struct AppState {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "info,server=debug,better_auth=debug,sqlx=info".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -46,7 +47,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let auth_instance = AuthBuilder::new(
         AuthConfig::new(auth_secret)
             .base_url(base_url)
-            .trusted_origins(vec!["http://localhost:3000".to_string()])
+            .trusted_origins(vec![
+                "http://localhost:3000".to_string(),
+                "http://127.0.0.1:3000".to_string(),
+            ])
     )
     .database(adapter)
     .plugin(EmailPasswordPlugin::new())
@@ -93,11 +97,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .nest("/api/auth", auth_router)
-        .merge(api_router)
+        .nest("/api", api_router)
         .layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(
             CorsLayer::new()
-                .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+                .allow_origin([
+                    "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+                    "http://127.0.0.1:3000".parse::<HeaderValue>().unwrap(),
+                ])
                 .allow_methods([
                     Method::GET,
                     Method::POST,
@@ -113,7 +120,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     HeaderName::from_static("x-better-auth-origin"),
                 ])
                 .allow_credentials(true),
-        );
+        )
+        .layer(TraceLayer::new_for_http());
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3001".into());
     let addr: SocketAddr = format!("0.0.0.0:{}", port).parse()?;
@@ -159,9 +167,13 @@ async fn get_user_data(auth: &better_auth::BetterAuth<SqlxAdapter>, headers: Hea
     );
 
     let response = auth.handle_request(auth_req).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| {
+            tracing::error!("Auth handle_request error: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+        })?;
 
     if response.status != 200 {
+        tracing::warn!("Auth session check failed with status: {}", response.status);
         return Err((StatusCode::UNAUTHORIZED, "Unauthorized".to_string()));
     }
 
@@ -171,7 +183,10 @@ async fn get_user_data(auth: &better_auth::BetterAuth<SqlxAdapter>, headers: Hea
     }
 
     let session_data: SessionResponse = serde_json::from_slice(&body_bytes)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to parse session: {}", e)))?;
+        .map_err(|e| {
+            tracing::error!("Failed to parse session JSON: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to parse session: {}", e))
+        })?;
     
     Ok((session_data.session.user_id, session_data.user.email))
 }
