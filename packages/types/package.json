@@ -6,8 +6,6 @@
     "build": "cargo test -p db"
   },
   "exports": {
-    "./db": "./src/db/index.ts",
-    "./api": "./src/api/index.ts",
-    "./auth": "./src/auth/index.ts"
+    "./db": "./src/index.ts"
   }
 }

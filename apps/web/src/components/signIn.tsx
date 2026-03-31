@@ -2,14 +2,37 @@
 
 import { Button } from "@expent/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@expent/ui/components/input-group";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { AtSignIcon, ChevronLeftIcon } from "lucide-react";
 import { AuthDivider } from "@/components/auth-divider";
 import { AuthShades } from "@/components/auth-shades";
 import { SocialLogins } from "@/components/auth-social";
 import { Logo } from "@/components/logo";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 
 export function SignIn() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const { data, error } = await authClient.signIn.email({
+      email,
+      password,
+    });
+
+    setIsLoading(false);
+    if (error) {
+      alert(error.message || "Failed to sign in");
+    } else {
+      navigate({ to: "/dashboard" });
+    }
+  };
+
   return (
     <div className="relative flex min-h-screen flex-col justify-center px-8">
       <AuthShades />
@@ -29,19 +52,35 @@ export function SignIn() {
 
         <AuthDivider>OR</AuthDivider>
 
-        <form className="space-y-2 text-center">
+        <form className="space-y-2 text-center" onSubmit={handleSignIn}>
           <p className="text-muted-foreground text-xs">
-            Enter your email address to sign in or create an account
+            Enter your credentials to sign in
           </p>
           <InputGroup>
-            <InputGroupInput placeholder="your.email@example.com" type="email" />
+            <InputGroupInput 
+              placeholder="your.email@example.com" 
+              type="email" 
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
             <InputGroupAddon align="inline-start">
               <AtSignIcon />
             </InputGroupAddon>
           </InputGroup>
 
-          <Button className="w-full" type="button">
-            Continue With Email
+          <InputGroup>
+            <InputGroupInput 
+              placeholder="Password" 
+              type="password" 
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </InputGroup>
+
+          <Button className="w-full" type="submit" disabled={isLoading}>
+            {isLoading ? "Signing in..." : "Continue With Email"}
           </Button>
         </form>
 
