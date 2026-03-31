@@ -17,13 +17,71 @@ import { Label } from "@expent/ui/components/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@expent/ui/components/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { PlusIcon, UsersIcon } from "lucide-react";
+import { PlusIcon, UsersIcon, UserPlusIcon } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/p2p/shared")({
   component: SharedLedgersComponent,
 });
 
-const API_BASE_URL = import.meta.env.VITE_AUTH_BASE_URL || "http://localhost:3001";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+
+function InviteDialog({ groupId, groupName }: { groupId: string, groupName: string }) {
+    const [email, setEmail] = useState("");
+    const [open, setOpen] = useState(false);
+    const queryClient = useQueryClient();
+
+    const inviteMutation = useMutation({
+        mutationFn: async () => {
+            const response = await fetch(`${API_BASE_URL}/api/groups/invite`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ group_id: groupId, receiver_email: email }),
+                credentials: "include",
+            });
+            if (!response.ok) throw new Error("Failed to send invite");
+            return response.json();
+        },
+        onSuccess: () => {
+            setOpen(false);
+            setEmail("");
+            alert("Invite sent!");
+        }
+    });
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger render={<Button size="sm" variant="ghost" className="h-8 w-8 p-0" />}>
+                <UserPlusIcon className="h-4 w-4" />
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Invite to {groupName}</DialogTitle>
+                    <DialogDescription>
+                        Send an invitation to join this shared ledger.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input 
+                            id="email" 
+                            type="email"
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            placeholder="friend@example.com"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button onClick={() => inviteMutation.mutate()} disabled={!email || inviteMutation.isPending}>
+                        {inviteMutation.isPending ? "Sending..." : "Send Invite"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 function SharedLedgersComponent() {
   const queryClient = useQueryClient();
@@ -144,10 +202,13 @@ function SharedLedgersComponent() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {groups.map((group: any) => (
-                    <Card key={group.id} className="hover:border-primary/50 transition-colors cursor-pointer">
-                        <CardHeader>
+                    <Card key={group.id} className="hover:border-primary/50 transition-colors group">
+                        <CardHeader className="relative">
+                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <InviteDialog groupId={group.id} groupName={group.name} />
+                            </div>
                             <CardTitle>{group.name}</CardTitle>
-                            <CardDescription>{group.description || "No description"}</CardDescription>
+                            <CardDescription className="line-clamp-1">{group.description || "No description"}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-center text-xs text-muted-foreground">

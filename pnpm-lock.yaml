@@ -58,6 +58,10 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  apps/ocr-worker: {}
+
+  apps/server: {}
+
   apps/web:
     dependencies:
       '@expent/types':
