@@ -15,9 +15,11 @@ import { Button } from "@expent/ui/components/button";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@expent/ui/components/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
+import { Badge } from "@expent/ui/components/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { PlusIcon, UsersIcon, UserPlusIcon } from "lucide-react";
+import { PlusIcon, UsersIcon, UserPlusIcon, ReceiptIcon, ChevronRightIcon } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/p2p/shared")({
   component: SharedLedgersComponent,
@@ -83,13 +85,77 @@ function InviteDialog({ groupId, groupName }: { groupId: string, groupName: stri
     );
 }
 
+function GroupDetails({ group }: { group: any }) {
+    const { data: transactions, isLoading } = useQuery({
+        queryKey: ["group-transactions", group.id],
+        queryFn: async () => {
+            const response = await fetch(`${API_BASE_URL}/api/groups/${group.id}/transactions`, {
+                credentials: "include",
+            });
+            if (!response.ok) throw new Error("Failed to fetch group transactions");
+            return response.json();
+        }
+    });
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <ReceiptIcon className="h-4 w-4" /> Group Activity
+                </h3>
+            </div>
+            
+            {isLoading ? (
+                <div className="text-center py-10 text-muted-foreground">Loading activity...</div>
+            ) : !transactions || transactions.length === 0 ? (
+                <div className="text-center py-10 border rounded-lg border-dashed text-muted-foreground">
+                    No shared transactions in this ledger yet.
+                </div>
+            ) : (
+                <div className="rounded-md border overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow>
+                                <TableHead className="w-[100px]">Date</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Paid By</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {transactions.map((txn: any) => (
+                                <TableRow key={txn.id}>
+                                    <TableCell className="text-xs">
+                                        {new Date(txn.date).toLocaleDateString()}
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                        {txn.purpose_tag || "Shared Expense"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className="text-[10px]">
+                                            {txn.user_id === "me" ? "You" : "Member"}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono font-bold">
+                                        ₹{parseFloat(txn.amount).toLocaleString()}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function SharedLedgersComponent() {
   const queryClient = useQueryClient();
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<any>(null);
 
-  // 1. Fetch Groups
   const { data: groups, isLoading } = useQuery({
     queryKey: ["groups"],
     queryFn: async () => {
@@ -102,7 +168,6 @@ function SharedLedgersComponent() {
     },
   });
 
-  // 2. Create Group Mutation
   const createMutation = useMutation({
     mutationFn: async () => {
         const response = await fetch(`${API_BASE_URL}/api/groups/create`, {
@@ -144,9 +209,12 @@ function SharedLedgersComponent() {
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight">Shared Ledgers</h2>
+            <div>
+                <h2 className="text-2xl font-bold tracking-tight">Shared Ledgers</h2>
+                <p className="text-muted-foreground text-sm">Track shared expenses with friends and family.</p>
+            </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger render={<Button />}>
                     <PlusIcon className="mr-2 h-4 w-4" /> New Ledger
@@ -187,39 +255,78 @@ function SharedLedgersComponent() {
             </Dialog>
           </div>
 
-          {isLoading ? (
-            <div className="text-center py-20">Loading ledgers...</div>
-          ) : groups?.length === 0 ? (
-            <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-                    <UsersIcon className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold">No shared ledgers yet</h3>
-                    <p className="text-muted-foreground max-w-xs">
-                        Create a group to start tracking shared expenses with your contacts.
-                    </p>
-                </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {groups.map((group: any) => (
-                    <Card key={group.id} className="hover:border-primary/50 transition-colors group">
-                        <CardHeader className="relative">
-                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <InviteDialog groupId={group.id} groupName={group.name} />
-                            </div>
-                            <CardTitle>{group.name}</CardTitle>
-                            <CardDescription className="line-clamp-1">{group.description || "No description"}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center text-xs text-muted-foreground">
-                                <UsersIcon className="mr-1 h-3 w-3" />
-                                Created on {new Date(group.created_at).toLocaleDateString()}
-                            </div>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Sidebar List of Groups */}
+            <div className="lg:col-span-1 space-y-4">
+                {isLoading ? (
+                    <div className="text-center py-10">Loading ledgers...</div>
+                ) : groups?.length === 0 ? (
+                    <Card className="border-dashed">
+                        <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                            <UsersIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground">No ledgers yet.</p>
                         </CardContent>
                     </Card>
-                ))}
+                ) : (
+                    groups.map((group: any) => (
+                        <Card 
+                            key={group.id} 
+                            className={`hover:border-primary/50 transition-all cursor-pointer group ${selectedGroup?.id === group.id ? 'border-primary ring-1 ring-primary/20' : ''}`}
+                            onClick={() => setSelectedGroup(group)}
+                        >
+                            <CardHeader className="p-4 space-y-0">
+                                <div className="flex items-start justify-between">
+                                    <div className="space-y-1">
+                                        <CardTitle className="text-base">{group.name}</CardTitle>
+                                        <CardDescription className="text-xs line-clamp-1">{group.description || "Personal Shared Ledger"}</CardDescription>
+                                    </div>
+                                    <InviteDialog groupId={group.id} groupName={group.name} />
+                                </div>
+                            </CardHeader>
+                            <CardContent className="px-4 pb-4 pt-0">
+                                <div className="flex items-center justify-between mt-2">
+                                    <div className="flex items-center text-[10px] text-muted-foreground">
+                                        <UsersIcon className="mr-1 h-3 w-3" />
+                                        Created {new Date(group.created_at).toLocaleDateString()}
+                                    </div>
+                                    <ChevronRightIcon className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
             </div>
-          )}
+
+            {/* Main Content Area: Group Details */}
+            <div className="lg:col-span-2">
+                {selectedGroup ? (
+                    <Card className="min-h-[400px]">
+                        <CardHeader className="border-b bg-muted/30">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-xl">{selectedGroup.name}</CardTitle>
+                                    <CardDescription>{selectedGroup.description || "Shared Ledger Details"}</CardDescription>
+                                </div>
+                                <Button variant="outline" size="sm">
+                                    <UsersIcon className="mr-2 h-4 w-4" /> Manage Members
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <GroupDetails group={selectedGroup} />
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <Card className="flex flex-col items-center justify-center min-h-[400px] border-dashed">
+                        <UsersIcon className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                        <h3 className="text-lg font-medium text-muted-foreground">Select a ledger to view details</h3>
+                        <p className="text-sm text-muted-foreground/60 max-w-xs text-center mt-2">
+                            Choose a shared ledger from the left to see group activity, split status, and manage members.
+                        </p>
+                    </Card>
+                )}
+            </div>
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

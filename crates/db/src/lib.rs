@@ -1,7 +1,9 @@
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
-use chrono::{DateTime, FixedOffset, Datelike};
+use chrono::{DateTime, FixedOffset, Datelike, Utc, Duration};
+use std::collections::HashMap;
+use std::str::FromStr;
 
 pub mod entities;
 
@@ -36,9 +38,8 @@ impl SmartMerge {
         user_id: &str,
         ocr_data: OcrResult,
     ) -> Result<entities::transaction::Model, DbErr> {
-        // 1. Check for existing transactions with same amount and within ±48h window
-        let start_date = ocr_data.date.map(|d| d - chrono::Duration::hours(48));
-        let end_date = ocr_data.date.map(|d| d + chrono::Duration::hours(48));
+        let start_date = ocr_data.date.map(|d| d - Duration::hours(48));
+        let end_date = ocr_data.date.map(|d| d + Duration::hours(48));
 
         let mut query = entities::transaction::Entity::find()
             .filter(entities::transaction::Column::UserId.eq(user_id));
@@ -54,7 +55,6 @@ impl SmartMerge {
         let existing_txns = query.all(db).await?;
 
         let txn = if !existing_txns.is_empty() {
-            // 2. Link to existing
             let existing = existing_txns[0].clone();
             let source = entities::transaction_source::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
@@ -66,13 +66,12 @@ impl SmartMerge {
             source.insert(db).await?;
             existing
         } else {
-            // 3. Create NEW transaction
             let new_txn = entities::transaction::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 user_id: Set(user_id.to_string()),
                 amount: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
                 direction: Set("OUT".to_string()), 
-                date: Set(ocr_data.date.unwrap_or_else(|| chrono::Utc::now().into())),
+                date: Set(ocr_data.date.unwrap_or_else(|| Utc::now().into())),
                 source: Set("OCR".to_string()),
                 status: Set("COMPLETED".to_string()),
                 purpose_tag: Set(None),
@@ -81,7 +80,6 @@ impl SmartMerge {
 
             let result = new_txn.insert(db).await?;
 
-            // 4. Save metadata
             let metadata = entities::transaction_metadata::ActiveModel {
                 transaction_id: Set(result.id.clone()),
                 upi_txn_id: Set(ocr_data.upi_id.clone()), 
@@ -102,7 +100,6 @@ impl SmartMerge {
             result
         };
 
-        // 5. Handle Line Items (Purchases)
         if !ocr_data.items.is_empty() {
             let purchase = entities::purchase::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
@@ -221,9 +218,9 @@ impl SmartMerge {
         let mirrored_txn = entities::transaction::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
             user_id: Set(receiver_id.to_string()),
-            amount: Set(original_txn["amount"].as_str().map(|s| Decimal::from_str_exact(s).unwrap()).unwrap_or(Decimal::ZERO)),
+            amount: Set(original_txn["amount"].as_str().and_then(|s| Decimal::from_str(s).ok()).unwrap_or(Decimal::ZERO)),
             direction: Set("IN".to_string()), 
-            date: Set(original_txn["date"].as_str().map(|s| DateTime::parse_from_rfc3339(s).unwrap().with_timezone(&FixedOffset::east_opt(0).unwrap())).unwrap_or_else(|| chrono::Utc::now().into())),
+            date: Set(original_txn["date"].as_str().and_then(|s| DateTime::parse_from_rfc3339(s).ok()).map(|d| d.with_timezone(&FixedOffset::east_opt(0).unwrap())).unwrap_or_else(|| Utc::now().into())),
             source: Set("P2P".to_string()),
             status: Set("COMPLETED".to_string()),
             purpose_tag: Set(original_txn["purpose"].as_str().map(|s| s.to_string())),
@@ -243,49 +240,56 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
     ) -> Result<Vec<entities::subscription::Model>, DbErr> {
-        // Query last 90 days of transactions
-        let ninety_days_ago = chrono::Utc::now() - chrono::Duration::days(90);
+        let ninety_days_ago = Utc::now() - Duration::days(90);
         let transactions = entities::transaction::Entity::find()
             .filter(entities::transaction::Column::UserId.eq(user_id))
             .filter(entities::transaction::Column::Date.gte(ninety_days_ago))
             .all(db)
             .await?;
 
-        // Group by amount and merchant (purpose_tag for now)
-        // Check for 3+ occurrences with similar intervals
-        // This is a basic algorithm - can be improved with better metadata
         let mut groups: HashMap<(String, Decimal), Vec<DateTime<FixedOffset>>> = HashMap::new();
         for txn in transactions {
-            if let Some(purpose) = &txn.purpose_tag {
-                let entry = groups.entry((purpose.clone(), txn.amount)).or_default();
-                entry.push(txn.date);
-            }
+            let name = txn.purpose_tag.clone().unwrap_or_else(|| "Unknown".to_string());
+            let entry = groups.entry((name, txn.amount)).or_default();
+            entry.push(txn.date);
         }
 
         let mut potential_subs = Vec::new();
         for ((name, amount), mut dates) in groups {
-            if dates.length() >= 2 {
+            if dates.len() >= 2 {
                 dates.sort();
-                // Check if intervals are roughly 30 days
-                let mut is_sub = false;
+                
+                let mut detected_cycle = None;
+                let mut start_date = dates[0];
+                let mut last_date = dates.last().unwrap().clone();
+
                 for i in 0..dates.len() - 1 {
                     let diff = (dates[i+1] - dates[i]).num_days();
-                    if (27..=33).contains(&diff) {
-                        is_sub = true;
-                        break;
+                    
+                    if (6..=8).contains(&diff) {
+                        detected_cycle = Some("WEEKLY");
+                    } else if (27..=33).contains(&diff) {
+                        detected_cycle = Some("MONTHLY");
+                    } else if (360..=370).contains(&diff) {
+                        detected_cycle = Some("YEARLY");
                     }
                 }
 
-                if is_sub {
-                    // Create or return potential subscription
+                if let Some(cycle) = detected_cycle {
+                    let next_charge = match cycle {
+                        "WEEKLY" => last_date + Duration::days(7),
+                        "YEARLY" => last_date + Duration::days(365),
+                        _ => last_date + Duration::days(30),
+                    };
+
                     let sub = entities::subscription::Model {
                         id: uuid::Uuid::now_v7().to_string(),
                         user_id: user_id.to_string(),
                         name: name.clone(),
                         amount,
-                        cycle: "MONTHLY".to_string(),
-                        start_date: dates[0],
-                        next_charge_date: dates.last().unwrap().clone() + chrono::Duration::days(30),
+                        cycle: cycle.to_string(),
+                        start_date,
+                        next_charge_date: next_charge,
                         detection_keywords: None,
                     };
                     potential_subs.push(sub);
@@ -328,7 +332,7 @@ impl SmartMerge {
             id: Set(uuid::Uuid::now_v7().to_string()),
             name: Set(name.to_string()),
             description: Set(description),
-            created_at: Set(chrono::Utc::now().into()),
+            created_at: Set(Utc::now().into()),
         };
         let result = group.insert(db).await?;
 
