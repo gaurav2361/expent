@@ -13,6 +13,7 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardSubscriptionsRouteImport } from './routes/dashboard/subscriptions'
 import { Route as DashboardP2pSharedRouteImport } from './routes/dashboard/p2p/shared'
 
 const SignUpRoute = SignUpRouteImport.update({
@@ -35,6 +36,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/dashboard/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardSubscriptionsRoute = DashboardSubscriptionsRouteImport.update({
+  id: '/dashboard/subscriptions',
+  path: '/dashboard/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardP2pSharedRoute = DashboardP2pSharedRouteImport.update({
   id: '/dashboard/p2p/shared',
   path: '/dashboard/p2p/shared',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/dashboard/subscriptions': typeof DashboardSubscriptionsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/p2p/shared': typeof DashboardP2pSharedRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/dashboard/subscriptions': typeof DashboardSubscriptionsRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/p2p/shared': typeof DashboardP2pSharedRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/dashboard/subscriptions': typeof DashboardSubscriptionsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/p2p/shared': typeof DashboardP2pSharedRoute
 }
@@ -69,15 +78,23 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/sign-up'
+    | '/dashboard/subscriptions'
     | '/dashboard/'
     | '/dashboard/p2p/shared'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sign-in' | '/sign-up' | '/dashboard' | '/dashboard/p2p/shared'
+  to:
+    | '/'
+    | '/sign-in'
+    | '/sign-up'
+    | '/dashboard/subscriptions'
+    | '/dashboard'
+    | '/dashboard/p2p/shared'
   id:
     | '__root__'
     | '/'
     | '/sign-in'
     | '/sign-up'
+    | '/dashboard/subscriptions'
     | '/dashboard/'
     | '/dashboard/p2p/shared'
   fileRoutesById: FileRoutesById
@@ -86,6 +103,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  DashboardSubscriptionsRoute: typeof DashboardSubscriptionsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardP2pSharedRoute: typeof DashboardP2pSharedRoute
 }
@@ -120,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/subscriptions': {
+      id: '/dashboard/subscriptions'
+      path: '/dashboard/subscriptions'
+      fullPath: '/dashboard/subscriptions'
+      preLoaderRoute: typeof DashboardSubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/p2p/shared': {
       id: '/dashboard/p2p/shared'
       path: '/dashboard/p2p/shared'
@@ -134,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  DashboardSubscriptionsRoute: DashboardSubscriptionsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardP2pSharedRoute: DashboardP2pSharedRoute,
 }

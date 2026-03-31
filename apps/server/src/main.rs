@@ -50,9 +50,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     // S3/R2 Setup
-    let endpoint = std::env::var("R2_ENDPOINT").expect("R2_ENDPOINT must be set");
+    let endpoint = std::env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set");
+    let access_key_id = std::env::var("S3_ACCESS_KEY_ID").expect("S3_ACCESS_KEY_ID must be set");
+    let secret_access_key = std::env::var("S3_SECRET_ACCESS_KEY").expect("S3_SECRET_ACCESS_KEY must be set");
+    
     let s3_config = aws_config::from_env()
         .endpoint_url(endpoint)
+        .credentials_provider(aws_sdk_s3::config::Credentials::new(
+            access_key_id,
+            secret_access_key,
+            None,
+            None,
+            "static",
+        ))
         .load()
         .await;
     let s3_client = aws_sdk_s3::Client::new(&s3_config);
@@ -347,7 +357,7 @@ async fn get_presigned_url_handler(
 ) -> Result<Json<PresignedUrlResponse>, (StatusCode, String)> {
     let (user_id, _) = get_user_data(&state.auth, headers).await?;
     
-    let bucket_name = std::env::var("R2_BUCKET_NAME").expect("R2_BUCKET_NAME must be set");
+    let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
     let key = format!("{}/{}-{}", user_id, uuid::Uuid::new_v4(), payload.file_name);
 
     let presigning_config = PresigningConfig::expires_in(Duration::from_secs(3600))

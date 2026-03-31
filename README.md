@@ -1,21 +1,61 @@
-# shadcn/ui monorepo template
+# Expent
 
-This is a TanStack Start monorepo template with shadcn/ui.
+Expent is an intelligent expense management platform built with Rust, TypeScript, and Python. It features OCR-based receipt ingestion, automated subscription detection, and shared ledgers for group expense tracking.
 
-## Adding components
+## Architecture
 
-To add components to your app, run the following command at the root of your `web` app:
+- **`apps/server` (Rust/Axum):** Unified backend handling authentication (Better Auth), database orchestration (SeaORM), and S3/R2 presigned URLs.
+- **`apps/web` (TypeScript/TanStack):** Modern React frontend using TanStack Router, Start, and Query.
+- **`apps/ocr-worker` (Python/FastAPI):** OCR processing engine using EasyOCR and pdfplumber.
+- **`packages/ui`:** Shared component library built with Tailwind CSS and Shadcn.
+- **`packages/types`:** Shared TypeScript types automatically generated from Rust models via `ts-rs`.
 
-```bash
-pnpm dlx shadcn@latest add button -c apps/web
-```
+## Prerequisites
 
-This will place the ui components in the `packages/ui/src/components` directory.
+- **Node.js:** v24 or higher (pnpm recommended)
+- **Rust:** Latest stable version
+- **Python:** v3.13 or higher (using `uv` for dependency management)
+- **Database:** PostgreSQL (NeonDB recommended)
+- **Storage:** Cloudflare R2 or S3-compatible storage
 
-## Using components
+## Getting Started
 
-To use the components in your app, import them from the `ui` package.
+1. **Clone the repository**
+2. **Install dependencies:**
+   ```bash
+   pnpm install
+   uv sync
+   ```
+3. **Configure environment variables:**
+   Copy `.env.example` to `.env` in the root and fill in your credentials.
+   ```bash
+   cp .env.example .env
+   ```
+4. **Run migrations:**
+   ```bash
+   cd crates/migration
+   cargo run -- up
+   ```
+5. **Start development server:**
+   ```bash
+   pnpm dev
+   ```
 
-```tsx
-import { Button } from "@expent/ui/components/button";
-```
+## Key Features
+
+- **Smart Merge:** Automatically deduplicates transactions by matching OCR results with existing bank records.
+- **Itemized Splits:** Automatically parse receipt line items and split them across shared ledgers.
+- **Subscription Engine:** Detects recurring payment patterns and alerts users of upcoming renewals.
+- **Group Ledgers:** Collaborative spaces for tracking expenses with friends and family.
+
+## Environment Variables
+
+| Variable | Description |
+| :--- | :--- |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `AUTH_SECRET` | 32+ character secret for authentication |
+| `S3_ENDPOINT` | S3-compatible API endpoint |
+| `S3_ACCESS_KEY_ID` | Access key for storage |
+| `S3_SECRET_ACCESS_KEY` | Secret key for storage |
+| `S3_BUCKET_NAME` | Name of the bucket for uploads |
+| `OCR_WORKER_URL` | URL where the Python worker is running |
