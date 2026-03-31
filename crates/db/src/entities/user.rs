@@ -3,19 +3,39 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, TS)]
-#[sea_orm(table_name = "users")]
-// This path sends the file perfectly into your frontend types package!
+#[sea_orm(table_name = "user")]
 #[ts(export, export_to = "../../../packages/types/src/db/generated/user.ts")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
     pub name: String,
     pub email: String,
+    pub email_verified: bool,
+    pub image: Option<String>,
+    pub phone: Option<String>,
     pub is_active: bool,
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
 }
 
-// SeaORM boilerplate for relations (empty for this simple test)
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::session::Entity")]
+    Session,
+    #[sea_orm(has_many = "super::account::Entity")]
+    Account,
+}
+
+impl Related<super::session::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Session.def()
+    }
+}
+
+impl Related<super::account::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Account.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}
