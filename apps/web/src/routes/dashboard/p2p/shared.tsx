@@ -30,6 +30,7 @@ import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, UserPlusIcon, UsersI
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useSession } from "@/lib/auth-client";
+import { toast } from "@expent/ui/components/goey-toaster";
 
 export const Route = createFileRoute("/dashboard/p2p/shared")({
   component: SharedLedgersComponent,
@@ -56,7 +57,7 @@ function InviteDialog({ groupId, groupName }: { groupId: string; groupName: stri
     onSuccess: () => {
       setOpen(false);
       setEmail("");
-      alert("Invite sent!");
+      toast.success("Invite sent!");
     },
   });
 

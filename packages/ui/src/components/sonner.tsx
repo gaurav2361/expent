@@ -1,22 +1,13 @@
 import { useTheme } from "next-themes";
-import { GooeyToaster as Sonner } from "goey-toast";
+import { GooeyToaster, gooeyToast } from "goey-toast";
 import "goey-toast/styles.css";
 
-const Toaster = ({ ...props }: any) => {
+const Toaster = ({ ...props }: React.ComponentProps<typeof GooeyToaster>) => {
   const { theme = "system" } = useTheme();
 
   return (
-    <Sonner
-      theme={theme as any}
-      className="toaster group"
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
+    <GooeyToaster
+      theme={theme as "light" | "dark"}
       toastOptions={{
         classNames: {
           toast: "cn-toast",
@@ -27,4 +18,6 @@ const Toaster = ({ ...props }: any) => {
   );
 };
 
-export { Toaster };
+const toast = gooeyToast;
+
+export { Toaster, toast };

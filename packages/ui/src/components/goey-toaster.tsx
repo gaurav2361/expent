@@ -1,0 +1,30 @@
+import { GooeyToaster as GooeyToasterPrimitive, gooeyToast } from "goey-toast"
+import type { GooeyToasterProps } from "goey-toast"
+import "goey-toast/styles.css"
+
+export type { GooeyToasterProps }
+export type {
+  GooeyToastOptions,
+  GooeyPromiseData,
+  GooeyToastAction,
+  GooeyToastClassNames,
+  GooeyToastTimings,
+} from "goey-toast"
+
+function GooeyToaster({ ...props }: GooeyToasterProps) {
+  return (
+    <GooeyToasterPrimitive
+      position="bottom-right"
+      toastOptions={{
+        classNames: {
+          toast: "cn-toast",
+        },
+      }}
+      {...props}
+    />
+  )
+}
+
+const toast = gooeyToast
+
+export { GooeyToaster as Toaster, toast, gooeyToast, GooeyToaster }
