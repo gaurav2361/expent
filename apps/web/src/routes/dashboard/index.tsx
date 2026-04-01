@@ -1,4 +1,3 @@
-import { Badge } from "@expent/ui/components/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,14 +12,17 @@ import { Input } from "@expent/ui/components/input";
 import { Separator } from "@expent/ui/components/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@expent/ui/components/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ReceiptTextIcon, Share2Icon, SparklesIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SplitDialog } from "@/components/split-dialog";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
+import { DataTable } from "@/components/data-table";
+import type { Column } from "@/components/data-table";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,
@@ -33,9 +35,31 @@ function RouteComponent() {
   const session = useSession();
   const queryClient = useQueryClient();
 
+  interface OcrItem {
+    name: string;
+    quantity: number;
+    price: string;
+  }
+
+  interface OcrResult {
+    id: string;
+    items?: OcrItem[];
+    raw_text?: string;
+  }
+
+  interface P2PRequest {
+    id: string;
+    status: string;
+    sender_user_id: string;
+    transaction_data: {
+      group_name?: string;
+      amount?: string;
+    };
+  }
+
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [ocrResult, setOcrResult] = useState<any>(null);
+  const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
 
@@ -90,14 +114,73 @@ function RouteComponent() {
     },
   });
 
+  interface Transaction {
+    id: string;
+    date: string;
+    direction: string;
+    amount: string;
+    source: string;
+  }
+
   // Derived State
   const totalBalance = useMemo(() => {
     if (!transactions) return 0;
-    return transactions.reduce((acc: number, txn: any) => {
+    return transactions.reduce((acc: number, txn: Transaction) => {
       const amount = parseFloat(txn.amount);
       return txn.direction === "IN" ? acc + amount : acc - amount;
     }, 0);
   }, [transactions]);
+
+  const triggerSplit = useCallback((id: string, amount: string) => {
+    setSelectedTxn({ id, amount });
+    setSplitDialogOpen(true);
+  }, []);
+
+  // DataTable column definitions for recent transactions
+  const txnColumns = useMemo<Column<Transaction>[]>(() => [
+    {
+      key: "date",
+      label: "Date",
+      format: { kind: "date", dateFormat: "short" },
+    },
+    {
+      key: "direction",
+      label: "Direction",
+      format: {
+        kind: "badge",
+        colorMap: { IN: "success", OUT: "danger" },
+      },
+    },
+    {
+      key: "amount",
+      label: "Amount",
+      format: { kind: "currency", currency: "INR" },
+      align: "right",
+    },
+    {
+      key: "source",
+      label: "Source",
+    },
+    {
+      key: "action" as keyof Transaction,
+      label: "Action",
+      sortable: false,
+      align: "right",
+    },
+  ] as Column<Transaction>[], []);
+
+  const txnCellRenderers = useMemo(() => ({
+    action: (row: Transaction) => (
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-8 w-8"
+        onClick={() => triggerSplit(row.id, row.amount)}
+      >
+        <Share2Icon className="h-4 w-4" />
+      </Button>
+    ),
+  }), [triggerSplit]);
 
   useEffect(() => {
     if (!session.isPending && !session.data) {
@@ -121,7 +204,6 @@ function RouteComponent() {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Upload directly to our server, which proxies to R2
       const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
         method: "POST",
         body: formData,
@@ -131,7 +213,6 @@ function RouteComponent() {
       if (!uploadRes.ok) throw new Error("Upload failed");
       const { key } = await uploadRes.json();
 
-      // Trigger OCR processing on the server
       const processRes = await fetch(`${API_BASE_URL}/api/process-image-ocr`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -150,11 +231,6 @@ function RouteComponent() {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const triggerSplit = (id: string, amount: string) => {
-    setSelectedTxn({ id, amount });
-    setSplitDialogOpen(true);
   };
 
   return (
@@ -253,8 +329,8 @@ function RouteComponent() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {ocrResult.items.map((item: any, i: number) => (
-                            <TableRow key={i}>
+                          {ocrResult.items.map((item) => (
+                            <TableRow key={item.name}>
                               <TableCell className="font-medium">{item.name}</TableCell>
                               <TableCell className="text-right">{item.quantity}</TableCell>
                               <TableCell className="text-right font-mono">₹{item.price}</TableCell>
@@ -297,7 +373,7 @@ function RouteComponent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {p2pRequests.map((req: any) => (
+                  {(p2pRequests as P2PRequest[]).map((req) => (
                     <div
                       key={req.id}
                       className="flex items-center justify-between border-b border-orange-100 dark:border-orange-900/50 pb-2 last:border-0"
@@ -342,66 +418,20 @@ function RouteComponent() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead className="px-6">Date</TableHead>
-                    <TableHead>Direction</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead className="text-right px-6">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isTxnsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10">
-                        Loading transactions...
-                      </TableCell>
-                    </TableRow>
-                  ) : transactions?.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                        No transactions found. Start by uploading a receipt!
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    transactions?.map((txn: any) => (
-                      <TableRow key={txn.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell className="px-6 text-xs font-medium text-muted-foreground">
-                          {new Date(txn.date).toLocaleDateString(undefined, {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={txn.direction === "IN" ? "secondary" : "destructive"}
-                            className="uppercase text-[10px] font-bold tracking-wider"
-                          >
-                            {txn.direction}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-mono font-bold text-sm">
-                          ₹{parseFloat(txn.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground italic">{txn.source}</TableCell>
-                        <TableCell className="text-right px-6">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => triggerSplit(txn.id, txn.amount)}
-                          >
-                            <Share2Icon className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+              {isTxnsLoading ? (
+                <div className="text-center py-10 text-muted-foreground">Loading transactions...</div>
+              ) : (
+                <DataTable<Transaction>
+                  id="dashboard-recent-transactions"
+                  columns={txnColumns}
+                  data={(transactions as Transaction[]) ?? []}
+                  rowIdKey="id"
+                  defaultSort={{ by: "date", direction: "desc" }}
+                  emptyMessage="No transactions found. Start by uploading a receipt!"
+                  cellRenderers={txnCellRenderers}
+                  locale="en-IN"
+                />
+              )}
             </CardContent>
           </Card>
         </div>
