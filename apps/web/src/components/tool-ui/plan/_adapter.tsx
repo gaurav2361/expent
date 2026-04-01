@@ -1,10 +1,10 @@
-export { cn } from "@/lib/utils";
+export { cn } from "@expent/ui/lib/utils";
 export {
   Accordion,
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
-} from "@/components/ui/accordion";
+} from "@expent/ui/components/accordion";
 export {
   Card,
   CardHeader,
@@ -12,9 +12,9 @@ export {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card";
+} from "@expent/ui/components/card";
 export {
   Collapsible,
   CollapsibleTrigger,
   CollapsibleContent,
-} from "@/components/ui/collapsible";
+} from "@expent/ui/components/collapsible";
