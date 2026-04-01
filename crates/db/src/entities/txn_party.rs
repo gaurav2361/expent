@@ -1,3 +1,4 @@
+use super::enums::TxnPartyRole;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -14,7 +15,7 @@ pub struct Model {
     pub transaction_id: String,
     pub user_id: Option<String>,
     pub contact_id: Option<String>,
-    pub role: String, // SENDER, RECEIVER
+    pub role: TxnPartyRole,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -4,8 +4,10 @@ use better_auth::types_mod::{
     AuthError, AuthResult, CreateUser, ListUsersParams, UpdateUser, User, UserOps,
 };
 use chrono::{DateTime, FixedOffset, Utc};
+use db::entities::enums::GroupRole;
 use db::entities::user;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
+use std::str::FromStr;
 
 #[async_trait]
 impl UserOps for SqliteAdapter {
@@ -17,6 +19,11 @@ impl UserOps for SqliteAdapter {
             .clone()
             .unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
         let now: DateTime<FixedOffset> = Utc::now().into();
+
+        let role = data
+            .role
+            .and_then(|r| GroupRole::from_str(&r.to_uppercase()).ok())
+            .or(Some(GroupRole::Member));
 
         let active_model = user::ActiveModel {
             id: Set(id.clone()),
@@ -30,7 +37,7 @@ impl UserOps for SqliteAdapter {
             updated_at: Set(now),
             username: Set(data.username),
             display_username: Set(data.display_username),
-            role: Set(data.role.or(Some("user".to_string()))),
+            role: Set(role),
             banned: Set(Some(false)),
             ban_reason: Set(None),
             ban_expires: Set(None),
@@ -113,7 +120,7 @@ impl UserOps for SqliteAdapter {
             active_model.username = Set(Some(username));
         }
         if let Some(role) = update.role {
-            active_model.role = Set(Some(role));
+            active_model.role = Set(GroupRole::from_str(&role.to_uppercase()).ok());
         }
         if let Some(banned) = update.banned {
             active_model.banned = Set(Some(banned));
@@ -181,7 +188,7 @@ fn map_model_to_user(m: user::Model) -> User {
         username: m.username,
         display_username: m.display_username,
         two_factor_enabled: m.two_factor_enabled.unwrap_or(false),
-        role: m.role,
+        role: m.role.map(|r| r.to_string()),
         banned: m.banned.unwrap_or(false),
         ban_reason: m.ban_reason,
         ban_expires: m.ban_expires.map(|d| d.into()),

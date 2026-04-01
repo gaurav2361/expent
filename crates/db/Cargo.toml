@@ -9,7 +9,8 @@ rust_decimal = "1.41.0"
 sea-orm      = { features = [ "sqlx-sqlite", "runtime-tokio-native-tls", "macros" ], version = "1.1.19" }
 serde        = { features = [ "derive" ], version = "1.0.228" }
 serde_json   = "1.0.149"
-strum        = "0.26"
+strum = { version = "0.26", features = ["derive"] }
 strum_macros = "0.26"
+
 ts-rs        = { features = [ "chrono-impl", "serde-json-impl" ], version = "12.0.1" }
 uuid         = { features = [ "v7" ], version = "1.18" }

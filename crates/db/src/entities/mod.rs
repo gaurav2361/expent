@@ -3,6 +3,7 @@ pub mod bank_statement_row;
 pub mod contact;
 pub mod contact_identifier;
 pub mod contact_link;
+pub mod enums;
 pub mod group;
 pub mod p2p_request;
 pub mod purchase;

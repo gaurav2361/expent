@@ -1,3 +1,4 @@
+use super::enums::SubscriptionCycle;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -15,7 +16,7 @@ pub struct Model {
     pub name: String,
     #[ts(type = "string")]
     pub amount: Decimal,
-    pub cycle: String, // MONTHLY, YEARLY
+    pub cycle: SubscriptionCycle,
     pub start_date: DateTimeWithTimeZone,
     pub next_charge_date: DateTimeWithTimeZone,
     pub detection_keywords: Option<String>,

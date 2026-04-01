@@ -1,3 +1,4 @@
+use super::enums::IdentifierType;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -12,7 +13,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
     pub contact_id: String,
-    pub r#type: String, // UPI, PHONE, BANK_ACC
+    pub r#type: IdentifierType,
     pub value: String,
     pub linked_user_id: Option<String>,
 }
