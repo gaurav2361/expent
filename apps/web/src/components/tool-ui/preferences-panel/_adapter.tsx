@@ -1,13 +1,13 @@
-export { cn } from "@/lib/utils";
-export { Button } from "@/components/ui/button";
-export { Switch } from "@/components/ui/switch";
-export { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+export { cn } from "@expent/ui/lib/utils";
+export { Button } from "@expent/ui/components/button";
+export { Switch } from "@expent/ui/components/switch";
+export { ToggleGroup, ToggleGroupItem } from "@expent/ui/components/toggle-group";
 export {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-export { Separator } from "@/components/ui/separator";
-export { Label } from "@/components/ui/label";
+} from "@expent/ui/components/select";
+export { Separator } from "@expent/ui/components/separator";
+export { Label } from "@expent/ui/components/label";
