@@ -1,11 +1,10 @@
 import appCss from "@expent/ui/globals.css?url";
-import { Toaster } from "@expent/ui/components/sonner";
-import "goey-toast/styles.css";
+import { Toaster } from "@expent/ui/components/goey-toaster";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { MotionConfig } from "motion/react";
 import { NotFoundPage } from "@/components/not-found";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { queryClient } from "@/lib/query-client";
 
 export const Route = createRootRoute({
@@ -44,7 +43,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
             <MotionConfig reducedMotion="user">
               {children}
-              <Toaster position="bottom-right" closeButton richColors />
+              <AppToaster />
             </MotionConfig>
           </ThemeProvider>
         </QueryClientProvider>
@@ -52,4 +51,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   );
+}
+
+function AppToaster() {
+  const { theme } = useTheme();
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  return <Toaster theme={isDark ? "dark" : "light"} position="bottom-right" closeButton />;
 }
