@@ -6,7 +6,7 @@ Expent is an intelligent expense management platform built with Rust, TypeScript
 
 - **`apps/server` (Rust/Axum):** Unified backend handling authentication (Better Auth), database orchestration (SeaORM), and S3/R2 presigned URLs.
 - **`apps/web` (TypeScript/TanStack):** Modern React frontend using TanStack Router, Start, and Query.
-- **`apps/ocr-worker` (Python/FastAPI):** OCR processing engine using EasyOCR and pdfplumber.
+- **`apps/ocr` (Python/FastAPI):** OCR processing engine using EasyOCR and pdfplumber.
 - **`packages/ui`:** Shared component library built with Tailwind CSS and Shadcn.
 - **`packages/types`:** Shared TypeScript types automatically generated from Rust models via `ts-rs`.
 
