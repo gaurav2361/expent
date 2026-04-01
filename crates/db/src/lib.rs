@@ -4,6 +4,7 @@ use crate::entities::enums::{
 };
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use rust_decimal::Decimal;
+use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -423,5 +424,62 @@ impl SmartMerge {
             .order_by_desc(entities::transaction::Column::Date)
             .all(db)
             .await
+    }
+
+    pub async fn update_transaction(
+        db: &DatabaseConnection,
+        user_id: &str,
+        txn_id: &str,
+        amount: Option<Decimal>,
+        date: Option<DateTimeWithTimeZone>,
+        purpose_tag: Option<String>,
+        status: Option<TransactionStatus>,
+    ) -> Result<entities::transaction::Model, DbErr> {
+        let txn = entities::transaction::Entity::find_by_id(txn_id.to_string())
+            .one(db)
+            .await?
+            .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
+
+        if txn.user_id != user_id {
+            return Err(DbErr::Custom("Unauthorized".to_string()));
+        }
+
+        let mut txn: entities::transaction::ActiveModel = txn.into();
+
+        if let Some(amt) = amount {
+            txn.amount = Set(amt);
+        }
+        if let Some(dt) = date {
+            txn.date = Set(dt);
+        }
+        if let Some(tag) = purpose_tag {
+            txn.purpose_tag = Set(Some(tag));
+        }
+        if let Some(st) = status {
+            txn.status = Set(st);
+        }
+
+        txn.update(db).await
+    }
+
+    pub async fn delete_transaction(
+        db: &DatabaseConnection,
+        user_id: &str,
+        txn_id: &str,
+    ) -> Result<u64, DbErr> {
+        let txn = entities::transaction::Entity::find_by_id(txn_id.to_string())
+            .one(db)
+            .await?
+            .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
+
+        if txn.user_id != user_id {
+            return Err(DbErr::Custom("Unauthorized".to_string()));
+        }
+
+        let result = entities::transaction::Entity::delete_by_id(txn_id.to_string())
+            .exec(db)
+            .await?;
+
+        Ok(result.rows_affected)
     }
 }
