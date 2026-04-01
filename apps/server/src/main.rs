@@ -438,18 +438,27 @@ async fn process_image_ocr_handler(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let text = state
+    let ocr_json = state
         .ocr_service
         .process_image(&bytes)
+        .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // Basic extraction logic (placeholder - should be improved)
-    // In a real scenario, you'd parse 'text' for amount, date, etc.
+    use rust_decimal::prelude::FromPrimitive;
+    let amount = ocr_json["amount"]
+        .as_f64()
+        .and_then(|a| rust_decimal::Decimal::from_f64(a));
+
+    let upi_id = ocr_json["receiver_upi_id"]
+        .as_str()
+        .or(ocr_json["upi_transaction_id"].as_str())
+        .map(|s| s.to_string());
+
     let ocr_data = OcrResult {
-        raw_text: text,
-        amount: None,
+        raw_text: serde_json::to_string_pretty(&ocr_json).unwrap_or_default(),
+        amount,
         date: None,
-        upi_id: None,
+        upi_id,
         items: vec![],
     };
 
