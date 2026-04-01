@@ -15,7 +15,7 @@ Expent is an intelligent expense management platform built with Rust, TypeScript
 - **Node.js:** v24 or higher (pnpm recommended)
 - **Rust:** Latest stable version
 - **Python:** v3.13 or higher (using `uv` for dependency management)
-- **Database:** PostgreSQL (NeonDB recommended)
+- **Database:** SQLite (local development) or PostgreSQL (production)
 - **Storage:** Cloudflare R2 or S3-compatible storage
 
 ## Getting Started
@@ -31,10 +31,12 @@ Expent is an intelligent expense management platform built with Rust, TypeScript
    ```bash
    cp .env.example .env
    ```
-4. **Run migrations:**
+   *Note: For local development with SQLite, the default `DATABASE_URL` will automatically create `expent.db` in the project root.*
+
+4. **Initialize database and run migrations:**
    ```bash
-   cd crates/migration
-   cargo run -- up
+   # From the project root
+   cargo run --package migration -- up
    ```
 5. **Start development server:**
    ```bash
