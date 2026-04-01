@@ -213,9 +213,7 @@ function RouteComponent() {
                 </div>
                 <div>
                   <CardTitle>Receipt Itemized</CardTitle>
-                  <CardDescription>
-                    We've extracted items and data from your upload.
-                  </CardDescription>
+                  <CardDescription>We've extracted items and data from your upload.</CardDescription>
                 </div>
                 <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setOcrResult(null)}>
                   Dismiss
@@ -241,7 +239,11 @@ function RouteComponent() {
                               <TableCell className="text-right">{item.quantity}</TableCell>
                               <TableCell className="text-right font-mono">₹{item.price}</TableCell>
                               <TableCell className="text-right">
-                                <Button size="sm" variant="ghost" onClick={() => triggerSplit(ocrResult.id, item.price)}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => triggerSplit(ocrResult.id, item.price)}
+                                >
                                   <Share2Icon className="h-3 w-3 mr-1" /> Split
                                 </Button>
                               </TableCell>
