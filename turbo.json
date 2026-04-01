@@ -36,7 +36,8 @@
         "OCR_WORKER_URL",
         "VITE_API_BASE_URL",
         "RUST_LOG",
-        "PORT"
+        "PORT",
+        "API_PORT"
       ]
     }
   }

@@ -9,6 +9,15 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [nitro(), tailwindcss(), tanstackStart(), viteReact(), contentCollections()],
+  server: {
+    port: 3000,
+    strictPort: true,
+  },
+  nitro: {
+    dev: {
+      port: 3000,
+    },
+  },
   resolve: {
     // This tells Vite 8 to natively handle your tsconfig paths,
     // which works much better across monorepo workspace boundaries.

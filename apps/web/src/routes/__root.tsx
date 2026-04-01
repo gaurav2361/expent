@@ -1,4 +1,6 @@
 import appCss from "@expent/ui/globals.css?url";
+import { Toaster } from "@expent/ui/components/sonner";
+import "goey-toast/styles.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { MotionConfig } from "motion/react";
@@ -40,7 +42,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-            <MotionConfig reducedMotion="user">{children}</MotionConfig>
+            <MotionConfig reducedMotion="user">
+              {children}
+              <Toaster position="bottom-right" closeButton richColors />
+            </MotionConfig>
           </ThemeProvider>
         </QueryClientProvider>
         <Scripts />

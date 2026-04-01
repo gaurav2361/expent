@@ -10,18 +10,19 @@
     "cssVariables": true
   },
   "iconLibrary": "lucide",
+  "rtl": false,
+  "menuColor": "default",
+  "menuAccent": "subtle",
   "aliases": {
     "components": "@/components",
-    "hooks": "@/hooks",
-    "lib": "@/lib",
     "utils": "@expent/ui/lib/utils",
-    "ui": "@expent/ui/components"
+    "ui": "@expent/ui/components",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
   },
   "registries": {
     "@efferd": "https://efferd.com/r/{name}.json",
-    "@lucide-animated": "https://lucide-animated.com/r/{name}.json"
-  },
-  "rtl": false,
-  "menuColor": "default",
-  "menuAccent": "subtle"
+    "@lucide-animated": "https://lucide-animated.com/r/{name}.json",
+    "@tool-ui": "https://www.tool-ui.com/r/{name}.json"
+  }
 }

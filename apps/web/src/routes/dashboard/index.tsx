@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SplitDialog } from "@/components/split-dialog";
 import { useSession } from "@/lib/auth-client";
+import { goeyToast as toast } from "goey-toast";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,
@@ -81,6 +82,11 @@ function RouteComponent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });
+      toast.success("Request accepted!");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to accept request.");
     },
   });
 
@@ -110,6 +116,7 @@ function RouteComponent() {
   const handleUpload = async () => {
     if (!file) return;
     setIsUploading(true);
+    const toastId = toast.loading("Uploading and processing file...");
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -136,9 +143,10 @@ function RouteComponent() {
       const result = await processRes.json();
       setOcrResult(result);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success("File processed successfully!", { id: toastId });
     } catch (error) {
       console.error(error);
-      alert("Upload or processing failed");
+      toast.error("Upload or processing failed. Please try again.", { id: toastId });
     } finally {
       setIsUploading(false);
     }
@@ -183,10 +191,15 @@ function RouteComponent() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Quick Upload</CardTitle>
+                <CardTitle className="text-sm font-medium">Quick Upload (Images, PDF, CSV)</CardTitle>
               </CardHeader>
               <CardContent className="flex gap-2">
-                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="h-8 text-xs" />
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf,text/csv"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="h-8 text-xs"
+                />
                 <Button onClick={handleUpload} disabled={!file || isUploading} size="sm">
                   {isUploading ? "..." : "Go"}
                 </Button>
