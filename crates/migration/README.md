@@ -1,41 +1,42 @@
-# Running Migrator CLI
+# SeaORM Migration CLI
 
-- Generate a new migration file
+This crate handles database schema migrations using [SeaORM](https://www.sea-ql.org/SeaORM/).
+
+## Setup
+
+Ensure your `DATABASE_URL` is set in the environment or `.env` file.
+
+### Local SQLite Setup
+For a local SQLite database, use:
+```sh
+DATABASE_URL="sqlite://expent.db?mode=rwc"
+```
+The `?mode=rwc` flag tells SQLite to create the file if it doesn't exist.
+
+## Running Migrations
+
+Run these commands from the root directory using the `--package migration` flag, or from within this directory.
+
+- **Apply all pending migrations (Initialize DB)**
   ```sh
-  cargo run -- generate MIGRATION_NAME
+  cargo run --package migration -- up
   ```
-- Apply all pending migrations
+- **Generate a new migration file**
   ```sh
-  cargo run
+  cargo run --package migration -- generate MIGRATION_NAME
   ```
+- **Rollback last applied migration**
   ```sh
-  cargo run -- up
+  cargo run --package migration -- down
   ```
-- Apply first 10 pending migrations
+- **Check migration status**
   ```sh
-  cargo run -- up -n 10
+  cargo run --package migration -- status
   ```
-- Rollback last applied migrations
+- **Reset database (Drop all tables and re-run migrations)**
   ```sh
-  cargo run -- down
+  cargo run --package migration -- fresh
   ```
-- Rollback last 10 applied migrations
-  ```sh
-  cargo run -- down -n 10
-  ```
-- Drop all tables from the database, then reapply all migrations
-  ```sh
-  cargo run -- fresh
-  ```
-- Rollback all applied migrations, then reapply all migrations
-  ```sh
-  cargo run -- refresh
-  ```
-- Rollback all applied migrations
-  ```sh
-  cargo run -- reset
-  ```
-- Check the status of all migrations
-  ```sh
-  cargo run -- status
-  ```
+
+## Advanced Commands
+
