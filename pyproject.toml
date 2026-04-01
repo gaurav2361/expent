@@ -7,8 +7,9 @@ dependencies = [
   "boto3",
   "requests",
   "python-multipart",
-  "anthropic",
   "python-dotenv",
+  "google-generativeai",
+  "pymupdf",
 ]
 description = "Add your description here"
 name = "expent"
