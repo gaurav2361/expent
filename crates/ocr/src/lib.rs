@@ -10,25 +10,36 @@ pub struct OcrService {
 
 impl OcrService {
     pub async fn new() -> Result<Self> {
-        let worker_url = std::env::var("OCR_WORKER_URL")
-            .unwrap_or_else(|_| "http://localhost:8090/ocr".to_string());
+        let mut url = std::env::var("OCR_WORKER_URL")
+            .unwrap_or_else(|_| "http://localhost:8090".to_string());
+
+        // Intelligently determine if we need to append /extract
+        if !url.contains("/extract") && !url.contains("/ocr") && !url.contains("/process") {
+            if !url.ends_with('/') {
+                url.push('/');
+            }
+            url.push_str("extract");
+        }
+
         let client = reqwest::Client::new();
         info!(
             "🚀 OCR Service (Proxy) initialized with worker at: {}",
-            worker_url
+            url
         );
-        Ok(Self { worker_url, client })
+        Ok(Self { worker_url: url, client })
     }
 
-    pub async fn process_image(&self, image_bytes: &[u8]) -> Result<Value> {
+    pub async fn process_file(&self, file_bytes: &[u8], filename: &str, mime_type: &str) -> Result<Value> {
         info!(
-            "🖼️ Forwarding image for OCR processing ({} bytes)",
-            image_bytes.len()
+            "📄 Forwarding file '{}' ({}) for extraction ({} bytes)",
+            filename,
+            mime_type,
+            file_bytes.len()
         );
 
-        let part = multipart::Part::bytes(image_bytes.to_vec())
-            .file_name("upload.png")
-            .mime_str("image/png")?;
+        let part = multipart::Part::bytes(file_bytes.to_vec())
+            .file_name(filename.to_string())
+            .mime_str(mime_type)?;
 
         let form = multipart::Form::new().part("file", part);
 
@@ -42,7 +53,11 @@ impl OcrService {
             .json::<Value>()
             .await?;
 
-        info!("📝 OCR completed successfully via Python worker.");
+        info!("📝 Extraction completed successfully via Python worker.");
         Ok(res)
+    }
+
+    pub async fn process_image(&self, image_bytes: &[u8]) -> Result<Value> {
+        self.process_file(image_bytes, "upload.png", "image/png").await
     }
 }

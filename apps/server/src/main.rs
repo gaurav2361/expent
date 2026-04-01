@@ -65,13 +65,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ocr_service = Arc::new(OcrService::new().await?);
 
     // S3/R2 Setup
-    let endpoint = std::env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set");
+    let mut endpoint = std::env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set");
+    // Strip bucket suffix if present (e.g. /bucket-name)
+    if let Some(pos) = endpoint.rfind(".com/") {
+        endpoint.truncate(pos + 4);
+    }
+
     let access_key_id = std::env::var("S3_ACCESS_KEY_ID").expect("S3_ACCESS_KEY_ID must be set");
     let secret_access_key =
         std::env::var("S3_SECRET_ACCESS_KEY").expect("S3_SECRET_ACCESS_KEY must be set");
 
     let s3_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
         .endpoint_url(endpoint)
+        .region(aws_config::Region::new("auto"))
         .credentials_provider(aws_sdk_s3::config::Credentials::new(
             access_key_id,
             secret_access_key,
@@ -81,7 +87,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .load()
         .await;
-    let s3_client = aws_sdk_s3::Client::new(&s3_config);
+
+    let s3_client_config = aws_sdk_s3::config::Builder::from(&s3_config)
+        .force_path_style(true)
+        .build();
+
+    let s3_client = aws_sdk_s3::Client::from_conf(s3_client_config);
     let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
     let upload_client = UploadClient::new(s3_client, bucket_name);
 
@@ -142,7 +153,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let port = std::env::var("PORT").unwrap_or_else(|_| "8080".into());
+    let port = std::env::var("API_PORT").unwrap_or_else(|_| "8080".into());
     let addr: SocketAddr = format!("0.0.0.0:{}", port).parse()?;
 
     tracing::info!("Server listening on {}", addr);
@@ -372,6 +383,7 @@ async fn direct_upload_handler(
     session: AuthSession,
     mut multipart: Multipart,
 ) -> Result<Json<PresignedUrlResponse>, (StatusCode, String)> {
+    tracing::debug!("📁 Received upload request for user: {}", session.user.id);
     let mut file_data = None;
     let mut file_name = String::new();
     let mut content_type = String::new();
@@ -379,27 +391,39 @@ async fn direct_upload_handler(
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?
+        .map_err(|e| {
+            tracing::error!("❌ Multipart next_field error: {:?}", e);
+            (StatusCode::BAD_REQUEST, e.to_string())
+        })?
     {
         let name = field.name().unwrap_or_default().to_string();
+        tracing::debug!("📦 Processing multipart field: {}", name);
         if name == "file" {
             file_name = field.file_name().unwrap_or("unnamed").to_string();
             content_type = field
                 .content_type()
                 .unwrap_or("application/octet-stream")
                 .to_string();
+            tracing::debug!("📎 Extracting bytes for file: {} ({})", file_name, content_type);
             file_data = Some(
                 field
                     .bytes()
                     .await
-                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?,
+                    .map_err(|e| {
+                        tracing::error!("❌ Multipart bytes extraction error: {:?}", e);
+                        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+                    })?,
             );
             break;
         }
     }
 
-    let data = file_data.ok_or((StatusCode::BAD_REQUEST, "No file uploaded".to_string()))?;
+    let data = file_data.ok_or_else(|| {
+        tracing::warn!("⚠️ No file data found in multipart request");
+        (StatusCode::BAD_REQUEST, "No file uploaded".to_string())
+    })?;
 
+    tracing::info!("🚀 Starting direct upload for file: {} ({} bytes)", file_name, data.len());
     let processed = state
         .upload_client
         .upload_direct(
@@ -410,12 +434,18 @@ async fn direct_upload_handler(
             true,
         )
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| {
+            tracing::error!("❌ UploadClient upload_direct failed: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+        })?;
+
+    tracing::info!("✅ Upload successful, key: {}", processed.key);
+    let bucket_name = std::env::var("S3_BUCKET_NAME").unwrap_or_else(|_| "expent-uploads".to_string());
 
     Ok(Json(PresignedUrlResponse {
         url: format!(
             "https://{}.r2.cloudflarestorage.com/{}",
-            std::env::var("S3_BUCKET_NAME").unwrap(),
+            bucket_name,
             processed.key
         ),
         key: processed.key,
@@ -438,20 +468,32 @@ async fn process_image_ocr_handler(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
+    // Determine filename and mime type from the key or payload
+    let filename = payload.key.split('/').last().unwrap_or("upload");
+    let mime_type = if filename.ends_with(".pdf") {
+        "application/pdf"
+    } else if filename.ends_with(".csv") {
+        "text/csv"
+    } else {
+        "image/png" // Default for screenshots
+    };
+
     let ocr_json = state
         .ocr_service
-        .process_image(&bytes)
+        .process_file(&bytes, filename, mime_type)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     use rust_decimal::prelude::FromPrimitive;
-    let amount = ocr_json["amount"]
+    let amount = ocr_json["grand_total"]
         .as_f64()
+        .or_else(|| ocr_json["amount"].as_f64())
         .and_then(|a| rust_decimal::Decimal::from_f64(a));
 
     let upi_id = ocr_json["receiver_upi_id"]
         .as_str()
         .or(ocr_json["upi_transaction_id"].as_str())
+        .or(ocr_json["sender_upi_id"].as_str())
         .map(|s| s.to_string());
 
     let ocr_data = OcrResult {
