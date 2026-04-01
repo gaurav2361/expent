@@ -1,5 +1,6 @@
-import type { ToolUIId, ToolUIReceipt, ToolUIRole } from "../shared/schema";
-import type { FormatConfig } from "./formatters";
+import type React from "react";
+import type { ToolUIId, ToolUIReceipt, ToolUIRole } from "@/components/tool-ui/shared/schema";
+import type { FormatConfig } from "@/components/data-table/formatters";
 
 /**
  * JSON primitive type that can be serialized.
@@ -221,6 +222,23 @@ export interface DataTableClientProps<T extends object = RowData> {
     by?: ColumnKey<T>;
     direction?: "asc" | "desc";
   }) => void;
+  /**
+   * Custom cell renderers keyed by column key.
+   *
+   * When provided for a column, the renderer completely replaces the default
+   * `renderFormattedValue` output for that column's cells. Useful for injecting
+   * interactive React elements (buttons, links, etc.) that cannot be serialized.
+   *
+   * @example
+   * ```tsx
+   * <DataTable
+   *   cellRenderers={{
+   *     action: (row) => <Button onClick={() => handleAction(row.id)}>Go</Button>,
+   *   }}
+   * />
+   * ```
+   */
+  cellRenderers?: Partial<Record<string, (row: T) => React.ReactNode>>;
 }
 
 /**
@@ -259,4 +277,5 @@ export interface DataTableContextValue<T extends object = RowData> {
   toggleSort?: (key: ColumnKey<T>) => void;
   id?: string;
   locale?: string;
+  cellRenderers?: Partial<Record<string, (row: T) => React.ReactNode>>;
 }

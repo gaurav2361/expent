@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn, Badge, Tooltip, TooltipContent, TooltipTrigger } from "./_adapter";
-import { resolveSafeNavigationHref } from "../shared/media";
+import { resolveSafeNavigationHref } from "@/components/tool-ui/shared/media";
 
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
