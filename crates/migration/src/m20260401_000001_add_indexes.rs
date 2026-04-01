@@ -100,28 +100,68 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_index(Index::drop().name("idx-transactions-user_id-date").table(Transactions::Table).to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx-transactions-user_id-date")
+                    .table(Transactions::Table)
+                    .to_owned(),
+            )
             .await?;
         manager
-            .drop_index(Index::drop().name("idx-transactions-group_id").table(Transactions::Table).to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx-transactions-group_id")
+                    .table(Transactions::Table)
+                    .to_owned(),
+            )
             .await?;
         manager
-            .drop_index(Index::drop().name("idx-subscriptions-user_id").table(Subscriptions::Table).to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx-subscriptions-user_id")
+                    .table(Subscriptions::Table)
+                    .to_owned(),
+            )
             .await?;
         manager
-            .drop_index(Index::drop().name("idx-p2p_requests-receiver_email").table(P2PRequests::Table).to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx-p2p_requests-receiver_email")
+                    .table(P2PRequests::Table)
+                    .to_owned(),
+            )
             .await?;
         manager
-            .drop_index(Index::drop().name("idx-contact_identifiers-value").table(ContactIdentifiers::Table).to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx-contact_identifiers-value")
+                    .table(ContactIdentifiers::Table)
+                    .to_owned(),
+            )
             .await?;
         manager
-            .drop_index(Index::drop().name("idx-contact_identifiers-contact_id").table(ContactIdentifiers::Table).to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx-contact_identifiers-contact_id")
+                    .table(ContactIdentifiers::Table)
+                    .to_owned(),
+            )
             .await?;
         manager
-            .drop_index(Index::drop().name("idx-txn_parties-transaction_id").table(TxnParties::Table).to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx-txn_parties-transaction_id")
+                    .table(TxnParties::Table)
+                    .to_owned(),
+            )
             .await?;
         manager
-            .drop_index(Index::drop().name("idx-user_upi_ids-user_id").table(UserUpiIds::Table).to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx-user_upi_ids-user_id")
+                    .table(UserUpiIds::Table)
+                    .to_owned(),
+            )
             .await?;
 
         Ok(())

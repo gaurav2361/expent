@@ -3,9 +3,25 @@ use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use ts_rs::TS;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, TS, Display, EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/enums.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionDirection {
     #[sea_orm(string_value = "IN")]
@@ -14,12 +30,27 @@ pub enum TransactionDirection {
     Out,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, TS, Display, EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/enums.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum
- TransactionSource {
+pub enum TransactionSource {
     #[sea_orm(string_value = "MANUAL")]
     Manual,
     #[sea_orm(string_value = "OCR")]
@@ -30,12 +61,27 @@ pub enum
     P2p,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, TS, Display, EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/enums.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum
- TransactionStatus {
+pub enum TransactionStatus {
     #[sea_orm(string_value = "COMPLETED")]
     Completed,
     #[sea_orm(string_value = "PENDING")]
@@ -44,12 +90,27 @@ pub enum
     Cancelled,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, TS, Display, EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/enums.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum
- IdentifierType {
+pub enum IdentifierType {
     #[sea_orm(string_value = "UPI")]
     Upi,
     #[sea_orm(string_value = "PHONE")]
@@ -58,24 +119,54 @@ pub enum
     BankAcc,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, TS, Display, EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/enums.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum
- TxnPartyRole {
+pub enum TxnPartyRole {
     #[sea_orm(string_value = "SENDER")]
     Sender,
     #[sea_orm(string_value = "RECEIVER")]
     Receiver,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, TS, Display, EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/enums.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum
- SubscriptionCycle {
+pub enum SubscriptionCycle {
     #[sea_orm(string_value = "WEEKLY")]
     Weekly,
     #[sea_orm(string_value = "MONTHLY")]
@@ -84,24 +175,54 @@ pub enum
     Yearly,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, TS, Display, EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/enums.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum
- AlertChannel {
+pub enum AlertChannel {
     #[sea_orm(string_value = "EMAIL")]
     Email,
     #[sea_orm(string_value = "PUSH")]
     Push,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, TS, Display, EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/enums.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum
- P2PRequestStatus {
+pub enum P2PRequestStatus {
     #[sea_orm(string_value = "PENDING")]
     Pending,
     #[sea_orm(string_value = "MAPPED")]
@@ -114,12 +235,27 @@ pub enum
     GroupInvite,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, TS, Display, EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated/enums.ts")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum
- GroupRole {
+pub enum GroupRole {
     #[sea_orm(string_value = "ADMIN")]
     Admin,
     #[sea_orm(string_value = "MEMBER")]

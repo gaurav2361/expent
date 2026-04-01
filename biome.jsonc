@@ -26,6 +26,7 @@
       "!**/.vinxi",
       "!**/.nitro",
       "!**/*/build",
+      "!**/.agents",
       "!**/.tanstack",
       "!**/.coverage",
       "!**/nix/store",
