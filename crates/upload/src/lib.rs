@@ -74,7 +74,7 @@ impl UploadClient {
             .content_type(content_type)
             .presigned(presigning_config)
             .await
-            .map_err(|e| UploadError::S3Error(e.to_string()))?;
+            .map_err(|e| UploadError::S3Error(format!("{:#?}", e)))?;
 
         Ok((presigned_request.uri().to_string(), key))
     }
@@ -105,7 +105,7 @@ impl UploadClient {
             .body(processed.data.clone().into())
             .send()
             .await
-            .map_err(|e| UploadError::S3Error(e.to_string()))?;
+            .map_err(|e| UploadError::S3Error(format!("{:#?}", e)))?;
 
         Ok(ProcessedFile {
             id: processed.id,
@@ -125,7 +125,7 @@ impl UploadClient {
             .key(key)
             .send()
             .await
-            .map_err(|e| UploadError::S3Error(e.to_string()))?;
+            .map_err(|e| UploadError::S3Error(format!("{:#?}", e)))?;
 
         let data = response
             .body
