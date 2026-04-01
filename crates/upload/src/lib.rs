@@ -1,5 +1,5 @@
-use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::Client as S3Client;
+use aws_sdk_s3::presigning::PresigningConfig;
 use bytes::Bytes;
 use image::ImageFormat;
 use std::path::Path;
@@ -87,8 +87,13 @@ impl UploadClient {
         content_type: Option<String>,
         normalize_images: bool,
     ) -> Result<ProcessedFile, UploadError> {
-        let processed = UploadProcessor::process(data, original_name.clone(), content_type.clone(), normalize_images)?;
-        
+        let processed = UploadProcessor::process(
+            data,
+            original_name.clone(),
+            content_type.clone(),
+            normalize_images,
+        )?;
+
         let file_name = original_name.unwrap_or_else(|| "unnamed".to_string());
         let key = format!("{}/{}-{}", user_id, processed.id, file_name);
 
@@ -142,8 +147,9 @@ impl UploadProcessor {
         content_type: Option<String>,
         normalize_images: bool,
     ) -> Result<RawProcessedFile, UploadError> {
-        let category = Self::determine_category(&data, original_name.as_deref(), content_type.as_deref());
-        
+        let category =
+            Self::determine_category(&data, original_name.as_deref(), content_type.as_deref());
+
         let id = Uuid::new_v4();
 
         // Perform category-specific processing
@@ -153,14 +159,17 @@ impl UploadProcessor {
                     let png_data = Self::convert_to_png(&data)?;
                     (png_data, "image/png".to_string())
                 } else {
-                    (data, content_type.unwrap_or_else(|| "image/png".to_string()))
+                    (
+                        data,
+                        content_type.unwrap_or_else(|| "image/png".to_string()),
+                    )
                 };
 
                 // Validate it's a valid image (already validated if converted, but let's be sure)
                 if !normalize_images {
                     let _img = image::load_from_memory(&final_data)?;
                 }
-                
+
                 Ok(RawProcessedFile {
                     id,
                     original_name,
@@ -169,37 +178,36 @@ impl UploadProcessor {
                     data: final_data,
                 })
             }
-            FileCategory::Pdf => {
-                Ok(RawProcessedFile {
-                    id,
-                    original_name,
-                    category,
-                    content_type: "application/pdf".to_string(),
-                    data,
-                })
-            }
-            FileCategory::Csv => {
-                Ok(RawProcessedFile {
-                    id,
-                    original_name,
-                    category,
-                    content_type: "text/csv".to_string(),
-                    data,
-                })
-            }
-            FileCategory::Unknown => {
-                 Ok(RawProcessedFile {
-                    id,
-                    original_name,
-                    category,
-                    content_type: content_type.unwrap_or_else(|| "application/octet-stream".to_string()),
-                    data,
-                })
-            }
+            FileCategory::Pdf => Ok(RawProcessedFile {
+                id,
+                original_name,
+                category,
+                content_type: "application/pdf".to_string(),
+                data,
+            }),
+            FileCategory::Csv => Ok(RawProcessedFile {
+                id,
+                original_name,
+                category,
+                content_type: "text/csv".to_string(),
+                data,
+            }),
+            FileCategory::Unknown => Ok(RawProcessedFile {
+                id,
+                original_name,
+                category,
+                content_type: content_type
+                    .unwrap_or_else(|| "application/octet-stream".to_string()),
+                data,
+            }),
         }
     }
 
-    fn determine_category(data: &[u8], filename: Option<&str>, content_type: Option<&str>) -> FileCategory {
+    fn determine_category(
+        data: &[u8],
+        filename: Option<&str>,
+        content_type: Option<&str>,
+    ) -> FileCategory {
         // 1. Try by content-type
         if let Some(ct) = content_type {
             if ct == "application/pdf" {
@@ -220,7 +228,9 @@ impl UploadProcessor {
                 match ext.to_lowercase().as_str() {
                     "pdf" => return FileCategory::Pdf,
                     "csv" => return FileCategory::Csv,
-                    "jpg" | "jpeg" | "png" | "gif" | "webp" | "heic" | "heif" => return FileCategory::Image,
+                    "jpg" | "jpeg" | "png" | "gif" | "webp" | "heic" | "heif" => {
+                        return FileCategory::Image;
+                    }
                     _ => {}
                 }
             }
@@ -263,24 +273,39 @@ mod tests {
     #[test]
     fn test_determine_category_pdf() {
         let data = b"%PDF-1.4";
-        assert_eq!(UploadProcessor::determine_category(data, None, None), FileCategory::Pdf);
+        assert_eq!(
+            UploadProcessor::determine_category(data, None, None),
+            FileCategory::Pdf
+        );
     }
 
     #[test]
     fn test_determine_category_image() {
         // PNG magic bytes
         let data = b"\x89PNG\r\n\x1a\n";
-        assert_eq!(UploadProcessor::determine_category(data, None, None), FileCategory::Image);
+        assert_eq!(
+            UploadProcessor::determine_category(data, None, None),
+            FileCategory::Image
+        );
     }
 
     #[test]
     fn test_determine_category_csv() {
-        assert_eq!(UploadProcessor::determine_category(b"col1,col2\nval1,val2", Some("test.csv"), None), FileCategory::Csv);
-        assert_eq!(UploadProcessor::determine_category(b"col1,col2\nval1,val2", None, Some("text/csv")), FileCategory::Csv);
+        assert_eq!(
+            UploadProcessor::determine_category(b"col1,col2\nval1,val2", Some("test.csv"), None),
+            FileCategory::Csv
+        );
+        assert_eq!(
+            UploadProcessor::determine_category(b"col1,col2\nval1,val2", None, Some("text/csv")),
+            FileCategory::Csv
+        );
     }
 
     #[test]
     fn test_determine_category_unknown() {
-        assert_eq!(UploadProcessor::determine_category(b"unknown data", None, None), FileCategory::Unknown);
+        assert_eq!(
+            UploadProcessor::determine_category(b"unknown data", None, None),
+            FileCategory::Unknown
+        );
     }
 }

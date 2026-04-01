@@ -259,10 +259,7 @@ impl SmartMerge {
 
         let mut groups: HashMap<(String, Decimal), Vec<DateTime<FixedOffset>>> = HashMap::new();
         for txn in transactions {
-            let name = txn
-                .purpose_tag
-                .clone()
-                .unwrap_or_else(|| "Unknown".to_string());
+            let name = txn.purpose_tag.unwrap_or_else(|| "Unknown".to_string());
             let entry = groups.entry((name, txn.amount)).or_default();
             entry.push(txn.date);
         }
@@ -274,7 +271,7 @@ impl SmartMerge {
 
                 let mut detected_cycle = None;
                 let start_date = dates[0];
-                let last_date = dates.last().unwrap().clone();
+                let last_date = *dates.last().unwrap();
 
                 for i in 0..dates.len() - 1 {
                     let diff = (dates[i + 1] - dates[i]).num_days();

@@ -163,13 +163,11 @@ fn map_model_to_user(m: user::Model) -> User {
     let mut metadata = m.metadata.unwrap_or_default();
 
     // Inject associated_contact_id into metadata for better-auth to see it
-    if let Some(contact_id) = m.associated_contact_id {
-        if let Some(obj) = metadata.as_object_mut() {
-            obj.insert(
-                "associated_contact_id".to_string(),
-                serde_json::Value::String(contact_id),
-            );
-        }
+    if let (Some(contact_id), Some(obj)) = (m.associated_contact_id, metadata.as_object_mut()) {
+        obj.insert(
+            "associated_contact_id".to_string(),
+            serde_json::Value::String(contact_id),
+        );
     }
 
     User {

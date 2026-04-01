@@ -3336,6 +3336,7 @@ dependencies = [
  "ocrs",
  "reqwest 0.12.28",
  "rten",
+ "thiserror",
  "tracing",
 ]
 
