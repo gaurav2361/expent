@@ -12,6 +12,7 @@ import { Label } from "@expent/ui/components/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "@expent/ui/components/goey-toaster";
 
 interface SplitDialogProps {
   open: boolean;
@@ -48,7 +49,7 @@ export function SplitDialog({ open, onOpenChange, transactionId, totalAmount }: 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });
       onOpenChange(false);
-      alert("Splits created successfully!");
+      toast.success("Splits created successfully!");
     },
   });
 

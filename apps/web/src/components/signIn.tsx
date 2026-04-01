@@ -10,6 +10,7 @@ import { SocialLogins } from "@/components/auth-social";
 import { Logo } from "@/components/logo";
 import { useState } from "react";
 import { signIn } from "@/lib/auth-client";
+import { toast } from "@expent/ui/components/goey-toaster";
 
 export function SignIn() {
   const [email, setEmail] = useState("");
@@ -27,7 +28,7 @@ export function SignIn() {
 
     setIsLoading(false);
     if (error) {
-      alert(error.message || "Failed to sign in");
+      toast.error(error.message || "Failed to sign in");
     } else {
       navigate({ to: "/dashboard" });
     }

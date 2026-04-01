@@ -10,6 +10,7 @@ import { SocialLogins } from "@/components/auth-social";
 import { Logo } from "@/components/logo";
 import { useState } from "react";
 import { signUp } from "@/lib/auth-client";
+import { toast } from "@expent/ui/components/goey-toaster";
 
 export function SignUp() {
   const [email, setEmail] = useState("");
@@ -22,7 +23,7 @@ export function SignUp() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -35,7 +36,7 @@ export function SignUp() {
 
     setIsLoading(false);
     if (error) {
-      alert(error.message || "Failed to sign up");
+      toast.error(error.message || "Failed to sign up");
     } else {
       navigate({ to: "/dashboard" });
     }
