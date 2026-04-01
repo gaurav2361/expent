@@ -280,9 +280,7 @@ impl SmartMerge {
 
         let mut groups: HashMap<(String, Decimal), Vec<DateTime<FixedOffset>>> = HashMap::new();
         for txn in transactions {
-            let name = txn
-                .purpose_tag
-                .unwrap_or_else(|| "Unknown".to_string());
+            let name = txn.purpose_tag.unwrap_or_else(|| "Unknown".to_string());
             let entry = groups.entry((name, txn.amount)).or_default();
             entry.push(txn.date);
         }
@@ -331,7 +329,6 @@ impl SmartMerge {
 
         Ok(potential_subs)
     }
-
 
     pub async fn list_transactions(
         db: &DatabaseConnection,
