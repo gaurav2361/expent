@@ -23,6 +23,16 @@ import { useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { DataTable } from "@/components/data-table";
 import type { Column } from "@/components/data-table";
+import { TransactionViewer } from "@/components/transaction-viewer";
+import type { Transaction as TransactionType } from "@/components/transaction-viewer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@expent/ui/components/dropdown-menu";
+import { MoreVerticalIcon, Trash2Icon } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,
@@ -113,19 +123,49 @@ function RouteComponent() {
       toast.error("Failed to accept request.");
     },
   });
+  
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<TransactionType> }) => {
+      const response = await fetch(`${API_BASE_URL}/api/transactions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: data.amount,
+          date: data.date,
+          purpose_tag: data.category || data.source,
+          status: data.status,
+        }),
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to update transaction");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success("Transaction updated");
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
-  interface Transaction {
-    id: string;
-    date: string;
-    direction: string;
-    amount: string;
-    source: string;
-  }
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`${API_BASE_URL}/api/transactions/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete transaction");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success("Transaction deleted");
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   // Derived State
   const totalBalance = useMemo(() => {
     if (!transactions) return 0;
-    return transactions.reduce((acc: number, txn: Transaction) => {
+    return transactions.reduce((acc: number, txn: TransactionType) => {
       const amount = parseFloat(txn.amount);
       return txn.direction === "IN" ? acc + amount : acc - amount;
     }, 0);
@@ -137,7 +177,7 @@ function RouteComponent() {
   }, []);
 
   // DataTable column definitions for recent transactions
-  const txnColumns = useMemo<Column<Transaction>[]>(() => [
+  const txnColumns = useMemo<Column<TransactionType>[]>(() => [
     {
       key: "date",
       label: "Date",
@@ -159,28 +199,49 @@ function RouteComponent() {
     },
     {
       key: "source",
-      label: "Source",
+      label: "Description",
     },
     {
-      key: "action" as keyof Transaction,
-      label: "Action",
+      key: "action" as keyof TransactionType,
+      label: " ",
       sortable: false,
       align: "right",
     },
-  ] as Column<Transaction>[], []);
+  ] as Column<TransactionType>[], []);
 
   const txnCellRenderers = useMemo(() => ({
-    action: (row: Transaction) => (
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-8 w-8"
-        onClick={() => triggerSplit(row.id, row.amount)}
-      >
-        <Share2Icon className="h-4 w-4" />
-      </Button>
+    source: (row: TransactionType) => (
+      <TransactionViewer
+        item={row}
+        onUpdate={(id, data) => updateMutation.mutate({ id, data })}
+      />
     ),
-  }), [triggerSplit]);
+    action: (row: TransactionType) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreVerticalIcon className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem onClick={() => triggerSplit(row.id, row.amount)}>
+            <Share2Icon className="mr-2 h-4 w-4" /> Split
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => {
+              if (confirm("Are you sure you want to delete this transaction?")) {
+                deleteMutation.mutate(row.id);
+              }
+            }}
+          >
+            <Trash2Icon className="mr-2 h-4 w-4" /> Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
+  }), [triggerSplit, updateMutation, deleteMutation]);
 
   useEffect(() => {
     if (!session.isPending && !session.data) {
@@ -338,7 +399,7 @@ function RouteComponent() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => triggerSplit(ocrResult.id, item.price)}
+                                  onClick={() => triggerSplit(ocrResult.id, item.price || "0")}
                                 >
                                   <Share2Icon className="h-3 w-3 mr-1" /> Split
                                 </Button>
@@ -387,7 +448,7 @@ function RouteComponent() {
                         <p className="text-xs text-muted-foreground">
                           {req.status === "GROUP_INVITE"
                             ? `You've been invited to join ${req.transaction_data.group_name}`
-                            : `Amount: ₹${parseFloat(req.transaction_data.amount).toLocaleString()}`}
+                            : `Amount: ₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}`}
                         </p>
                       </div>
                       <Button
@@ -421,10 +482,10 @@ function RouteComponent() {
               {isTxnsLoading ? (
                 <div className="text-center py-10 text-muted-foreground">Loading transactions...</div>
               ) : (
-                <DataTable<Transaction>
+                <DataTable<TransactionType>
                   id="dashboard-recent-transactions"
                   columns={txnColumns}
-                  data={(transactions as Transaction[]) ?? []}
+                  data={(transactions as TransactionType[]) ?? []}
                   rowIdKey="id"
                   defaultSort={{ by: "date", direction: "desc" }}
                   emptyMessage="No transactions found. Start by uploading a receipt!"
@@ -441,7 +502,7 @@ function RouteComponent() {
             open={splitDialogOpen}
             onOpenChange={setSplitDialogOpen}
             transactionId={selectedTxn.id}
-            totalAmount={selectedTxn.amount}
+            totalAmount={selectedTxn.amount || "0"}
           />
         )}
       </SidebarInset>

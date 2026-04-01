@@ -4,7 +4,7 @@ use axum::{
     Router,
     extract::{FromRef, Json, Multipart, Path, State},
     http::{HeaderName, HeaderValue, Method, StatusCode},
-    routing::{get, post},
+    routing::{delete, get, patch, post},
 };
 use better_auth::AxumIntegration;
 use db::{OcrResult, SmartMerge, SplitDetail};
@@ -107,6 +107,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let api_router = Router::new()
         .route("/transactions", get(list_transactions_handler))
+        .route("/transactions/{id}", patch(update_transaction_handler))
+        .route("/transactions/{id}", delete(delete_transaction_handler))
         .route("/transactions/split", post(split_transaction_handler))
         .route("/p2p/pending", get(list_pending_p2p_handler))
         .route("/process-ocr", post(process_ocr_handler))
@@ -172,6 +174,47 @@ async fn list_transactions_handler(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+struct UpdateTransactionRequest {
+    amount: Option<rust_decimal::Decimal>,
+    date: Option<chrono::DateTime<chrono::FixedOffset>>,
+    purpose_tag: Option<String>,
+    status: Option<db::entities::enums::TransactionStatus>,
+}
+
+async fn update_transaction_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Path(id): Path<String>,
+    Json(payload): Json<UpdateTransactionRequest>,
+) -> Result<Json<db::entities::transaction::Model>, (StatusCode, String)> {
+    let result = SmartMerge::update_transaction(
+        &state.db,
+        &session.user.id,
+        &id,
+        payload.amount,
+        payload.date,
+        payload.purpose_tag,
+        payload.status,
+    )
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(result))
+}
+
+async fn delete_transaction_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Path(id): Path<String>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    SmartMerge::delete_transaction(&state.db, &session.user.id, &id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Deserialize)]
