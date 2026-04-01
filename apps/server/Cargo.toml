@@ -29,6 +29,7 @@ aws-sdk-s3         = "1.73"
 http               = "1.2"
 ocr                = { path = "../../crates/ocr", version = "0.1.0" }
 anyhow             = "1.0"
+upload             = { path = "../../crates/upload", version = "0.1.0" }
 
 [dev-dependencies]
 http-body-util = "0.1"
