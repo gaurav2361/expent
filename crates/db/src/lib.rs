@@ -1,3 +1,7 @@
+use crate::entities::enums::{
+    GroupRole, P2PRequestStatus, SubscriptionCycle, TransactionDirection, TransactionSource,
+    TransactionStatus,
+};
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use rust_decimal::Decimal;
 use sea_orm::*;
@@ -7,6 +11,7 @@ use std::str::FromStr;
 
 pub mod entities;
 
+/// Represents a single line item in a purchase, typically extracted via OCR.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LineItem {
     pub name: String,
@@ -14,6 +19,7 @@ pub struct LineItem {
     pub price: Decimal,
 }
 
+/// The result of an OCR process, containing raw text and extracted transaction details.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OcrResult {
     pub raw_text: String,
@@ -24,15 +30,18 @@ pub struct OcrResult {
     pub items: Vec<LineItem>,
 }
 
+/// Details for splitting a transaction among multiple users.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SplitDetail {
     pub receiver_email: String,
     pub amount: Decimal,
 }
 
+/// Business logic for merging and processing transaction data.
 pub struct SmartMerge;
 
 impl SmartMerge {
+    /// Processes OCR data by either merging it with an existing transaction or creating a new one.
     pub async fn process_ocr(
         db: &DatabaseConnection,
         user_id: &str,
@@ -54,6 +63,9 @@ impl SmartMerge {
 
         let existing_txns = query.all(db).await?;
 
+        let ocr_data_json = serde_json::to_value(&ocr_data)
+            .map_err(|e| DbErr::Custom(format!("Failed to serialize OCR data: {}", e)))?;
+
         let txn = if !existing_txns.is_empty() {
             let existing = existing_txns[0].clone();
             let source = entities::transaction_source::ActiveModel {
@@ -61,7 +73,7 @@ impl SmartMerge {
                 transaction_id: Set(existing.id.clone()),
                 source_type: Set("OCR_SCREENSHOT_MERGED".to_string()),
                 r2_file_url: Set(None),
-                raw_metadata: Set(Some(serde_json::to_value(&ocr_data).unwrap())),
+                raw_metadata: Set(Some(ocr_data_json)),
             };
             source.insert(db).await?;
             existing
@@ -70,10 +82,10 @@ impl SmartMerge {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 user_id: Set(user_id.to_string()),
                 amount: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
-                direction: Set("OUT".to_string()),
+                direction: Set(TransactionDirection::Out),
                 date: Set(ocr_data.date.unwrap_or_else(|| Utc::now().into())),
-                source: Set("OCR".to_string()),
-                status: Set("COMPLETED".to_string()),
+                source: Set(TransactionSource::Ocr),
+                status: Set(TransactionStatus::Completed),
                 purpose_tag: Set(None),
                 group_id: Set(None),
             };
@@ -94,7 +106,7 @@ impl SmartMerge {
                 transaction_id: Set(result.id.clone()),
                 source_type: Set("OCR_SCREENSHOT".to_string()),
                 r2_file_url: Set(None),
-                raw_metadata: Set(Some(serde_json::to_value(&ocr_data).unwrap())),
+                raw_metadata: Set(Some(ocr_data_json)),
             };
             source.insert(db).await?;
             result
@@ -126,6 +138,7 @@ impl SmartMerge {
         Ok(txn)
     }
 
+    /// Creates a peer-to-peer (P2P) request for a given transaction.
     pub async fn create_p2p_request(
         db: &DatabaseConnection,
         sender_id: &str,
@@ -135,20 +148,24 @@ impl SmartMerge {
         let txn = entities::transaction::Entity::find_by_id(txn_id.to_string())
             .one(db)
             .await?
-            .ok_or(DbErr::Custom("Transaction not found".to_string()))?;
+            .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
+
+        let txn_json = serde_json::to_value(&txn)
+            .map_err(|e| DbErr::Custom(format!("Failed to serialize transaction: {}", e)))?;
 
         let request = entities::p2p_request::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
             sender_user_id: Set(sender_id.to_string()),
             receiver_email: Set(receiver_email.to_string()),
-            transaction_data: Set(serde_json::to_value(&txn).unwrap()),
-            status: Set("PENDING".to_string()),
+            transaction_data: Set(txn_json),
+            status: Set(P2PRequestStatus::Pending),
             linked_txn_id: Set(None),
         };
 
         request.insert(db).await
     }
 
+    /// Splits a transaction among multiple receivers.
     pub async fn split_transaction(
         db: &DatabaseConnection,
         sender_id: &str,
@@ -158,7 +175,7 @@ impl SmartMerge {
         let txn = entities::transaction::Entity::find_by_id(txn_id.to_string())
             .one(db)
             .await?
-            .ok_or(DbErr::Custom("Transaction not found".to_string()))?;
+            .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
 
         let mut results = Vec::new();
         for split in splits {
@@ -171,7 +188,7 @@ impl SmartMerge {
                     "date": txn.date,
                     "purpose": format!("Split for {}", txn.purpose_tag.as_deref().unwrap_or("Expense"))
                 })),
-                status: Set("PENDING".to_string()),
+                status: Set(P2PRequestStatus::Pending),
                 linked_txn_id: Set(None),
             };
             results.push(request.insert(db).await?);
@@ -179,6 +196,7 @@ impl SmartMerge {
         Ok(results)
     }
 
+    /// Accepts a P2P request, potentially creating a mirrored transaction for the receiver.
     pub async fn accept_p2p_request(
         db: &DatabaseConnection,
         receiver_id: &str,
@@ -187,30 +205,32 @@ impl SmartMerge {
         let request = entities::p2p_request::Entity::find_by_id(request_id.to_string())
             .one(db)
             .await?
-            .ok_or(DbErr::Custom("Request not found".to_string()))?;
+            .ok_or_else(|| DbErr::Custom("Request not found".to_string()))?;
 
-        if request.status != "PENDING" && request.status != "GROUP_INVITE" {
+        if request.status != P2PRequestStatus::Pending
+            && request.status != P2PRequestStatus::GroupInvite
+        {
             return Err(DbErr::Custom("Request is not pending".to_string()));
         }
 
-        if request.status == "GROUP_INVITE" {
+        if request.status == P2PRequestStatus::GroupInvite {
             let metadata: serde_json::Value =
                 serde_json::from_value(request.transaction_data.clone())
                     .map_err(|e| DbErr::Custom(format!("Failed to parse invite data: {}", e)))?;
 
             let group_id = metadata["group_id"]
                 .as_str()
-                .ok_or(DbErr::Custom("Missing group_id in invite".to_string()))?;
+                .ok_or_else(|| DbErr::Custom("Missing group_id in invite".to_string()))?;
 
             let user_group = entities::user_group::ActiveModel {
                 user_id: Set(receiver_id.to_string()),
                 group_id: Set(group_id.to_string()),
-                role: Set("MEMBER".to_string()),
+                role: Set(GroupRole::Member),
             };
             user_group.insert(db).await?;
 
             let mut request: entities::p2p_request::ActiveModel = request.into();
-            request.status = Set("APPROVED".to_string());
+            request.status = Set(P2PRequestStatus::Approved);
             return request.update(db).await;
         }
 
@@ -225,14 +245,14 @@ impl SmartMerge {
                 .as_str()
                 .and_then(|s| Decimal::from_str(s).ok())
                 .unwrap_or(Decimal::ZERO)),
-            direction: Set("IN".to_string()),
+            direction: Set(TransactionDirection::In),
             date: Set(original_txn["date"]
                 .as_str()
                 .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                 .map(|d| d.with_timezone(&FixedOffset::east_opt(0).unwrap()))
                 .unwrap_or_else(|| Utc::now().into())),
-            source: Set("P2P".to_string()),
-            status: Set("COMPLETED".to_string()),
+            source: Set(TransactionSource::P2p),
+            status: Set(TransactionStatus::Completed),
             purpose_tag: Set(original_txn["purpose"].as_str().map(|s| s.to_string())),
             group_id: Set(None),
         };
@@ -240,12 +260,13 @@ impl SmartMerge {
         let result_txn = mirrored_txn.insert(db).await?;
 
         let mut request: entities::p2p_request::ActiveModel = request.into();
-        request.status = Set("MAPPED".to_string());
+        request.status = Set(P2PRequestStatus::Mapped);
         request.linked_txn_id = Set(Some(result_txn.id));
 
         request.update(db).await
     }
 
+    /// Detects recurring subscriptions from transaction history over the last 90 days.
     pub async fn detect_subscriptions(
         db: &DatabaseConnection,
         user_id: &str,
@@ -259,7 +280,9 @@ impl SmartMerge {
 
         let mut groups: HashMap<(String, Decimal), Vec<DateTime<FixedOffset>>> = HashMap::new();
         for txn in transactions {
-            let name = txn.purpose_tag.unwrap_or_else(|| "Unknown".to_string());
+            let name = txn
+                .purpose_tag
+                .unwrap_or_else(|| "Unknown".to_string());
             let entry = groups.entry((name, txn.amount)).or_default();
             entry.push(txn.date);
         }
@@ -270,25 +293,24 @@ impl SmartMerge {
                 dates.sort();
 
                 let mut detected_cycle = None;
-                let start_date = dates[0];
                 let last_date = *dates.last().unwrap();
 
                 for i in 0..dates.len() - 1 {
                     let diff = (dates[i + 1] - dates[i]).num_days();
 
                     if (6..=8).contains(&diff) {
-                        detected_cycle = Some("WEEKLY");
+                        detected_cycle = Some(SubscriptionCycle::Weekly);
                     } else if (27..=33).contains(&diff) {
-                        detected_cycle = Some("MONTHLY");
+                        detected_cycle = Some(SubscriptionCycle::Monthly);
                     } else if (360..=370).contains(&diff) {
-                        detected_cycle = Some("YEARLY");
+                        detected_cycle = Some(SubscriptionCycle::Yearly);
                     }
                 }
 
                 if let Some(cycle) = detected_cycle {
                     let next_charge = match cycle {
-                        "WEEKLY" => last_date + Duration::days(7),
-                        "YEARLY" => last_date + Duration::days(365),
+                        SubscriptionCycle::Weekly => last_date + Duration::days(7),
+                        SubscriptionCycle::Yearly => last_date + Duration::days(365),
                         _ => last_date + Duration::days(30),
                     };
 
@@ -297,8 +319,8 @@ impl SmartMerge {
                         user_id: user_id.to_string(),
                         name: name.clone(),
                         amount,
-                        cycle: cycle.to_string(),
-                        start_date,
+                        cycle,
+                        start_date: dates[0],
                         next_charge_date: next_charge,
                         detection_keywords: None,
                     };
@@ -309,6 +331,7 @@ impl SmartMerge {
 
         Ok(potential_subs)
     }
+
 
     pub async fn list_transactions(
         db: &DatabaseConnection,
@@ -349,7 +372,7 @@ impl SmartMerge {
         let user_group = entities::user_group::ActiveModel {
             user_id: Set(user_id.to_string()),
             group_id: Set(result.id.clone()),
-            role: Set("ADMIN".to_string()),
+            role: Set(GroupRole::Admin),
         };
         user_group.insert(db).await?;
 
@@ -376,7 +399,7 @@ impl SmartMerge {
                 "group_id": group.id,
                 "group_name": group.name
             })),
-            status: Set("GROUP_INVITE".to_string()),
+            status: Set(P2PRequestStatus::GroupInvite),
             linked_txn_id: Set(None),
         };
 

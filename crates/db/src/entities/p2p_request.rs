@@ -1,3 +1,4 @@
+use super::enums::P2PRequestStatus;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -15,7 +16,7 @@ pub struct Model {
     pub receiver_email: String,
     #[ts(type = "any")]
     pub transaction_data: Json, // JSONB snapshot
-    pub status: String, // PENDING, MAPPED, REJECTED, APPROVED
+    pub status: P2PRequestStatus,
     pub linked_txn_id: Option<String>,
 }
 

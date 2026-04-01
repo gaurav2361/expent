@@ -1,3 +1,4 @@
+use super::enums::GroupRole;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -20,7 +21,7 @@ pub struct Model {
     // Enhanced fields for better-auth and general usage
     pub username: Option<String>,
     pub display_username: Option<String>,
-    pub role: Option<String>,
+    pub role: Option<GroupRole>,
     pub banned: Option<bool>,
     pub ban_reason: Option<String>,
     pub ban_expires: Option<DateTimeWithTimeZone>,

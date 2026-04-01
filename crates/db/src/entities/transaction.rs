@@ -1,3 +1,4 @@
+use super::enums::{TransactionDirection, TransactionSource, TransactionStatus};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -14,10 +15,10 @@ pub struct Model {
     pub user_id: String,
     #[ts(type = "string")]
     pub amount: Decimal,
-    pub direction: String, // IN, OUT
+    pub direction: TransactionDirection,
     pub date: DateTimeWithTimeZone,
-    pub source: String, // MANUAL, OCR, STATEMENT, P2P
-    pub status: String, // COMPLETED, PENDING, CANCELLED
+    pub source: TransactionSource,
+    pub status: TransactionStatus,
     pub purpose_tag: Option<String>,
     pub group_id: Option<String>,
 }

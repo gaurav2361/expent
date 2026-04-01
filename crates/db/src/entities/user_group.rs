@@ -1,3 +1,4 @@
+use super::enums::GroupRole;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -13,7 +14,7 @@ pub struct Model {
     pub user_id: String,
     #[sea_orm(primary_key, auto_increment = false)]
     pub group_id: String,
-    pub role: String, // MEMBER, ADMIN
+    pub role: GroupRole,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

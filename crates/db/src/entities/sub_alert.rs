@@ -1,3 +1,4 @@
+use super::enums::AlertChannel;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -14,7 +15,7 @@ pub struct Model {
     pub subscription_id: String,
     pub days_before: i32,
     pub sent_at: Option<DateTimeWithTimeZone>,
-    pub channel: String, // EMAIL, PUSH
+    pub channel: AlertChannel,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
