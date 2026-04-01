@@ -1,6 +1,5 @@
 use auth::{AuthSession, init_auth};
 use auth::adapter::SqliteAdapter;
-use aws_sdk_s3::presigning::PresigningConfig;
 use axum::{
     Router,
     extract::{FromRef, Json, Multipart, Path, State},
@@ -10,6 +9,7 @@ use axum::{
 use better_auth::AxumIntegration;
 use db::{OcrResult, SmartMerge, SplitDetail};
 use ocr::OcrService;
+use upload::UploadClient;
 use sea_orm::{Database, DatabaseConnection};
 use serde::Deserialize;
 use std::net::SocketAddr;
@@ -23,7 +23,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 struct AppState {
     db: DatabaseConnection,
     auth: Arc<better_auth::BetterAuth<SqliteAdapter>>,
-    s3_client: aws_sdk_s3::Client,
+    upload_client: UploadClient,
     ocr_service: Arc<OcrService>,
 }
 
@@ -81,11 +81,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .load()
         .await;
     let s3_client = aws_sdk_s3::Client::new(&s3_config);
+    let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
+    let upload_client = UploadClient::new(s3_client, bucket_name);
 
     let state = AppState {
         db,
         auth: auth.clone(),
-        s3_client,
+        upload_client,
         ocr_service,
     };
 
@@ -350,31 +352,18 @@ async fn get_presigned_url_handler(
     session: AuthSession,
     Json(payload): Json<PresignedUrlRequest>,
 ) -> Result<Json<PresignedUrlResponse>, (StatusCode, String)> {
-    let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
-    let key = format!(
-        "{}/{}-{}",
-        session.user.id,
-        uuid::Uuid::new_v4(),
-        payload.file_name
-    );
-
-    let presigning_config = PresigningConfig::expires_in(Duration::from_secs(3600))
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let presigned_request = state
-        .s3_client
-        .put_object()
-        .bucket(bucket_name)
-        .key(&key)
-        .content_type(payload.content_type)
-        .presigned(presigning_config)
+    let (url, key) = state
+        .upload_client
+        .get_presigned_url(
+            &session.user.id,
+            &payload.file_name,
+            &payload.content_type,
+            Duration::from_secs(3600),
+        )
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    Ok(Json(PresignedUrlResponse {
-        url: presigned_request.uri().to_string(),
-        key,
-    }))
+    Ok(Json(PresignedUrlResponse { url, key }))
 }
 
 async fn direct_upload_handler(
@@ -382,8 +371,6 @@ async fn direct_upload_handler(
     session: AuthSession,
     mut multipart: Multipart,
 ) -> Result<Json<PresignedUrlResponse>, (StatusCode, String)> {
-    let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
-
     let mut file_data = None;
     let mut file_name = String::new();
     let mut content_type = String::new();
@@ -411,16 +398,10 @@ async fn direct_upload_handler(
     }
 
     let data = file_data.ok_or((StatusCode::BAD_REQUEST, "No file uploaded".to_string()))?;
-    let key = format!("{}/{}-{}", session.user.id, uuid::Uuid::new_v4(), file_name);
 
-    state
-        .s3_client
-        .put_object()
-        .bucket(bucket_name)
-        .key(&key)
-        .content_type(content_type)
-        .body(data.into())
-        .send()
+    let processed = state
+        .upload_client
+        .upload_direct(&session.user.id, data, Some(file_name), Some(content_type), true)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -428,9 +409,9 @@ async fn direct_upload_handler(
         url: format!(
             "https://{}.r2.cloudflarestorage.com/{}",
             std::env::var("S3_BUCKET_NAME").unwrap(),
-            key
+            processed.key
         ),
-        key,
+        key: processed.key,
     }))
 }
 
@@ -444,23 +425,11 @@ async fn process_image_ocr_handler(
     session: AuthSession,
     Json(payload): Json<ProcessImageOcrRequest>,
 ) -> Result<Json<db::entities::transaction::Model>, (StatusCode, String)> {
-    let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
-
-    let response = state
-        .s3_client
-        .get_object()
-        .bucket(bucket_name)
-        .key(&payload.key)
-        .send()
+    let bytes = state
+        .upload_client
+        .get_file(&payload.key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let bytes = response
-        .body
-        .collect()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .into_bytes();
 
     let text = state
         .ocr_service
