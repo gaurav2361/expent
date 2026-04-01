@@ -23,7 +23,7 @@ import {
   sortData,
   createDataTableRowKeys,
   getDataTableMobileDescriptionId,
-} from "./utilities";
+} from "@/lib/data-table-utilities";
 import { renderFormattedValue } from "./formatters";
 import type {
   DataTableProps,
@@ -32,7 +32,7 @@ import type {
   DataTableRowData,
   ColumnKey,
   Column,
-} from "./types";
+} from "@/lib/data-table-types";
 import type { FormatConfig } from "./formatters";
 
 export const DEFAULT_LOCALE = "en-US" as const;
@@ -86,6 +86,7 @@ type DataTableProviderProps<T extends object = RowData> = Pick<
   | "onSortChange"
   | "id"
   | "locale"
+  | "cellRenderers"
 > & {
   children: React.ReactNode;
 };
@@ -99,6 +100,7 @@ function DataTableProvider<T extends object = RowData>({
   id,
   onSortChange,
   locale,
+  cellRenderers,
   children,
 }: DataTableProviderProps<T>) {
   // Default locale avoids SSR/client formatting mismatches.
@@ -159,6 +161,7 @@ function DataTableProvider<T extends object = RowData>({
     toggleSort: handleSort,
     id,
     locale: resolvedLocale,
+    cellRenderers,
   };
 
   return (
@@ -315,6 +318,7 @@ function DataTableBase<T extends object = RowData>(
     id,
     locale,
     layout,
+    cellRenderers,
     emptyMessage = "No data available",
     maxHeight,
     className,
@@ -330,6 +334,7 @@ function DataTableBase<T extends object = RowData>(
       onSortChange={onSortChange}
       id={id}
       locale={locale}
+      cellRenderers={cellRenderers}
     >
       <DataTableLayout
         layout={layout}
@@ -629,7 +634,22 @@ function DataTableCell({
   className,
   columnIndex = 0,
 }: DataTableCellProps) {
-  const { locale } = useDataTable();
+  const { locale, cellRenderers } = useDataTable();
+  
+  // Check for a custom cell renderer first
+  const customRenderer = cellRenderers?.[column.key as string];
+  if (customRenderer) {
+    const align =
+      column.align ??
+      (columnIndex === 0 ? "left" : "left");
+    const alignClass = getAlignmentClass(align);
+    return (
+      <TableCell className={cn("px-5 py-3", alignClass, className)}>
+        {customRenderer(row as Record<string, unknown>)}
+      </TableCell>
+    );
+  }
+
   const isNumericKind = isNumericFormat(column.format);
   const isNumericValue = typeof value === "number";
   const displayValue = renderFormattedValue({ value, column, row, locale });

@@ -23,7 +23,7 @@ export type {
   RowPrimitive,
   RowData,
   ColumnKey,
-} from "./types";
+} from "@/lib/data-table-types";
 export type { FormatConfig } from "./formatters";
 
-export { sortData, parseNumericLike } from "./utilities";
+export { sortData, parseNumericLike } from "@/lib/data-table-utilities";

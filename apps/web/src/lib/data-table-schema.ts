@@ -3,9 +3,9 @@ import {
   ToolUIIdSchema,
   ToolUIReceiptSchema,
   ToolUIRoleSchema,
-} from "../shared/schema";
-import { defineToolUiContract } from "../shared/contract";
-import type { Column, DataTableProps, RowData } from "./types";
+} from "@/components/tool-ui/shared/schema";
+import { defineToolUiContract } from "@/components/tool-ui/shared/contract";
+import type { Column, DataTableProps, RowData } from "@/lib/data-table-types";
 
 const AlignEnum = z.enum(["left", "right", "center"]);
 const PriorityEnum = z.enum(["primary", "secondary", "tertiary"]);
