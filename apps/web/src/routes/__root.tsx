@@ -40,9 +40,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-            <MotionConfig reducedMotion="user">
-              {children}
-            </MotionConfig>
+            <MotionConfig reducedMotion="user">{children}</MotionConfig>
           </ThemeProvider>
         </QueryClientProvider>
         <Scripts />
