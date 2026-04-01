@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SplitDialog } from "@/components/split-dialog";
 import { useSession } from "@/lib/auth-client";
-import { goeyToast as toast } from "goey-toast";
+import { toast } from "@expent/ui/components/goey-toaster";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,
@@ -116,7 +116,7 @@ function RouteComponent() {
   const handleUpload = async () => {
     if (!file) return;
     setIsUploading(true);
-    const toastId = toast.loading("Uploading and processing file...");
+    const toastId = toast("Uploading and processing file...");
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -143,10 +143,10 @@ function RouteComponent() {
       const result = await processRes.json();
       setOcrResult(result);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("File processed successfully!", { id: toastId });
+      toast.update(toastId, { title: "File processed successfully!", type: "success" });
     } catch (error) {
       console.error(error);
-      toast.error("Upload or processing failed. Please try again.", { id: toastId });
+      toast.update(toastId, { title: "Upload or processing failed. Please try again.", type: "error" });
     } finally {
       setIsUploading(false);
     }
@@ -205,13 +205,20 @@ function RouteComponent() {
                 </Button>
               </CardContent>
             </Card>
-            <Card className="bg-primary text-primary-foreground shadow-lg">
+            <Card
+              className={totalBalance < 0 
+                ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-lg border-rose-100 dark:border-rose-500/20" 
+                : totalBalance > 0 
+                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-lg border-emerald-100 dark:border-emerald-500/20"
+                  : "bg-muted/50 text-muted-foreground shadow-lg"
+               }
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ₹ {totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {totalBalance < 0 ? "-₹" : "₹"} {Math.abs(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </CardContent>
             </Card>
