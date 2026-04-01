@@ -1,5 +1,5 @@
-use auth::{AuthSession, init_auth};
 use auth::adapter::SqliteAdapter;
+use auth::{AuthSession, init_auth};
 use axum::{
     Router,
     extract::{FromRef, Json, Multipart, Path, State},
@@ -9,7 +9,6 @@ use axum::{
 use better_auth::AxumIntegration;
 use db::{OcrResult, SmartMerge, SplitDetail};
 use ocr::OcrService;
-use upload::UploadClient;
 use sea_orm::{Database, DatabaseConnection};
 use serde::Deserialize;
 use std::net::SocketAddr;
@@ -18,6 +17,7 @@ use std::time::Duration;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use upload::UploadClient;
 
 #[derive(Clone)]
 struct AppState {
@@ -46,12 +46,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::env::var("RUST_LOG")
                 .unwrap_or_else(|_| "info,server=debug,better_auth=debug,sqlx=warn".into()),
         ))
-        .with(tracing_subscriber::fmt::layer()
-            .pretty()
-            .with_target(false)
-            .with_thread_ids(false)
-            .with_file(false)
-            .with_line_number(false)
+        .with(
+            tracing_subscriber::fmt::layer()
+                .pretty()
+                .with_target(false)
+                .with_thread_ids(false)
+                .with_file(false)
+                .with_line_number(false),
         )
         .init();
 
@@ -401,7 +402,13 @@ async fn direct_upload_handler(
 
     let processed = state
         .upload_client
-        .upload_direct(&session.user.id, data, Some(file_name), Some(content_type), true)
+        .upload_direct(
+            &session.user.id,
+            data,
+            Some(file_name),
+            Some(content_type),
+            true,
+        )
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 

@@ -1,6 +1,7 @@
 import appCss from "@expent/ui/globals.css?url";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { MotionConfig } from "motion/react";
 import { NotFoundPage } from "@/components/not-found";
 import { ThemeProvider } from "@/components/theme-provider";
 import { queryClient } from "@/lib/query-client";
@@ -39,7 +40,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-            {children}
+            <MotionConfig reducedMotion="user">
+              {children}
+            </MotionConfig>
           </ThemeProvider>
         </QueryClientProvider>
         <Scripts />
