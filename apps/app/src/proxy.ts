@@ -22,9 +22,9 @@ export async function proxy(request: NextRequest) {
   const allCookies = request.cookies.getAll();
   const sessionToken = allCookies.find(
     (c) =>
-      c.name === "better-auth.session_token" ||
-      c.name === "__Secure-better-auth.session_token" ||
-      c.name.includes("session_token")
+      c.name === "better-auth.session-token" ||
+      c.name === "__Secure-better-auth.session-token" ||
+      c.name.includes("session-token")
   );
 
   const isPublicRoute = publicRoutes.includes(pathname);

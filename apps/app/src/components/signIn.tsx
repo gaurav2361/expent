@@ -4,7 +4,7 @@ import { Button } from "@expent/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@expent/ui/components/input-group";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AtSignIcon, ChevronLeftIcon } from "lucide-react";
+import { AtSignIcon, ChevronLeftIcon, KeyRoundIcon } from "lucide-react";
 import { AuthDivider } from "@/components/auth-divider";
 import { AuthShades } from "@/components/auth-shades";
 import { SocialLogins } from "@/components/auth-social";
@@ -77,6 +77,9 @@ export function SignIn() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+            <InputGroupAddon align="inline-start">
+              <KeyRoundIcon />
+            </InputGroupAddon>
           </InputGroup>
 
           <Button className="w-full" type="submit" disabled={isLoading}>

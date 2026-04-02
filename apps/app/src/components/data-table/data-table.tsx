@@ -752,7 +752,6 @@ function DataTableAccordionCard({
   return (
     <Accordion
       type="single"
-      collapsible
       className={cn(!isFirst && "border-t")}
       role="listitem"
       aria-label={rowLabel}

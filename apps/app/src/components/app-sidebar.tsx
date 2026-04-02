@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import { cn } from "@expent/ui/lib/utils";
 import { LogoIcon } from "@/components/logo";
 import {
@@ -13,15 +16,25 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarRail,
-} from "@/components/ui/sidebar";
-import { LatestChange } from "@/components/leatest-change";
-import { LayoutGridIcon, BarChart3Icon, BriefcaseIcon, UsersIcon, PlugIcon, KeyRoundIcon, SettingsIcon, CreditCardIcon, HelpCircleIcon, BookOpenIcon } from "lucide-react";
+} from "@expent/ui/components/sidebar";
+import {
+	LayoutDashboardIcon,
+	ReceiptIcon,
+	UsersIcon,
+	RepeatIcon,
+	Settings2Icon,
+	MessageSquareShareIcon,
+	ChevronRightIcon,
+} from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@expent/ui/components/collapsible";
+import { SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, SidebarMenuAction } from "@expent/ui/components/sidebar";
 
 export type SidebarNavItem = {
 	title: string;
 	url: string;
 	icon: React.ReactNode;
 	isActive?: boolean;
+	items?: { title: string; url: string }[];
 };
 
 type SidebarSection = {
@@ -31,107 +44,63 @@ type SidebarSection = {
 
 const navSections: SidebarSection[] = [
 	{
-		label: "Product",
+		label: "Main",
 		items: [
 			{
 				title: "Dashboard",
-				url: "#",
-				icon: (
-					<LayoutGridIcon
-					/>
-				),
-				isActive: true,
+				url: "/",
+				icon: <LayoutDashboardIcon />,
 			},
 			{
-				title: "Analytics",
-				url: "#",
-				icon: (
-					<BarChart3Icon
-					/>
-				),
+				title: "Transactions",
+				url: "/transactions",
+				icon: <ReceiptIcon />,
 			},
 			{
-				title: "Projects",
+				title: "P2P & Sharing",
 				url: "#",
-				icon: (
-					<BriefcaseIcon
-					/>
-				),
+				icon: <MessageSquareShareIcon />,
+				items: [
+					{
+						title: "Pending Requests",
+						url: "/p2p/pending",
+					},
+					{
+						title: "Shared Ledgers",
+						url: "/p2p/shared-ledgers",
+					},
+				],
+			},
+			{
+				title: "Subscriptions",
+				url: "/p2p/subscriptions",
+				icon: <RepeatIcon />,
+			},
+			{
+				title: "Contacts",
+				url: "/contacts",
+				icon: <UsersIcon />,
 			},
 		],
 	},
 	{
-		label: "Workspace",
-		items: [
-			{
-				title: "Team",
-				url: "#",
-				icon: (
-					<UsersIcon
-					/>
-				),
-			},
-			{
-				title: "Integrations",
-				url: "#",
-				icon: (
-					<PlugIcon
-					/>
-				),
-			},
-			{
-				title: "API Keys",
-				url: "#",
-				icon: (
-					<KeyRoundIcon
-					/>
-				),
-			},
-		],
-	},
-	{
-		label: "Administration",
+		label: "Secondary",
 		items: [
 			{
 				title: "Settings",
-				url: "#",
-				icon: (
-					<SettingsIcon
-					/>
-				),
-			},
-			{
-				title: "Billing",
-				url: "#",
-				icon: (
-					<CreditCardIcon
-					/>
-				),
+				url: "/settings",
+				icon: <Settings2Icon />,
 			},
 		],
 	},
 ];
 
-const footerNavLinks: SidebarNavItem[] = [
-	{
-		title: "Help Center",
-		url: "#",
-		icon: (
-			<HelpCircleIcon
-			/>
-		),
-	},
-	{
-		title: "Documentation",
-		url: "#",
-		icon: (
-			<BookOpenIcon
-			/>
-		),
-	},
-];
+
+import { NavUser } from "@/components/nav-user";
 
 export function AppSidebar() {
+	const pathname = usePathname();
+
 	return (
 		<Sidebar
 			className={cn(
@@ -143,7 +112,7 @@ export function AppSidebar() {
 			variant="sidebar"
 		>
 			<SidebarHeader className="h-14 justify-center border-b px-2">
-				<SidebarMenuButton render={<a href="#link" />}><LogoIcon /><span className="font-medium">Efferd</span></SidebarMenuButton>
+				<SidebarMenuButton render={<Link href="/" />}><LogoIcon /><span className="font-medium">Efferd</span></SidebarMenuButton>
 			</SidebarHeader>
 			<SidebarContent>
 				{navSections.map((section) => (
@@ -153,28 +122,42 @@ export function AppSidebar() {
 						</SidebarGroupLabel>
 						<SidebarMenu>
 							{section.items.map((item) => (
-								<SidebarMenuItem key={item.title}>
-									<SidebarMenuButton isActive={item.isActive} tooltip={item.title} render={<a href={item.url} />}>{item.icon}<span>{item.title}</span></SidebarMenuButton>
-								</SidebarMenuItem>
+								<Collapsible key={item.title} defaultOpen={item.isActive || pathname === item.url || item.items?.some(i => pathname.startsWith(i.url))} render={<SidebarMenuItem />}>
+									{item.items?.length ? (
+										<CollapsibleTrigger render={<SidebarMenuButton tooltip={item.title} isActive={item.isActive || pathname === item.url || item.items?.some(i => pathname.startsWith(i.url))} />}>
+											{item.icon}
+											<span>{item.title}</span>
+											<ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+										</CollapsibleTrigger>
+									) : (
+										<SidebarMenuButton isActive={item.isActive || pathname === item.url || (item.url !== "/" && pathname.startsWith(item.url))} tooltip={item.title} render={<Link href={item.url} />}>
+											{item.icon}
+											<span>{item.title}</span>
+										</SidebarMenuButton>
+									)}
+									{item.items?.length ? (
+										<>
+											<CollapsibleContent>
+												<SidebarMenuSub>
+													{item.items?.map((subItem) => (
+														<SidebarMenuSubItem key={subItem.title}>
+															<SidebarMenuSubButton isActive={pathname === subItem.url || pathname.startsWith(subItem.url)} render={<Link href={subItem.url} />}>
+																<span>{subItem.title}</span>
+															</SidebarMenuSubButton>
+														</SidebarMenuSubItem>
+													))}
+												</SidebarMenuSub>
+											</CollapsibleContent>
+										</>
+									) : null}
+								</Collapsible>
 							))}
 						</SidebarMenu>
 					</SidebarGroup>
 				))}
 			</SidebarContent>
-			<SidebarFooter className="gap-0 p-0">
-				<LatestChange />
-				<SidebarMenu className="border-t p-2">
-					{footerNavLinks.map((item) => (
-						<SidebarMenuItem key={item.title}>
-							<SidebarMenuButton className="text-muted-foreground" isActive={item.isActive ?? false} size="sm" render={<a href={item.url} />}>{item.icon}<span>{item.title}</span></SidebarMenuButton>
-						</SidebarMenuItem>
-					))}
-				</SidebarMenu>
-				<div className="px-4 pt-4 pb-2 transition-opacity group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:opacity-0">
-					<p className="text-nowrap text-[9px] text-muted-foreground">
-						© {new Date().getFullYear()} Efferd LLC
-					</p>
-				</div>
+			<SidebarFooter className="gap-0 p-2">
+				<NavUser />
 			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>
