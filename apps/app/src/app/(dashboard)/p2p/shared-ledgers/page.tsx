@@ -228,20 +228,6 @@ export default function SharedLedgersComponent() {
     },
   });
 
-  useEffect(() => {
-    if (!session.isPending && !session.data) {
-      router.push("/sign-in");
-    }
-  }, [session.data, session.isPending, router]);
-
-  if (session.isPending) {
-    return <div className="flex h-[50vh] items-center justify-center">Loading session...</div>;
-  }
-
-  if (!session.data) {
-    return null;
-  }
-
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
       <div className="flex items-center justify-between">

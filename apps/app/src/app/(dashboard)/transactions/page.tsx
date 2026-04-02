@@ -95,11 +95,8 @@ export default function TransactionsPage() {
   const [splitDialogOpen, setSplitDialogOpen] = React.useState(false);
   const [selectedTxn, setSelectedTxn] = React.useState<{ id: string; amount: string } | null>(null);
 
-  React.useEffect(() => {
-    if (!session.isPending && !session.data) {
-      router.push("/sign-in");
-    }
-  }, [session.data, session.isPending, router]);
+
+
 
   const { data: rawTransactions } = useQuery({
     queryKey: ["transactions"],
@@ -354,12 +351,6 @@ export default function TransactionsPage() {
     link.click();
     document.body.removeChild(link);
   };
-
-  if (session.isPending) {
-    return <div className="flex h-screen items-center justify-center">Loading session...</div>;
-  }
-
-  if (!session.data) return null;
 
   return (
     <>
