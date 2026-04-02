@@ -1,24 +1,24 @@
-export { cn } from "@/lib/utils";
-export { Button } from "@/components/ui/button";
+export { cn } from "@expent/ui/lib/utils";
+export { Button } from "@expent/ui/components/button";
 export {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@expent/ui/components/dropdown-menu";
 export {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from "@expent/ui/components/accordion";
 export {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-export { Badge } from "@/components/ui/badge";
+} from "@expent/ui/components/tooltip";
+export { Badge } from "@expent/ui/components/badge";
 export {
   Table,
   TableHeader,
@@ -26,4 +26,4 @@ export {
   TableHead,
   TableRow,
   TableCell,
-} from "@/components/ui/table";
+} from "@expent/ui/components/table";

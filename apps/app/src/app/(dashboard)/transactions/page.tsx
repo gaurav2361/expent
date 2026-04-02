@@ -363,33 +363,14 @@ export default function TransactionsPage() {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 shadow-sm border-b z-10 sticky top-0 bg-background/95 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>All Transactions</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button onClick={handleExportCSV} variant="outline" size="sm" disabled={data.length === 0}>
-              <DownloadIcon className="h-4 w-4 mr-2" /> 
-              <span className="hidden sm:inline">Export CSV</span>
-            </Button>
-          </div>
-        </header>
-
-        <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-          {/* Summary Cards */}
+      <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <div className="flex justify-end">
+          <Button onClick={handleExportCSV} variant="outline" size="sm" disabled={data.length === 0}>
+            <DownloadIcon className="h-4 w-4 mr-2" /> 
+            <span className="hidden sm:inline">Export CSV</span>
+          </Button>
+        </div>
+        {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-gradient-to-br from-green-50 to-green-100/30 dark:from-green-950/20 dark:to-green-900/10 border-green-100 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">

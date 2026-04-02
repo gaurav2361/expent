@@ -4,7 +4,7 @@ import { Button } from "@expent/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@expent/ui/components/input-group";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AtSignIcon, ChevronLeftIcon } from "lucide-react";
+import { AtSignIcon, ChevronLeftIcon, KeyRoundIcon, UserIcon } from "lucide-react";
 import { AuthDivider } from "@/components/auth-divider";
 import { AuthShades } from "@/components/auth-shades";
 import { SocialLogins } from "@/components/auth-social";
@@ -67,6 +67,9 @@ export function SignUp() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+            <InputGroupAddon align="inline-start">
+              <UserIcon />
+            </InputGroupAddon>
           </InputGroup>
 
           <InputGroup>
@@ -91,6 +94,9 @@ export function SignUp() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <InputGroupAddon align="inline-start">
+                <KeyRoundIcon />
+              </InputGroupAddon>
             </InputGroup>
             <InputGroup>
               <InputGroupInput
@@ -100,6 +106,9 @@ export function SignUp() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
+              <InputGroupAddon align="inline-start">
+                <KeyRoundIcon />
+              </InputGroupAddon>
             </InputGroup>
           </div>
 

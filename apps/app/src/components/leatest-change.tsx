@@ -2,7 +2,7 @@
 
 import { cn } from "@expent/ui/lib/utils";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@expent/ui/components/button";
 import { XIcon } from "lucide-react";
 
 const latestChange = {
