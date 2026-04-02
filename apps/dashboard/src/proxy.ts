@@ -7,11 +7,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Exclude static paths and api
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
-    pathname.includes(".")
-  ) {
+  if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
     return NextResponse.next();
   }
 
@@ -31,7 +27,9 @@ export async function proxy(request: NextRequest) {
 
   // Debug: log in development
   if (process.env.NODE_ENV === "development") {
-    console.log(`[proxy] path=${pathname} isPublic=${isPublicRoute} hasSession=${!!sessionToken} cookies=${allCookies.map((c) => c.name).join(", ")}`);
+    console.log(
+      `[proxy] path=${pathname} isPublic=${isPublicRoute} hasSession=${!!sessionToken} cookies=${allCookies.map((c) => c.name).join(", ")}`
+    );
   }
 
   if (!sessionToken && !isPublicRoute) {

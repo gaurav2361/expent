@@ -8,27 +8,17 @@ export type UseControllableStateOptions<T> = {
   onChange?: (next: T) => void;
 };
 
-export function useControllableState<T>({
-  value,
-  defaultValue,
-  onChange,
-}: UseControllableStateOptions<T>) {
+export function useControllableState<T>({ value, defaultValue, onChange }: UseControllableStateOptions<T>) {
   const [uncontrolled, setUncontrolled] = useState<T>(defaultValue);
   const isControlled = value !== undefined;
 
-  const currentValue = useMemo(
-    () => (isControlled ? (value as T) : uncontrolled),
-    [isControlled, value, uncontrolled],
-  );
+  const currentValue = useMemo(() => (isControlled ? (value as T) : uncontrolled), [isControlled, value, uncontrolled]);
   const currentValueRef = useRef(currentValue);
   currentValueRef.current = currentValue;
 
   const setValue = useCallback(
     (next: T | ((prev: T) => T)) => {
-      const resolved =
-        typeof next === "function"
-          ? (next as (prev: T) => T)(currentValueRef.current)
-          : next;
+      const resolved = typeof next === "function" ? (next as (prev: T) => T)(currentValueRef.current) : next;
 
       currentValueRef.current = resolved;
       if (!isControlled) {
@@ -38,7 +28,7 @@ export function useControllableState<T>({
       onChange?.(resolved);
       return resolved;
     },
-    [isControlled, onChange],
+    [isControlled, onChange]
   );
 
   const setUncontrolledValue = useCallback((next: T) => {

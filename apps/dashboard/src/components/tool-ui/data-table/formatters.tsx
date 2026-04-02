@@ -68,12 +68,7 @@ export function DeltaValue({ value, options, locale }: DeltaValueProps) {
     maximumFractionDigits: decimals,
   }).format(absValue);
 
-  const display =
-    showSign && !isNeutral
-      ? isNegative
-        ? `-${formatted}`
-        : `+${formatted}`
-      : formatted;
+  const display = showSign && !isNeutral ? (isNegative ? `-${formatted}` : `+${formatted}`) : formatted;
 
   const arrow = isPositive ? "↑" : isNegative ? "↓" : "";
 
@@ -97,26 +92,17 @@ export function StatusBadge({ value, options }: StatusBadgeProps) {
   };
   const label = config.label ?? value;
 
-  const variant =
-    config.tone === "danger"
-      ? "destructive"
-      : config.tone === "neutral"
-        ? "outline"
-        : "secondary";
+  const variant = config.tone === "danger" ? "destructive" : config.tone === "neutral" ? "outline" : "secondary";
 
   return (
     <Badge
       variant={variant}
       className={cn(
         "border",
-        config.tone === "warning" &&
-          "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100",
-        config.tone === "success" &&
-          "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-100",
-        config.tone === "info" &&
-          "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100",
-        config.tone === "danger" &&
-          "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-100",
+        config.tone === "warning" && "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100",
+        config.tone === "success" && "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-100",
+        config.tone === "info" && "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100",
+        config.tone === "danger" && "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-100"
       )}
     >
       {label}
@@ -259,15 +245,11 @@ export function BooleanValue({ value, options }: BooleanValueProps) {
 interface LinkValueProps {
   value: string;
   options?: Extract<FormatConfig, { kind: "link" }>;
-  row?: Record<
-    string,
-    string | number | boolean | null | (string | number | boolean | null)[]
-  >;
+  row?: Record<string, string | number | boolean | null | (string | number | boolean | null)[]>;
 }
 
 export function LinkValue({ value, options, row }: LinkValueProps) {
-  const rawHref =
-    options?.hrefKey && row ? String(row[options.hrefKey] ?? "") : value;
+  const rawHref = options?.hrefKey && row ? String(row[options.hrefKey] ?? "") : value;
   const href = resolveSafeNavigationHref(rawHref);
   const external = options?.external ?? false;
 
@@ -330,26 +312,17 @@ interface BadgeValueProps {
 export function BadgeValue({ value, options }: BadgeValueProps) {
   const tone = options?.colorMap?.[value] ?? "neutral";
 
-  const variant =
-    tone === "danger"
-      ? "destructive"
-      : tone === "neutral"
-        ? "outline"
-        : "secondary";
+  const variant = tone === "danger" ? "destructive" : tone === "neutral" ? "outline" : "secondary";
 
   return (
     <Badge
       variant={variant}
       className={cn(
         "border",
-        tone === "warning" &&
-          "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100",
-        tone === "success" &&
-          "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-100",
-        tone === "info" &&
-          "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100",
-        tone === "danger" &&
-          "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-100",
+        tone === "warning" && "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100",
+        tone === "success" && "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-100",
+        tone === "info" && "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100",
+        tone === "danger" && "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-100"
       )}
     >
       {value}
@@ -382,22 +355,16 @@ export function ArrayValue({ value, options }: ArrayValueProps) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       {visible.map((item, i) => (
-        <span
-          key={i}
-          className="bg-muted text-muted-foreground inline-flex items-center rounded-md px-2 py-0.5"
-        >
+        <span key={i} className="bg-muted text-muted-foreground inline-flex items-center rounded-md px-2 py-0.5">
           {item === null ? "null" : String(item)}
         </span>
       ))}
       {remaining > 0 && (
         <Tooltip>
-          <TooltipTrigger render={<span className="text-muted-foreground cursor-default" />}>+{remaining}more
-                              </TooltipTrigger>
-          <TooltipContent>
-            {hidden
-              .map((item) => (item === null ? "null" : String(item)))
-              .join(", ")}
-          </TooltipContent>
+          <TooltipTrigger render={<span className="text-muted-foreground cursor-default" />}>
+            +{remaining}more
+          </TooltipTrigger>
+          <TooltipContent>{hidden.map((item) => (item === null ? "null" : String(item))).join(", ")}</TooltipContent>
         </Tooltip>
       )}
     </span>
@@ -405,26 +372,13 @@ export function ArrayValue({ value, options }: ArrayValueProps) {
 }
 
 interface RenderFormattedValueParams {
-  value:
-    | string
-    | number
-    | boolean
-    | null
-    | (string | number | boolean | null)[];
+  value: string | number | boolean | null | (string | number | boolean | null)[];
   column: { format?: FormatConfig };
-  row?: Record<
-    string,
-    string | number | boolean | null | (string | number | boolean | null)[]
-  >;
+  row?: Record<string, string | number | boolean | null | (string | number | boolean | null)[]>;
   locale?: string;
 }
 
-export function renderFormattedValue({
-  value,
-  column,
-  row,
-  locale,
-}: RenderFormattedValueParams): React.ReactNode {
+export function renderFormattedValue({ value, column, row, locale }: RenderFormattedValueParams): React.ReactNode {
   if (value == null || value === "") {
     return <span className="text-muted">—</span>;
   }
@@ -437,13 +391,9 @@ export function renderFormattedValue({
     case "status":
       return <StatusBadge value={String(value)} options={fmt} />;
     case "currency":
-      return (
-        <CurrencyValue value={Number(value)} options={fmt} locale={locale} />
-      );
+      return <CurrencyValue value={Number(value)} options={fmt} locale={locale} />;
     case "percent":
-      return (
-        <PercentValue value={Number(value)} options={fmt} locale={locale} />
-      );
+      return <PercentValue value={Number(value)} options={fmt} locale={locale} />;
     case "date":
       return <DateValue value={String(value)} options={fmt} locale={locale} />;
     case "boolean":
@@ -451,18 +401,11 @@ export function renderFormattedValue({
     case "link":
       return <LinkValue value={String(value)} options={fmt} row={row} />;
     case "number":
-      return (
-        <NumberValue value={Number(value)} options={fmt} locale={locale} />
-      );
+      return <NumberValue value={Number(value)} options={fmt} locale={locale} />;
     case "badge":
       return <BadgeValue value={String(value)} options={fmt} />;
     case "array":
-      return (
-        <ArrayValue
-          value={Array.isArray(value) ? value : String(value)}
-          options={fmt}
-        />
-      );
+      return <ArrayValue value={Array.isArray(value) ? value : String(value)} options={fmt} />;
     case "text":
     default:
       return String(value);

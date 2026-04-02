@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  ToolUIIdSchema,
-  ToolUIReceiptSchema,
-  ToolUIRoleSchema,
-} from "../shared/schema";
+import { ToolUIIdSchema, ToolUIReceiptSchema, ToolUIRoleSchema } from "../shared/schema";
 import { defineToolUiContract } from "../shared/contract";
 import type { Column, DataTableProps, RowData } from "./types";
 
@@ -47,7 +43,7 @@ const formatSchema = z.discriminatedUnion("kind", [
       z.object({
         tone: z.enum(["success", "warning", "danger", "info", "neutral"]),
         label: z.string().optional(),
-      }),
+      })
     ),
   }),
   z.object({
@@ -66,12 +62,7 @@ const formatSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("badge"),
-    colorMap: z
-      .record(
-        z.string(),
-        z.enum(["success", "warning", "danger", "info", "neutral"]),
-      )
-      .optional(),
+    colorMap: z.record(z.string(), z.enum(["success", "warning", "danger", "info", "neutral"])).optional(),
   }),
   z.object({
     kind: z.literal("array"),
@@ -92,12 +83,7 @@ export const serializableColumnSchema = z.object({
   format: formatSchema.optional(),
 });
 
-const JsonPrimitiveSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.null(),
-]);
+const JsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 
 /**
  * Schema for serializable row data.
@@ -127,7 +113,7 @@ const JsonPrimitiveSchema = z.union([
  */
 export const serializableDataSchema = z.record(
   z.string(),
-  z.union([JsonPrimitiveSchema, z.array(JsonPrimitiveSchema)]),
+  z.union([JsonPrimitiveSchema, z.array(JsonPrimitiveSchema)])
 );
 
 /**
@@ -174,10 +160,7 @@ export const SerializableDataTableSchema = z.object({
   locale: z.string().optional(),
 });
 
-const SerializableDataTableSchemaContract = defineToolUiContract(
-  "DataTable",
-  SerializableDataTableSchema,
-);
+const SerializableDataTableSchemaContract = defineToolUiContract("DataTable", SerializableDataTableSchema);
 
 /**
  * Type representing the serializable parts of a DataTable payload.
@@ -235,7 +218,7 @@ export type SerializableDataTable = z.infer<typeof SerializableDataTableSchema>;
  * ```
  */
 export function parseSerializableDataTable(
-  input: unknown,
+  input: unknown
 ): Pick<
   DataTableProps<RowData>,
   | "id"
@@ -250,19 +233,8 @@ export function parseSerializableDataTable(
   | "maxHeight"
   | "locale"
 > {
-  const {
-    id,
-    role,
-    receipt,
-    columns,
-    data,
-    rowIdKey,
-    defaultSort,
-    sort,
-    emptyMessage,
-    maxHeight,
-    locale,
-  } = SerializableDataTableSchemaContract.parse(input);
+  const { id, role, receipt, columns, data, rowIdKey, defaultSort, sort, emptyMessage, maxHeight, locale } =
+    SerializableDataTableSchemaContract.parse(input);
   return {
     id,
     role,
@@ -289,7 +261,7 @@ export function parseSerializableDataTable(
 }
 
 export function safeParseSerializableDataTable(
-  input: unknown,
+  input: unknown
 ): Pick<
   DataTableProps<RowData>,
   | "id"
@@ -306,19 +278,7 @@ export function safeParseSerializableDataTable(
 > | null {
   const res = SerializableDataTableSchemaContract.safeParse(input);
   if (!res) return null;
-  const {
-    id,
-    role,
-    receipt,
-    columns,
-    data,
-    rowIdKey,
-    defaultSort,
-    sort,
-    emptyMessage,
-    maxHeight,
-    locale,
-  } = res;
+  const { id, role, receipt, columns, data, rowIdKey, defaultSort, sort, emptyMessage, maxHeight, locale } = res;
   return {
     id,
     role,

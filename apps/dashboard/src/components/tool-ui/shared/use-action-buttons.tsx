@@ -45,20 +45,12 @@ export function createActionExecutionLock(): ActionExecutionLock {
   };
 }
 
-export function useActionButtons(
-  options: UseActionButtonsOptions,
-): UseActionButtonsResult {
+export function useActionButtons(options: UseActionButtonsOptions): UseActionButtonsResult {
   const { actions, onAction, onBeforeAction, confirmTimeout = 3000 } = options;
 
-  const [confirmingActionId, setConfirmingActionId] = useState<string | null>(
-    null,
-  );
-  const [executingActionId, setExecutingActionId] = useState<string | null>(
-    null,
-  );
-  const executionLockRef = useRef<ActionExecutionLock>(
-    createActionExecutionLock(),
-  );
+  const [confirmingActionId, setConfirmingActionId] = useState<string | null>(null);
+  const [executingActionId, setExecutingActionId] = useState<string | null>(null);
+  const executionLockRef = useRef<ActionExecutionLock>(createActionExecutionLock());
 
   useEffect(() => {
     if (!confirmingActionId) return;
@@ -115,7 +107,7 @@ export function useActionButtons(
         setConfirmingActionId(null);
       }
     },
-    [actions, confirmingActionId, executingActionId, onAction, onBeforeAction],
+    [actions, confirmingActionId, executingActionId, onAction, onBeforeAction]
   );
 
   const resolvedActions = useMemo(
@@ -124,13 +116,8 @@ export function useActionButtons(
         const isConfirming = confirmingActionId === action.id;
         const isThisActionExecuting = executingActionId === action.id;
         const isLoading = action.loading || isThisActionExecuting;
-        const isDisabled =
-          action.disabled ||
-          (executingActionId !== null && !isThisActionExecuting);
-        const currentLabel =
-          isConfirming && action.confirmLabel
-            ? action.confirmLabel
-            : action.label;
+        const isDisabled = action.disabled || (executingActionId !== null && !isThisActionExecuting);
+        const currentLabel = isConfirming && action.confirmLabel ? action.confirmLabel : action.label;
 
         return {
           ...action,
@@ -141,7 +128,7 @@ export function useActionButtons(
           isLoading,
         };
       }),
-    [actions, confirmingActionId, executingActionId],
+    [actions, confirmingActionId, executingActionId]
   );
 
   return {

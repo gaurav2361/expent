@@ -29,22 +29,11 @@ export type ToolUIId = z.infer<typeof ToolUIIdSchema>;
 /**
  * Primary role of a Tool UI surface in a chat context.
  */
-export const ToolUIRoleSchema = z.enum([
-  "information",
-  "decision",
-  "control",
-  "state",
-  "composite",
-]);
+export const ToolUIRoleSchema = z.enum(["information", "decision", "control", "state", "composite"]);
 
 export type ToolUIRole = z.infer<typeof ToolUIRoleSchema>;
 
-export const ToolUIReceiptOutcomeSchema = z.enum([
-  "success",
-  "partial",
-  "failed",
-  "cancelled",
-]);
+export const ToolUIReceiptOutcomeSchema = z.enum(["success", "partial", "failed", "cancelled"]);
 
 export type ToolUIReceiptOutcome = z.infer<typeof ToolUIReceiptOutcomeSchema>;
 
@@ -81,9 +70,7 @@ export const ActionSchema = z.object({
    */
   sentence: z.string().optional(),
   confirmLabel: z.string().optional(),
-  variant: z
-    .enum(["default", "destructive", "secondary", "ghost", "outline"])
-    .optional(),
+  variant: z.enum(["default", "destructive", "secondary", "ghost", "outline"]).optional(),
   icon: z.custom<ReactNode>().optional(),
   loading: z.boolean().optional(),
   disabled: z.boolean().optional(),
@@ -104,15 +91,14 @@ export const DecisionResultSchema = z.object({
   payload: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type DecisionResult<
-  TPayload extends Record<string, unknown> = Record<string, unknown>,
-> = Omit<z.infer<typeof DecisionResultSchema>, "payload"> & {
+export type DecisionResult<TPayload extends Record<string, unknown> = Record<string, unknown>> = Omit<
+  z.infer<typeof DecisionResultSchema>,
+  "payload"
+> & {
   payload?: TPayload;
 };
 
-export function createDecisionResult<
-  TPayload extends Record<string, unknown> = Record<string, unknown>,
->(args: {
+export function createDecisionResult<TPayload extends Record<string, unknown> = Record<string, unknown>>(args: {
   decisionId: string;
   action: { id: string; label: string };
   payload?: TPayload;
@@ -152,8 +138,6 @@ export const SerializableActionsConfigSchema = z.object({
   confirmTimeout: z.number().positive().optional(),
 });
 
-export type SerializableActionsConfig = z.infer<
-  typeof SerializableActionsConfigSchema
->;
+export type SerializableActionsConfig = z.infer<typeof SerializableActionsConfigSchema>;
 
 export type SerializableAction = z.infer<typeof SerializableActionSchema>;

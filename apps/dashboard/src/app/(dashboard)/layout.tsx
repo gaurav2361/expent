@@ -1,17 +1,11 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { AppNavbar } from "@/components/app-navbar";
-import { SidebarProvider, SidebarInset } from "@expent/ui/components/sidebar";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { SidebarWrapper } from "@/components/sidebar-wrapper";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = useSession();
   const router = useRouter();
 
@@ -22,26 +16,12 @@ export default function DashboardLayout({
   }, [session.data, session.isPending, router]);
 
   if (session.isPending) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        Loading...
-      </div>
-    );
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
   if (!session.data) {
     return null;
   }
 
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <AppNavbar />
-        <div className="flex flex-1 flex-col">
-          {children}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+  return <SidebarWrapper>{children}</SidebarWrapper>;
 }

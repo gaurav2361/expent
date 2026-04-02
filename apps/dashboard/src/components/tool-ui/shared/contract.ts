@@ -7,10 +7,7 @@ export interface ToolUiContract<T> {
   safeParse: (input: unknown) => T | null;
 }
 
-export function defineToolUiContract<T>(
-  componentName: string,
-  schema: z.ZodType<T>,
-): ToolUiContract<T> {
+export function defineToolUiContract<T>(componentName: string, schema: z.ZodType<T>): ToolUiContract<T> {
   return {
     schema,
     parse: (input: unknown) => parseWithSchema(schema, input, componentName),
