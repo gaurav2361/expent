@@ -235,17 +235,8 @@ export default function DashboardPage() {
     ),
   }), [triggerSplit, updateMutation, deleteMutation]);
 
-  useEffect(() => {
-    // Navigation is primarily handled by Next.js edge middleware.
-    // However, if session gets invalidated strictly client side, redirect here as well.
-    if (!session.isPending && !session.data) {
-      router.push("/sign-in");
-    }
-  }, [session.data, session.isPending, router]);
 
-  if (session.isPending || !session.data) {
-    return <div className="flex h-screen items-center justify-center">Loading session...</div>;
-  }
+
 
   const handleUpload = async () => {
     if (!file) return;
