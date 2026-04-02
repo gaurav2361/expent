@@ -1,6 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { cn } from "@expent/ui/lib/utils";
+import Link from "next/link";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -20,7 +20,7 @@ const PATHTITLE: Record<string, string> = {
 	"/transactions": "All Transactions",
 	"/p2p/shared-ledgers": "Shared Ledgers",
 	"/p2p/pending": "Pending Requests",
-	"/p2p/subscriptions": "Subscriptions",
+	"/subscriptions": "Subscriptions",
 	"/contacts": "Contacts",
 	"/settings": "Settings",
 };
@@ -40,7 +40,7 @@ export function AppNavbar() {
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem className="hidden md:block">
-							<BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
+							<BreadcrumbLink render={<Link href="/" />}>Dashboard</BreadcrumbLink>
 						</BreadcrumbItem>
 						{pathname !== "/" && (
 							<>
@@ -53,7 +53,7 @@ export function AppNavbar() {
 					</BreadcrumbList>
 				</Breadcrumb>
 			</div>
-			
+
 			<div className="flex items-center gap-3">
 				<Button size="icon-sm" variant="outline">
 					<SendIcon data-icon="inline-start" />
