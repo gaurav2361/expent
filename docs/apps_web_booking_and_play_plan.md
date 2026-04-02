@@ -1,6 +1,6 @@
-# Web Booking & Play Integration Plan
+# Dashboard Booking & Play Integration Plan
 
-This document outlines the scope, current progress, and technical rollout plan for introducing "Booking" and "Play" functionalities directly into the Expent web application (`apps/web`).
+This document outlines the scope, current progress, and technical rollout plan for introducing "Booking" and "Play" functionalities directly into the Expent Next.js Dashboard (`apps/dashboard`).
 
 ---
 
@@ -16,11 +16,12 @@ Currently, Expent focuses primarily on financial telemetry: parsing receipts, re
 
 ## 2. What We Have Done (Current State)
 
-Within the `apps/web` environment, the foundational infrastructure for such modular extensions is already stable:
+Within the `apps/dashboard` environment, the foundational infrastructure is built on the Next.js App Router:
 
-1. **Robust UI Libraries**: `shadcn/ui` components combined with Tailwind CSS inside the Vite/React architecture are fully deployed, meaning modal pickers for dates or sports venues can be rapidly prototyped.
-2. **P2P Split Engine**: Expent’s ledger already flawlessly resolves `p2p_requests` and `split_transaction_handler` operations. If a turf booking costs ₹2000, requesting ₹500 from 3 other `users` or `contacts` is natively supported.
-3. **Frontend Routing**: The implementation of TanStack router inside `apps/web/src/routes` provides a highly scalable way to establish parallel routes (like `/booking` isolated from `/dashboard`).
+1.  **Modern UI Architecture**: Built using Next.js 16, React 19, and Tailwind CSS 4. The application uses `@expent/ui` workspace packages for shared components, ensuring design consistency.
+2.  **Auth-Protected Dashboard**: A centralized auth guard is implemented in `src/app/(dashboard)/layout.tsx`, handling session validation and redirects seamlessly for all sub-routes.
+3.  **P2P Split Engine Ready**: The dashboard already manages `transactions` and `shared-ledgers`. New booking features will leverage existing `P2P & Sharing` logic for splitting costs upstream.
+4.  **SPA Routing**: Navigational links use Next.js `<Link>` for instant, no-reload transitions, providing a premium "app-like" experience for complex booking flows.
 
 ---
 
@@ -39,25 +40,26 @@ Exposing the capabilities securely to the frontend.
 - `GET /api/booking/vendors` -> Pulling partnered vendor APIs or a mocked internal vendor list for play.
 - `POST /api/booking/initiate` -> The handler takes a request, generates a `transaction`, splits it among the targeted friends, creates the `p2p_requests`, and places the booking in a "PENDING CANCELLATION/SETTLEMENT" status state.
 
-### Phase 3: Web App Integration (`apps/web`)
+### Phase 3: Dashboard Integration (`apps/dashboard`)
 
-**1. The "Booking & Play" Hub Router**
-Create a new primary navigational route.
-- `/booking` Main Dashboard
-- `/booking/play` -> Sub-route primarily prioritizing turf maps, available sports, and squad formations.
-- `/booking/travel` -> Sub-route for transport modalities.
+**1. The "Booking & Play" Route Structure**
+Create new routes within the `(dashboard)` group:
+- `src/app/(dashboard)/booking/page.tsx` -> Main Discovery Hub.
+- `src/app/(dashboard)/booking/play/page.tsx` -> Turf maps, available sports, and squad formations.
+- `src/app/(dashboard)/booking/travel/page.tsx` -> Transport modalities.
 
 **2. State & Hooks Layer**
-- Author dedicated TanStack-Query hooks (`useBookings`, `useCreateEvent`).
-- Ensure any `play` session created immediately populates the Notifications side-nav if a P2P contribution is required from the user's friend.
+- Utilize React Query (already configured) for async data fetching (`useBookings`, `useCreateEvent`).
+- Implement real-time updates for `play` sessions to notify friends when a contribution is required.
 
 **3. The UI/UX Flow**
-- Revert traditional tracking: Instead of uploading an OCR receipt *after* playing, the user clicks "Book Turf" -> selects 5 friends -> Turf is booked, and 5 separate `PENDING` transactions automatically render on each friend’s dashboard.
+- Proactive Splitting: User clicks "Book Turf" -> selects 5 friends -> Turf is booked, and 5 separate `PENDING` transactions automatically render on each friend’s dashboard.
+- Integrated Sidebar: Update `src/components/app-sidebar.tsx` to include "Booking" as a primary navigational group.
 
 ---
 
 ## 4. Open Architecture Questions for Future Strategy
 
 As we move toward development, key architecture choices remain:
-- **Third-Party API Integrations**: Are we directly integrating with real booking API aggregators (e.g., MakeMyTrip integrations, local Turf API gateways)? Or building an internal mock engine first?
-- **Financial Gateway**: When booking directly, who processes the core gateway fee initially? Does Expent need a Stripe / PayPal Native integration to handle initial upfront card holds?
+- **Third-Party API Integrations**: Are we directly integrating with real booking API aggregators (e.g., local Turf API gateways)? Or building an internal mock engine first?
+- **Financial Gateway**: When booking directly, does Expent need a Stripe / PayPal Native integration to handle initial upfront card holds?
