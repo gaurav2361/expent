@@ -1,0 +1,22 @@
+import { Kbd, KbdGroup } from "@expent/ui/components/kbd";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@expent/ui/components/tooltip";
+import { SidebarTrigger } from "@expent/ui/components/sidebar";
+
+export function CustomSidebarTrigger() {
+	return (
+		<Tooltip>
+			<TooltipTrigger delay={1000} render={<SidebarTrigger />} />
+			<TooltipContent className="px-2 py-1" side="right">
+				Toggle Sidebar{" "}
+				<KbdGroup>
+					<Kbd>⌘</Kbd>
+					<Kbd>b</Kbd>
+				</KbdGroup>
+			</TooltipContent>
+		</Tooltip>
+	);
+}
