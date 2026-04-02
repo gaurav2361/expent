@@ -1,4 +1,4 @@
-export { cn } from "@/lib/utils";
-export { Button } from "@/components/ui/button";
-export { Separator } from "@/components/ui/separator";
-export { Skeleton } from "@/components/ui/skeleton";
+export { cn } from "@expent/ui/lib/utils";
+export { Button } from "@expent/ui/components/button";
+export { Separator } from "@expent/ui/components/separator";
+export { Skeleton } from "@expent/ui/components/skeleton";

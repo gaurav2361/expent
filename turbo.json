@@ -37,7 +37,8 @@
         "VITE_API_BASE_URL",
         "RUST_LOG",
         "PORT",
-        "API_PORT"
+        "API_PORT",
+        "NEXT_PUBLIC_API_BASE_URL"
       ]
     }
   }

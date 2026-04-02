@@ -10,12 +10,12 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [nitro(), tailwindcss(), tanstackStart(), viteReact(), contentCollections()],
   server: {
-    port: 3000,
+    port: 3001,
     strictPort: true,
   },
   nitro: {
     dev: {
-      port: 3000,
+      port: 3001,
     },
   },
   resolve: {
