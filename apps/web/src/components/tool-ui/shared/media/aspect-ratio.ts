@@ -1,8 +1,6 @@
 import { z } from "zod";
 
-export const AspectRatioSchema = z
-  .enum(["auto", "1:1", "4:3", "16:9", "9:16"])
-  .default("auto");
+export const AspectRatioSchema = z.enum(["auto", "1:1", "4:3", "16:9", "9:16"]).default("auto");
 
 export type AspectRatio = z.infer<typeof AspectRatioSchema>;
 

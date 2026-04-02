@@ -431,14 +431,10 @@ async fn direct_upload_handler(
     let mut file_name = String::new();
     let mut content_type = String::new();
 
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| {
-            tracing::error!("❌ Multipart next_field error: {:?}", e);
-            (StatusCode::BAD_REQUEST, e.to_string())
-        })?
-    {
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        tracing::error!("❌ Multipart next_field error: {:?}", e);
+        (StatusCode::BAD_REQUEST, e.to_string())
+    })? {
         let name = field.name().unwrap_or_default().to_string();
         tracing::debug!("📦 Processing multipart field: {}", name);
         if name == "file" {
@@ -447,16 +443,15 @@ async fn direct_upload_handler(
                 .content_type()
                 .unwrap_or("application/octet-stream")
                 .to_string();
-            tracing::debug!("📎 Extracting bytes for file: {} ({})", file_name, content_type);
-            file_data = Some(
-                field
-                    .bytes()
-                    .await
-                    .map_err(|e| {
-                        tracing::error!("❌ Multipart bytes extraction error: {:?}", e);
-                        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-                    })?,
+            tracing::debug!(
+                "📎 Extracting bytes for file: {} ({})",
+                file_name,
+                content_type
             );
+            file_data = Some(field.bytes().await.map_err(|e| {
+                tracing::error!("❌ Multipart bytes extraction error: {:?}", e);
+                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+            })?);
             break;
         }
     }
@@ -466,7 +461,11 @@ async fn direct_upload_handler(
         (StatusCode::BAD_REQUEST, "No file uploaded".to_string())
     })?;
 
-    tracing::info!("🚀 Starting direct upload for file: {} ({} bytes)", file_name, data.len());
+    tracing::info!(
+        "🚀 Starting direct upload for file: {} ({} bytes)",
+        file_name,
+        data.len()
+    );
     let processed = state
         .upload_client
         .upload_direct(
@@ -483,13 +482,13 @@ async fn direct_upload_handler(
         })?;
 
     tracing::info!("✅ Upload successful, key: {}", processed.key);
-    let bucket_name = std::env::var("S3_BUCKET_NAME").unwrap_or_else(|_| "expent-uploads".to_string());
+    let bucket_name =
+        std::env::var("S3_BUCKET_NAME").unwrap_or_else(|_| "expent-uploads".to_string());
 
     Ok(Json(PresignedUrlResponse {
         url: format!(
             "https://{}.r2.cloudflarestorage.com/{}",
-            bucket_name,
-            processed.key
+            bucket_name, processed.key
         ),
         key: processed.key,
     }))

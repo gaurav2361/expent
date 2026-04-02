@@ -85,22 +85,14 @@ export const SerializableOrderSummarySchema = z
     }
   });
 
-export type SerializableOrderSummary = z.infer<
-  typeof SerializableOrderSummarySchema
->;
+export type SerializableOrderSummary = z.infer<typeof SerializableOrderSummarySchema>;
 
-const SerializableOrderSummarySchemaContract = defineToolUiContract(
-  "OrderSummary",
-  SerializableOrderSummarySchema,
-);
+const SerializableOrderSummarySchemaContract = defineToolUiContract("OrderSummary", SerializableOrderSummarySchema);
 
-export const parseSerializableOrderSummary: (
-  input: unknown,
-) => SerializableOrderSummary = SerializableOrderSummarySchemaContract.parse;
+export const parseSerializableOrderSummary: (input: unknown) => SerializableOrderSummary =
+  SerializableOrderSummarySchemaContract.parse;
 
-export const safeParseSerializableOrderSummary: (
-  input: unknown,
-) => SerializableOrderSummary | null =
+export const safeParseSerializableOrderSummary: (input: unknown) => SerializableOrderSummary | null =
   SerializableOrderSummarySchemaContract.safeParse;
 
 export interface OrderSummaryProps extends SerializableOrderSummary {

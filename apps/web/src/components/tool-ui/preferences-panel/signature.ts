@@ -1,8 +1,6 @@
 import type { PreferenceSection } from "./schema";
 
-export function createPreferencesSectionSignature(
-  sections: PreferenceSection[],
-): string {
+export function createPreferencesSectionSignature(sections: PreferenceSection[]): string {
   return JSON.stringify(
     sections.map((section) => ({
       heading: section.heading ?? "",
@@ -27,11 +25,10 @@ export function createPreferencesSectionSignature(
         return {
           id: item.id,
           type: item.type,
-          defaultSelected:
-            item.defaultSelected ?? item.selectOptions[0]?.value ?? "",
+          defaultSelected: item.defaultSelected ?? item.selectOptions[0]?.value ?? "",
           options: item.selectOptions.map((option) => option.value),
         };
       }),
-    })),
+    }))
   );
 }

@@ -10,8 +10,8 @@ pub struct OcrService {
 
 impl OcrService {
     pub async fn new() -> Result<Self> {
-        let mut url = std::env::var("OCR_WORKER_URL")
-            .unwrap_or_else(|_| "http://localhost:8090".to_string());
+        let mut url =
+            std::env::var("OCR_WORKER_URL").unwrap_or_else(|_| "http://localhost:8090".to_string());
 
         // Intelligently determine if we need to append /extract
         if !url.contains("/extract") && !url.contains("/ocr") && !url.contains("/process") {
@@ -22,14 +22,19 @@ impl OcrService {
         }
 
         let client = reqwest::Client::new();
-        info!(
-            "🚀 OCR Service (Proxy) initialized with worker at: {}",
-            url
-        );
-        Ok(Self { worker_url: url, client })
+        info!("🚀 OCR Service (Proxy) initialized with worker at: {}", url);
+        Ok(Self {
+            worker_url: url,
+            client,
+        })
     }
 
-    pub async fn process_file(&self, file_bytes: &[u8], filename: &str, mime_type: &str) -> Result<Value> {
+    pub async fn process_file(
+        &self,
+        file_bytes: &[u8],
+        filename: &str,
+        mime_type: &str,
+    ) -> Result<Value> {
         info!(
             "📄 Forwarding file '{}' ({}) for extraction ({} bytes)",
             filename,
@@ -58,6 +63,7 @@ impl OcrService {
     }
 
     pub async fn process_image(&self, image_bytes: &[u8]) -> Result<Value> {
-        self.process_file(image_bytes, "upload.png", "image/png").await
+        self.process_file(image_bytes, "upload.png", "image/png")
+            .await
     }
 }

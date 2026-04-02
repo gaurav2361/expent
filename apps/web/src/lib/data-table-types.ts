@@ -45,10 +45,7 @@ export type FormatFor<V> = V extends number
     : V extends (string | number | boolean | null)[]
       ? Extract<FormatConfig, { kind: "array" }>
       : V extends string
-        ? Extract<
-            FormatConfig,
-            { kind: "text" | "link" | "date" | "badge" | "status" }
-          >
+        ? Extract<FormatConfig, { kind: "text" | "link" | "date" | "badge" | "status" }>
         : Extract<FormatConfig, { kind: "text" }>;
 
 /**
@@ -58,10 +55,7 @@ export type FormatFor<V> = V extends number
  * **Important:** Columns are sortable by default (opt-out pattern).
  * Set `sortable: false` explicitly to disable sorting for specific columns.
  */
-export interface Column<
-  T extends object = DataTableRowData,
-  K extends ColumnKey<T> = ColumnKey<T>,
-> {
+export interface Column<T extends object = DataTableRowData, K extends ColumnKey<T> = ColumnKey<T>> {
   /** Unique identifier that maps to a key in the row data */
   key: K;
   /** Display text for the column header */
@@ -218,10 +212,7 @@ export interface DataTableClientProps<T extends object = RowData> {
    * />
    * ```
    */
-  onSortChange?: (next: {
-    by?: ColumnKey<T>;
-    direction?: "asc" | "desc";
-  }) => void;
+  onSortChange?: (next: { by?: ColumnKey<T>; direction?: "asc" | "desc" }) => void;
   /**
    * Custom cell renderers keyed by column key.
    *
@@ -266,7 +257,8 @@ export interface DataTableClientProps<T extends object = RowData> {
  * ```
  */
 export interface DataTableProps<T extends object = RowData>
-  extends DataTableSerializableProps<T>, DataTableClientProps<T> {}
+  extends DataTableSerializableProps<T>,
+    DataTableClientProps<T> {}
 
 export interface DataTableContextValue<T extends object = RowData> {
   columns: Column<T>[];

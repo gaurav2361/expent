@@ -42,10 +42,11 @@ class OCREngine:
         elif media_type.startswith("image/"):
             # Use EasyOCR to get raw text as context
             try:
-                # EasyOCR expects a numpy array or file path. 
+                # EasyOCR expects a numpy array or file path.
                 # For raw bytes, we should use an Image object or check if it's actually an image.
                 from PIL import Image
                 import numpy as np
+
                 img = Image.open(io.BytesIO(data))
                 img_np = np.array(img)
                 results = self.reader.readtext(img_np, detail=0)
