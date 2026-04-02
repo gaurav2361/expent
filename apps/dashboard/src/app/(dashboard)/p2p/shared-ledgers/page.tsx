@@ -242,9 +242,7 @@ export default function SharedLedgersComponent() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Shared Ledger</DialogTitle>
-              <DialogDescription>
-                Create a space to share and track expenses with friends or family.
-              </DialogDescription>
+              <DialogDescription>Create a space to share and track expenses with friends or family.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">

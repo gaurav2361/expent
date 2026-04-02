@@ -14,13 +14,7 @@ import { Badge } from "@expent/ui/components/badge";
 import { Separator } from "@expent/ui/components/separator";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@expent/ui/components/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { useIsMobile } from "@expent/ui/hooks/use-mobile";
 
 export interface Transaction {
@@ -38,10 +32,7 @@ interface TransactionViewerProps {
   onUpdate: (id: string, data: Partial<Transaction>) => void;
 }
 
-export function TransactionViewer({
-  item,
-  onUpdate,
-}: TransactionViewerProps) {
+export function TransactionViewer({ item, onUpdate }: TransactionViewerProps) {
   const isMobile = useIsMobile();
   const [source, setSource] = React.useState(item.source);
   const [category, setCategory] = React.useState(item.category || "Uncategorized");
@@ -58,16 +49,17 @@ export function TransactionViewer({
   return (
     <Drawer direction={isMobile ? "bottom" : "right"}>
       <DrawerTrigger asChild>
-        <Button variant="link" className="w-fit px-0 text-left text-foreground truncate max-w-[200px] block font-normal">
+        <Button
+          variant="link"
+          className="w-fit px-0 text-left text-foreground truncate max-w-[200px] block font-normal"
+        >
           {title}
         </Button>
       </DrawerTrigger>
       <DrawerContent className={isMobile ? "h-[80vh]" : "h-full w-[400px] ml-auto top-0"}>
         <DrawerHeader className="gap-1 text-left">
           <DrawerTitle className="text-xl">{title}</DrawerTitle>
-          <DrawerDescription>
-            Transaction from {formattedDate}
-          </DrawerDescription>
+          <DrawerDescription>Transaction from {formattedDate}</DrawerDescription>
         </DrawerHeader>
         <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm mt-4">
           <div className="flex items-center justify-between p-4 bg-muted rounded-xl border">
@@ -102,22 +94,12 @@ export function TransactionViewer({
           >
             <div className="flex flex-col gap-3">
               <Label htmlFor="source">Source / Description</Label>
-              <Input
-                id="source"
-                value={source}
-                onChange={(e) => setSource(e.target.value)}
-              />
+              <Input id="source" value={source} onChange={(e) => setSource(e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-3">
               <Label htmlFor="amount">Amount</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
+              <Input id="amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

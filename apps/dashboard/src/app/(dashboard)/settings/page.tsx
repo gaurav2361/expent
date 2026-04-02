@@ -57,27 +57,15 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <Button
-              variant={theme === "light" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTheme("light")}
-            >
+            <Button variant={theme === "light" ? "default" : "outline"} size="sm" onClick={() => setTheme("light")}>
               <SunIcon className="h-4 w-4 mr-2" />
               Light
             </Button>
-            <Button
-              variant={theme === "dark" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTheme("dark")}
-            >
+            <Button variant={theme === "dark" ? "default" : "outline"} size="sm" onClick={() => setTheme("dark")}>
               <MoonIcon className="h-4 w-4 mr-2" />
               Dark
             </Button>
-            <Button
-              variant={theme === "system" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTheme("system")}
-            >
+            <Button variant={theme === "system" ? "default" : "outline"} size="sm" onClick={() => setTheme("system")}>
               <MonitorIcon className="h-4 w-4 mr-2" />
               System
             </Button>
@@ -124,7 +112,13 @@ export default function SettingsPage() {
       <Separator />
 
       <div className="flex justify-end pb-8">
-        <Button variant="destructive" size="sm" onClick={() => { window.location.href = "/sign-in"; }}>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => {
+            window.location.href = "/sign-in";
+          }}
+        >
           Sign Out
         </Button>
       </div>

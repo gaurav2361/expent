@@ -7,9 +7,7 @@ export default function PendingPage() {
       <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-xs">
         <div className="flex flex-col items-center gap-1 text-center">
           <h3 className="font-bold text-2xl tracking-tight">No Pending Requests</h3>
-          <p className="text-sm text-muted-foreground">
-            You don't have any pending requests to approve right now.
-          </p>
+          <p className="text-sm text-muted-foreground">You don't have any pending requests to approve right now.</p>
         </div>
       </div>
     </div>

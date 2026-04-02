@@ -2,7 +2,7 @@ export function sortData<T, K extends Extract<keyof T, string>>(
   data: T[],
   key: K,
   direction: "asc" | "desc",
-  locale?: string,
+  locale?: string
 ): T[] {
   const get = (obj: T, k: K): unknown => (obj as Record<string, unknown>)[k];
   const collator = new Intl.Collator(locale, {
@@ -70,11 +70,8 @@ export function sortData<T, K extends Extract<keyof T, string>>(
  * Arrays are converted to comma-separated strings.
  */
 export function getRowIdentifier(
-  row: Record<
-    string,
-    string | number | boolean | null | (string | number | boolean | null)[]
-  >,
-  identifierKey?: string,
+  row: Record<string, string | number | boolean | null | (string | number | boolean | null)[]>,
+  identifierKey?: string
 ): string {
   const candidate =
     (identifierKey ? row[identifierKey] : undefined) ??
@@ -97,23 +94,15 @@ export function getRowIdentifier(
 function stableStringify(value: unknown): string {
   if (value == null) return "null";
   if (typeof value === "string") return JSON.stringify(value);
-  if (
-    typeof value === "number" ||
-    typeof value === "boolean" ||
-    typeof value === "bigint"
-  ) {
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
     return String(value);
   }
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(",")}]`;
   }
   if (typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).sort(
-      ([a], [b]) => a.localeCompare(b),
-    );
-    return `{${entries
-      .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`)
-      .join(",")}}`;
+    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`).join(",")}}`;
   }
   return JSON.stringify(String(value));
 }
@@ -133,19 +122,13 @@ function hashString(value: string): string {
  * - Falls back to stable content fingerprints when no identifier exists.
  * - Disambiguates duplicates without relying on array index.
  */
-export function createDataTableRowKeys(
-  rows: Array<Record<string, unknown>>,
-  identifierKey?: string,
-): string[] {
+export function createDataTableRowKeys(rows: Array<Record<string, unknown>>, identifierKey?: string): string[] {
   const canonicalRows = rows.map((row) => stableStringify(row));
 
   const baseKeys = rows.map((row, index) => {
     const identifier = getRowIdentifier(
-      row as Record<
-        string,
-        string | number | boolean | null | (string | number | boolean | null)[]
-      >,
-      identifierKey,
+      row as Record<string, string | number | boolean | null | (string | number | boolean | null)[]>,
+      identifierKey
     );
 
     if (identifier) {

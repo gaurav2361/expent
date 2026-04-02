@@ -36,7 +36,7 @@ export function ActionButtons({
         align === "left" && "@sm/actions:justify-start",
         align === "center" && "@sm/actions:justify-center",
         align === "right" && "@sm/actions:justify-end",
-        className,
+        className
       )}
     >
       {resolvedActions.map((action) => {
@@ -54,12 +54,9 @@ export function ActionButtons({
               "justify-center",
               "min-h-11 w-full text-base",
               "@sm/actions:min-h-0 @sm/actions:w-auto @sm/actions:px-3 @sm/actions:py-2 @sm/actions:text-sm",
-              action.isConfirming &&
-                "ring-destructive ring-2 ring-offset-2 motion-safe:animate-pulse",
+              action.isConfirming && "ring-destructive ring-2 ring-offset-2 motion-safe:animate-pulse"
             )}
-            aria-label={
-              action.shortcut ? `${label} (${action.shortcut})` : label
-            }
+            aria-label={action.shortcut ? `${label} (${action.shortcut})` : label}
           >
             {action.isLoading && (
               <svg
@@ -68,14 +65,7 @@ export function ActionButtons({
                 fill="none"
                 viewBox="0 0 24 24"
               >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path
                   className="opacity-75"
                   fill="currentColor"
@@ -83,9 +73,7 @@ export function ActionButtons({
                 />
               </svg>
             )}
-            {action.icon && !action.isLoading && (
-              <span className="mr-2">{action.icon}</span>
-            )}
+            {action.icon && !action.isLoading && <span className="mr-2">{action.icon}</span>}
             {label}
             {action.shortcut && !action.isLoading && (
               <kbd className="border-border bg-muted ml-2.5 hidden rounded-lg border px-2 py-0.5 font-mono text-xs font-medium sm:inline-block">
