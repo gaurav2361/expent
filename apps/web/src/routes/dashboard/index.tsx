@@ -123,7 +123,7 @@ function RouteComponent() {
       toast.error("Failed to accept request.");
     },
   });
-  
+
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<TransactionType> }) => {
       const response = await fetch(`${API_BASE_URL}/api/transactions/${id}`, {
@@ -177,71 +177,75 @@ function RouteComponent() {
   }, []);
 
   // DataTable column definitions for recent transactions
-  const txnColumns = useMemo<Column<TransactionType>[]>(() => [
-    {
-      key: "date",
-      label: "Date",
-      format: { kind: "date", dateFormat: "short" },
-    },
-    {
-      key: "direction",
-      label: "Direction",
-      format: {
-        kind: "badge",
-        colorMap: { IN: "success", OUT: "danger" },
-      },
-    },
-    {
-      key: "amount",
-      label: "Amount",
-      format: { kind: "currency", currency: "INR" },
-      align: "right",
-    },
-    {
-      key: "source",
-      label: "Description",
-    },
-    {
-      key: "action" as keyof TransactionType,
-      label: " ",
-      sortable: false,
-      align: "right",
-    },
-  ] as Column<TransactionType>[], []);
+  const txnColumns = useMemo<Column<TransactionType>[]>(
+    () =>
+      [
+        {
+          key: "date",
+          label: "Date",
+          format: { kind: "date", dateFormat: "short" },
+        },
+        {
+          key: "direction",
+          label: "Direction",
+          format: {
+            kind: "badge",
+            colorMap: { IN: "success", OUT: "danger" },
+          },
+        },
+        {
+          key: "amount",
+          label: "Amount",
+          format: { kind: "currency", currency: "INR" },
+          align: "right",
+        },
+        {
+          key: "source",
+          label: "Description",
+        },
+        {
+          key: "action" as keyof TransactionType,
+          label: " ",
+          sortable: false,
+          align: "right",
+        },
+      ] as Column<TransactionType>[],
+    []
+  );
 
-  const txnCellRenderers = useMemo(() => ({
-    source: (row: TransactionType) => (
-      <TransactionViewer
-        item={row}
-        onUpdate={(id, data) => updateMutation.mutate({ id, data })}
-      />
-    ),
-    action: (row: TransactionType) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <MoreVerticalIcon className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={() => triggerSplit(row.id, row.amount)}>
-            <Share2Icon className="mr-2 h-4 w-4" /> Split
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => {
-              if (confirm("Are you sure you want to delete this transaction?")) {
-                deleteMutation.mutate(row.id);
-              }
-            }}
-          >
-            <Trash2Icon className="mr-2 h-4 w-4" /> Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
-  }), [triggerSplit, updateMutation, deleteMutation]);
+  const txnCellRenderers = useMemo(
+    () => ({
+      source: (row: TransactionType) => (
+        <TransactionViewer item={row} onUpdate={(id, data) => updateMutation.mutate({ id, data })} />
+      ),
+      action: (row: TransactionType) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVerticalIcon className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onClick={() => triggerSplit(row.id, row.amount)}>
+              <Share2Icon className="mr-2 h-4 w-4" /> Split
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => {
+                if (confirm("Are you sure you want to delete this transaction?")) {
+                  deleteMutation.mutate(row.id);
+                }
+              }}
+            >
+              <Trash2Icon className="mr-2 h-4 w-4" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    }),
+    [triggerSplit, updateMutation, deleteMutation]
+  );
 
   useEffect(() => {
     if (!session.isPending && !session.data) {
@@ -343,19 +347,21 @@ function RouteComponent() {
               </CardContent>
             </Card>
             <Card
-              className={totalBalance < 0 
-                ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-lg border-rose-100 dark:border-rose-500/20" 
-                : totalBalance > 0 
-                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-lg border-emerald-100 dark:border-emerald-500/20"
-                  : "bg-muted/50 text-muted-foreground shadow-lg"
-               }
+              className={
+                totalBalance < 0
+                  ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-lg border-rose-100 dark:border-rose-500/20"
+                  : totalBalance > 0
+                    ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-lg border-emerald-100 dark:border-emerald-500/20"
+                    : "bg-muted/50 text-muted-foreground shadow-lg"
+              }
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {totalBalance < 0 ? "-₹" : "₹"} {Math.abs(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {totalBalance < 0 ? "-₹" : "₹"}{" "}
+                  {Math.abs(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </CardContent>
             </Card>

@@ -2,10 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-export function useSignatureReset(
-  signature: string,
-  onSignatureChange: () => void,
-) {
+export function useSignatureReset(signature: string, onSignatureChange: () => void) {
   const previousSignature = useRef(signature);
 
   useEffect(() => {

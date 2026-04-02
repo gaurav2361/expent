@@ -28,13 +28,7 @@ interface ApprovalCardReceiptProps {
   className?: string;
 }
 
-function ApprovalCardReceipt({
-  id,
-  title,
-  choice,
-  actionLabel,
-  className,
-}: ApprovalCardReceiptProps) {
+function ApprovalCardReceipt({ id, title, choice, actionLabel, className }: ApprovalCardReceiptProps) {
   const isApproved = choice === "approved";
   const displayLabel = actionLabel ?? (isApproved ? "Approved" : "Denied");
 
@@ -44,7 +38,7 @@ function ApprovalCardReceipt({
         "flex w-full min-w-64 max-w-md flex-col",
         "text-foreground",
         "motion-safe:animate-in motion-safe:fade-in motion-safe:blur-in-sm motion-safe:zoom-in-95 motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)] motion-safe:fill-mode-both",
-        className,
+        className
       )}
       data-slot="approval-card"
       data-tool-ui-id={id}
@@ -52,15 +46,11 @@ function ApprovalCardReceipt({
       role="status"
       aria-label={displayLabel}
     >
-      <div
-        className={cn(
-          "bg-card/60 flex w-full items-center gap-3 rounded-2xl border px-4 py-3 shadow-xs",
-        )}
-      >
+      <div className={cn("bg-card/60 flex w-full items-center gap-3 rounded-2xl border px-4 py-3 shadow-xs")}>
         <span
           className={cn(
             "flex size-8 shrink-0 items-center justify-center rounded-full bg-muted",
-            isApproved ? "text-primary" : "text-muted-foreground",
+            isApproved ? "text-primary" : "text-muted-foreground"
           )}
         >
           {isApproved ? <Check className="size-4" /> : <X className="size-4" />}
@@ -101,7 +91,7 @@ export function ApprovalCard({
         await onCancel?.();
       }
     },
-    [onConfirm, onCancel],
+    [onConfirm, onCancel]
   );
 
   const handleKeyDown = React.useCallback(
@@ -111,7 +101,7 @@ export function ApprovalCard({
         onCancel?.();
       }
     },
-    [onCancel],
+    [onCancel]
   );
 
   const isDestructive = resolvedVariant === "destructive";
@@ -134,19 +124,10 @@ export function ApprovalCard({
   return (
     <div key={viewKey} className="contents">
       {choice ? (
-        <ApprovalCardReceipt
-          id={id}
-          title={title}
-          choice={choice}
-          className={className}
-        />
+        <ApprovalCardReceipt id={id} title={title} choice={choice} className={className} />
       ) : (
         <article
-          className={cn(
-            "flex w-full min-w-64 max-w-md flex-col gap-3",
-            "text-foreground",
-            className,
-          )}
+          className={cn("flex w-full min-w-64 max-w-md flex-col gap-3", "text-foreground", className)}
           data-slot="approval-card"
           data-tool-ui-id={id}
           role="dialog"
@@ -160,26 +141,18 @@ export function ApprovalCard({
                 <span
                   className={cn(
                     "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                    isDestructive
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-primary/10 text-primary",
+                    isDestructive ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
                   )}
                 >
                   <Icon className="size-5" />
                 </span>
               )}
               <div className="flex flex-1 flex-col gap-1">
-                <h2
-                  id={`${id}-title`}
-                  className="text-base font-semibold leading-tight"
-                >
+                <h2 id={`${id}-title`} className="text-base font-semibold leading-tight">
                   {title}
                 </h2>
                 {description && (
-                  <p
-                    id={`${id}-description`}
-                    className="text-muted-foreground text-sm"
-                  >
+                  <p id={`${id}-description`} className="text-muted-foreground text-sm">
                     {description}
                   </p>
                 )}
@@ -192,9 +165,7 @@ export function ApprovalCard({
                 <dl className="flex flex-col gap-2 text-sm">
                   {metadata.map((item, index) => (
                     <div key={index} className="flex justify-between gap-4">
-                      <dt className="text-muted-foreground shrink-0">
-                        {item.key}
-                      </dt>
+                      <dt className="text-muted-foreground shrink-0">{item.key}</dt>
                       <dd className="min-w-0 truncate">{item.value}</dd>
                     </div>
                   ))}

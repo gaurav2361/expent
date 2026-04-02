@@ -1,9 +1,5 @@
 import { cn } from "./_adapter";
-import type {
-  ProgressStep,
-  ProgressTrackerChoice,
-  ProgressTrackerProps,
-} from "./schema";
+import type { ProgressStep, ProgressTrackerChoice, ProgressTrackerProps } from "./schema";
 import { Check, X, Loader2, Timer, AlertCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -148,9 +144,7 @@ function ElapsedTimeBadge({ elapsedTime }: { elapsedTime?: number }) {
   return (
     <div className="text-muted-foreground flex items-center gap-1.5 font-mono text-xs">
       <Timer className="-mt-px size-3.5" />
-      <time dateTime={formatElapsedTimeDateTime(elapsedTime)}>
-        {formatElapsedTime(elapsedTime)}
-      </time>
+      <time dateTime={formatElapsedTimeDateTime(elapsedTime)}>{formatElapsedTime(elapsedTime)}</time>
     </div>
   );
 }
@@ -178,7 +172,7 @@ function ProgressTrackerReceipt({
         "isolate flex w-full max-w-md min-w-80 flex-col",
         "text-foreground select-none",
         "motion-safe:animate-in motion-safe:fade-in motion-safe:blur-in-sm motion-safe:zoom-in-95 motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)] motion-safe:fill-mode-both",
-        className,
+        className
       )}
       data-slot="progress-tracker"
       data-tool-ui-id={id}
@@ -189,12 +183,7 @@ function ProgressTrackerReceipt({
       <div className="bg-card/60 flex w-full flex-col gap-4 rounded-2xl border p-5 shadow-xs">
         <div className="flex items-center justify-between">
           <ElapsedTimeBadge elapsedTime={elapsedTime} />
-          <span
-            className={cn(
-              "flex items-center gap-1.5 text-xs font-medium",
-              receiptState.toneClassName,
-            )}
-          >
+          <span className={cn("flex items-center gap-1.5 text-xs font-medium", receiptState.toneClassName)}>
             <ReceiptIcon className="size-3.5" />
             {choice.summary}
           </span>
@@ -202,10 +191,7 @@ function ProgressTrackerReceipt({
 
         <ol className="m-0 flex list-none flex-col gap-2 p-0">
           {steps.map((step, index) => (
-            <li
-              key={step.id}
-              className="relative -mx-2 flex items-start gap-3 rounded-lg px-2 py-1.5"
-            >
+            <li key={step.id} className="relative -mx-2 flex items-start gap-3 rounded-lg px-2 py-1.5">
               {index < steps.length - 1 && (
                 <div
                   className="bg-border absolute top-8 left-5 w-px"
@@ -219,14 +205,8 @@ function ProgressTrackerReceipt({
                 <StepIndicator status={step.status} />
               </div>
               <div className="flex flex-1 flex-col gap-0.5">
-                <span className="text-sm leading-6 font-medium">
-                  {step.label}
-                </span>
-                {step.description && (
-                  <span className="text-muted-foreground text-sm">
-                    {step.description}
-                  </span>
-                )}
+                <span className="text-sm leading-6 font-medium">{step.label}</span>
+                {step.description && <span className="text-muted-foreground text-sm">{step.description}</span>}
               </div>
             </li>
           ))}
@@ -236,22 +216,13 @@ function ProgressTrackerReceipt({
   );
 }
 
-function ProgressTrackerLive({
-  id,
-  steps,
-  elapsedTime,
-  className,
-}: ProgressTrackerBaseProps) {
+function ProgressTrackerLive({ id, steps, elapsedTime, className }: ProgressTrackerBaseProps) {
   const hasInProgress = steps.some((step) => step.status === "in-progress");
   const currentStepId = getCurrentStepId(steps);
 
   return (
     <article
-      className={cn(
-        "isolate flex w-full max-w-md min-w-80 flex-col gap-3",
-        "text-foreground select-none",
-        className,
-      )}
+      className={cn("isolate flex w-full max-w-md min-w-80 flex-col gap-3", "text-foreground select-none", className)}
       data-slot="progress-tracker"
       data-tool-ui-id={id}
       role="status"
@@ -270,16 +241,12 @@ function ProgressTrackerLive({
             const shouldShowDescription = isActive || isFailed;
 
             return (
-              <li
-                key={step.id}
-                className="relative -mx-2"
-                aria-current={isCurrent ? "step" : undefined}
-              >
+              <li key={step.id} className="relative -mx-2" aria-current={isCurrent ? "step" : undefined}>
                 {index < steps.length - 1 && (
                   <div
                     className={cn(
                       "bg-border absolute top-6 left-5 w-px",
-                      "motion-safe:transition-all motion-safe:duration-300",
+                      "motion-safe:transition-all motion-safe:duration-300"
                     )}
                     style={{
                       height: "calc(100% + 0.25rem)",
@@ -291,7 +258,7 @@ function ProgressTrackerLive({
                   className={cn(
                     "relative z-10 flex items-start gap-3 rounded-lg px-2 py-1.5",
                     "motion-safe:transition-all motion-safe:duration-300",
-                    isCurrent && "bg-primary/5",
+                    isCurrent && "bg-primary/5"
                   )}
                   style={{
                     backdropFilter: isCurrent ? "blur(2px)" : undefined,
@@ -305,8 +272,7 @@ function ProgressTrackerLive({
                       className={cn(
                         "text-sm leading-6 font-medium",
                         step.status === "pending" && "text-muted-foreground",
-                        step.status === "in-progress" &&
-                          "motion-safe:shimmer shimmer-invert text-foreground",
+                        step.status === "in-progress" && "motion-safe:shimmer shimmer-invert text-foreground"
                       )}
                     >
                       {step.label}
@@ -315,16 +281,12 @@ function ProgressTrackerLive({
                       <div
                         className={cn(
                           "grid motion-safe:transition-[grid-template-rows,opacity] motion-safe:duration-300 motion-safe:ease-out",
-                          shouldShowDescription
-                            ? "grid-rows-[1fr] opacity-100"
-                            : "grid-rows-[0fr] opacity-0",
+                          shouldShowDescription ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                         )}
                         aria-hidden={!shouldShowDescription}
                       >
                         <div className="overflow-hidden">
-                          <span className="text-muted-foreground block pt-0.5 text-sm">
-                            {step.description}
-                          </span>
+                          <span className="text-muted-foreground block pt-0.5 text-sm">{step.description}</span>
                         </div>
                       </div>
                     )}
@@ -339,32 +301,15 @@ function ProgressTrackerLive({
   );
 }
 
-function ProgressTrackerRoot({
-  id,
-  steps,
-  elapsedTime,
-  className,
-  choice,
-}: ProgressTrackerProps) {
+function ProgressTrackerRoot({ id, steps, elapsedTime, className, choice }: ProgressTrackerProps) {
   const viewKey = choice ? `receipt-${choice.outcome}` : "interactive";
 
   return (
     <div key={viewKey} className="contents">
       {choice ? (
-        <ProgressTrackerReceipt
-          id={id}
-          steps={steps}
-          elapsedTime={elapsedTime}
-          className={className}
-          choice={choice}
-        />
+        <ProgressTrackerReceipt id={id} steps={steps} elapsedTime={elapsedTime} className={className} choice={choice} />
       ) : (
-        <ProgressTrackerLive
-          id={id}
-          steps={steps}
-          elapsedTime={elapsedTime}
-          className={className}
-        />
+        <ProgressTrackerLive id={id} steps={steps} elapsedTime={elapsedTime} className={className} />
       )}
     </div>
   );
