@@ -281,7 +281,7 @@ export default function TransactionsPage() {
       id: "actions",
       cell: ({ row }) => (
         <DropdownMenu>
-          <DropdownMenuTrigger>
+          <DropdownMenuTrigger render={
             <Button
               variant="ghost"
               className="flex size-8 text-muted-foreground data-[state=open]:bg-muted ml-auto"
@@ -290,7 +290,7 @@ export default function TransactionsPage() {
               <MoreVerticalIcon className="h-4 w-4" />
               <span className="sr-only">Open menu</span>
             </Button>
-          </DropdownMenuTrigger>
+          } />
           <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem onClick={() => triggerSplit(row.original.id, row.original.amount)}>
               <Share2Icon className="mr-2 h-4 w-4" /> Split
@@ -456,13 +456,13 @@ export default function TransactionsPage() {
                   </div>
 
                   <DropdownMenu>
-                    <DropdownMenuTrigger>
+                    <DropdownMenuTrigger render={
                       <Button variant="outline" size="sm" className="h-9 ml-auto hidden md:flex">
                         <Columns3Icon className="mr-2 h-4 w-4" />
                         Columns
                         <ChevronDownIcon className="ml-2 h-4 w-4" />
                       </Button>
-                    </DropdownMenuTrigger>
+                    } />
                     <DropdownMenuContent align="end" className="w-48">
                       {table
                         .getAllColumns()

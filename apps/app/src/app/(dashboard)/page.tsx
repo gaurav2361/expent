@@ -117,7 +117,7 @@ export default function DashboardPage() {
       toast.error("Failed to accept request.");
     },
   });
-  
+
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<TransactionType> }) => {
       const response = await fetch(`${API_BASE_URL}/api/transactions/${id}`, {
@@ -210,11 +210,11 @@ export default function DashboardPage() {
     ),
     action: (row: TransactionType) => (
       <DropdownMenu>
-        <DropdownMenuTrigger>
+        <DropdownMenuTrigger render={
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <MoreVerticalIcon className="h-4 w-4" />
           </Button>
-        </DropdownMenuTrigger>
+        } />
         <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => triggerSplit(row.id, row.amount)}>
             <Share2Icon className="mr-2 h-4 w-4" /> Split
@@ -286,23 +286,6 @@ export default function DashboardPage() {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2">
-        <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Overview</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </header>
 
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         <div className="grid auto-rows-min gap-4 md:grid-cols-3">
@@ -331,9 +314,9 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
           <Card
-            className={totalBalance < 0 
-              ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-lg border-rose-100 dark:border-rose-500/20" 
-              : totalBalance > 0 
+            className={totalBalance < 0
+              ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-lg border-rose-100 dark:border-rose-500/20"
+              : totalBalance > 0
                 ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-lg border-emerald-100 dark:border-emerald-500/20"
                 : "bg-muted/50 text-muted-foreground shadow-lg"
               }
