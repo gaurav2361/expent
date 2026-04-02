@@ -73,7 +73,7 @@ const navSections: SidebarSection[] = [
 			},
 			{
 				title: "Subscriptions",
-				url: "/p2p/subscriptions",
+				url: "/subscriptions",
 				icon: <RepeatIcon />,
 			},
 			{
