@@ -25,12 +25,6 @@ export async function proxy(request: NextRequest) {
 
   const isPublicRoute = publicRoutes.includes(pathname);
 
-  // Debug: log in development
-  if (process.env.NODE_ENV === "development") {
-    console.log(
-      `[proxy] path=${pathname} isPublic=${isPublicRoute} hasSession=${!!sessionToken} cookies=${allCookies.map((c) => c.name).join(", ")}`
-    );
-  }
 
   if (!sessionToken && !isPublicRoute) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
