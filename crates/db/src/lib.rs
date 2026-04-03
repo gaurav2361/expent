@@ -178,9 +178,9 @@ impl SmartMerge {
             .await?
             .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
 
-        let mut results = Vec::new();
-        for split in splits {
-            let request = entities::p2p_request::ActiveModel {
+        let requests: Vec<entities::p2p_request::ActiveModel> = splits
+            .into_iter()
+            .map(|split| entities::p2p_request::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 sender_user_id: Set(sender_id.to_string()),
                 receiver_email: Set(split.receiver_email),
@@ -191,9 +191,17 @@ impl SmartMerge {
                 })),
                 status: Set(P2PRequestStatus::Pending),
                 linked_txn_id: Set(None),
-            };
-            results.push(request.insert(db).await?);
+            })
+            .collect();
+
+        if requests.is_empty() {
+            return Ok(Vec::new());
         }
+
+        let results = entities::p2p_request::Entity::insert_many(requests)
+            .exec_with_returning(db)
+            .await?;
+
         Ok(results)
     }
 
@@ -481,5 +489,54 @@ impl SmartMerge {
             .await?;
 
         Ok(result.rows_affected)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Instant;
+
+    #[tokio::test]
+    async fn benchmark_split_transaction() -> Result<(), DbErr> {
+        let db = Database::connect("sqlite::memory:").await?;
+
+        // Setup schema
+        let db_backend = db.get_database_backend();
+        let schema = Schema::new(db_backend);
+
+        db.execute(db_backend.build(&schema.create_table_from_entity(entities::transaction::Entity))).await?;
+        db.execute(db_backend.build(&schema.create_table_from_entity(entities::p2p_request::Entity))).await?;
+
+        // Create a transaction
+        let txn_id = uuid::Uuid::now_v7().to_string();
+        let txn = entities::transaction::ActiveModel {
+            id: Set(txn_id.clone()),
+            user_id: Set("user_1".to_string()),
+            amount: Set(Decimal::new(100, 0)),
+            direction: Set(TransactionDirection::Out),
+            date: Set(Utc::now().into()),
+            source: Set(TransactionSource::Manual),
+            status: Set(TransactionStatus::Completed),
+            purpose_tag: Set(Some("Lunch".to_string())),
+            group_id: Set(None),
+        };
+        txn.insert(&db).await?;
+
+        let num_splits = 100;
+        let splits: Vec<SplitDetail> = (0..num_splits)
+            .map(|i| SplitDetail {
+                receiver_email: format!("user_{}@example.com", i),
+                amount: Decimal::new(1, 0),
+            })
+            .collect();
+
+        let start = Instant::now();
+        SmartMerge::split_transaction(&db, "user_1", &txn_id, splits).await?;
+        let duration = start.elapsed();
+
+        println!("\nBENCHMARK_RESULT: {} splits took {:?}", num_splits, duration);
+
+        Ok(())
     }
 }
