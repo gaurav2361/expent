@@ -14,3 +14,6 @@ strum_macros = "0.26"
 
 ts-rs        = { features = [ "chrono-impl", "serde-json-impl" ], version = "12.0.1" }
 uuid         = { features = [ "v7" ], version = "1.18" }
+
+[dev-dependencies]
+tokio = { version = "1.44", features = ["full"] }

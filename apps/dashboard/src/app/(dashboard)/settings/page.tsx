@@ -4,8 +4,9 @@ import { useSession } from "@/lib/auth-client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Button } from "@expent/ui/components/button";
 import { Separator } from "@expent/ui/components/separator";
-import { MoonIcon, SunIcon, MonitorIcon, UserIcon, BellIcon, ShieldIcon } from "lucide-react";
+import { UserIcon, BellIcon, ShieldIcon } from "lucide-react";
 import { useTheme } from "next-themes";
+import { PreferencesPanel } from "@/components/tool-ui/preferences-panel";
 
 export default function SettingsPage() {
   const session = useSession();
@@ -42,36 +43,34 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Appearance */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <SunIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle>Appearance</CardTitle>
-              <CardDescription>Customize the look and feel</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button variant={theme === "light" ? "default" : "outline"} size="sm" onClick={() => setTheme("light")}>
-              <SunIcon className="h-4 w-4 mr-2" />
-              Light
-            </Button>
-            <Button variant={theme === "dark" ? "default" : "outline"} size="sm" onClick={() => setTheme("dark")}>
-              <MoonIcon className="h-4 w-4 mr-2" />
-              Dark
-            </Button>
-            <Button variant={theme === "system" ? "default" : "outline"} size="sm" onClick={() => setTheme("system")}>
-              <MonitorIcon className="h-4 w-4 mr-2" />
-              System
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Appearance using PreferencesPanel */}
+      <PreferencesPanel
+        id="appearance-settings"
+        title="Appearance"
+        sections={[
+          {
+            items: [
+              {
+                id: "theme",
+                type: "toggle",
+                label: "Theme",
+                description: "Select your preferred color theme.",
+                options: [
+                  { value: "light", label: "Light" },
+                  { value: "dark", label: "Dark" },
+                  { value: "system", label: "System" },
+                ],
+                defaultValue: theme,
+              },
+            ],
+          },
+        ]}
+        onAction={(actionId, values) => {
+          if (actionId === "save") {
+            setTheme(values.theme as string);
+          }
+        }}
+      />
 
       {/* Notifications */}
       <Card>

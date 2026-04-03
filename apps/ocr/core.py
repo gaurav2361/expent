@@ -3,7 +3,12 @@ import json
 import io
 import google.generativeai as genai
 import easyocr
-from prompts import SYSTEM_PROMPT, USER_PROMPT
+from typing import Dict, Any
+
+from routers.gpay.prompts import GPAY_SYSTEM_PROMPT
+from routers.gpay.schemas import GPayExtraction
+from routers.generic_receipt.prompts import SYSTEM_PROMPT as GENERIC_SYSTEM_PROMPT, USER_PROMPT as GENERIC_USER_PROMPT
+from routers.generic_receipt.schemas import OCRResponse as GenericOCRResponse
 from utils import get_media_type, rasterize_pdf_page, extract_pdf_text, parse_csv
 
 
@@ -11,38 +16,42 @@ class OCREngine:
     def __init__(self, api_key: str = None):
         key = api_key or os.getenv("GOOGLE_API_KEY")
         genai.configure(api_key=key)
-        # Gemini 1.5 Flash is retired (as of late 2025/early 2026).
-        # Switching to gemini-2.0-flash or gemini-flash-latest.
         self.model_name = "gemini-2.0-flash"
-        self.model = genai.GenerativeModel(model_name=self.model_name, system_instruction=SYSTEM_PROMPT)
+        self.classifier_model = genai.GenerativeModel(model_name=self.model_name)
         self._reader = None
+        print(f"DEBUG: OCREngine initialized with model={self.model_name}, key_prefix={key[:8] if key else 'None'}...")
 
     @property
     def reader(self):
         """Lazy load EasyOCR reader."""
         if self._reader is None:
-            # CPU mode by default, can be switched with gpu=True
             self._reader = easyocr.Reader(["en"])
         return self._reader
+
+    async def classify_image(self, data: bytes, media_type: str) -> str:
+        """Classify the image/document type."""
+        classification_prompt = "Look at this image. Is it a generic paper retail receipt, an invoice, a bank statement, or a Google Pay digital screenshot? Reply with exactly 'GENERIC' or 'GPAY'."
+
+        content = [classification_prompt]
+        content.append({"mime_type": media_type, "data": data})
+
+        try:
+            response = self.classifier_model.generate_content(content)
+            result = response.text.strip().upper()
+            if "GPAY" in result:
+                return "GPAY"
+            return "GENERIC"
+        except Exception as e:
+            print(f"Classification error: {e}")
+            return "GENERIC"
 
     async def extract_from_bytes(self, data: bytes, filename: str) -> dict:
         media_type = get_media_type(filename)
         extracted_text = ""
-        context_data = None
 
-        if media_type == "text/csv":
-            context_data = parse_csv(data)
-            extracted_text = json.dumps(context_data)
-        elif media_type == "application/pdf":
-            # 1. Try text extraction first
-            extracted_text = extract_pdf_text(data)
-            # 2. If no text found (image-based PDF), Gemini will handle it via its native vision
-            # or we could OCR pages here. For now, we'll let Gemini see the PDF.
-        elif media_type.startswith("image/"):
-            # Use EasyOCR to get raw text as context
+        if media_type.startswith("image/"):
+            # Try to get some text context
             try:
-                # EasyOCR expects a numpy array or file path.
-                # For raw bytes, we should use an Image object or check if it's actually an image.
                 from PIL import Image
                 import numpy as np
 
@@ -52,11 +61,24 @@ class OCREngine:
                 extracted_text = " ".join(results)
             except Exception as e:
                 print(f"EasyOCR error: {e}")
-                extracted_text = ""
 
-        # Gemini logic: using both file and extracted context for better structuring
-        content_items = [USER_PROMPT]
+        # Classification
+        doc_type = "GENERIC"
+        if media_type.startswith("image/"):
+            doc_type = await self.classify_image(data, media_type)
 
+        if doc_type == "GPAY":
+            system_prompt = GPAY_SYSTEM_PROMPT
+            response_schema = GPayExtraction
+            user_prompt = "Extract Google Pay transaction data."
+        else:
+            system_prompt = GENERIC_SYSTEM_PROMPT
+            response_schema = GenericOCRResponse
+            user_prompt = GENERIC_USER_PROMPT
+
+        model = genai.GenerativeModel(model_name=self.model_name, system_instruction=system_prompt)
+
+        content_items = [user_prompt]
         if extracted_text:
             content_items.append(f"EXTRACTED CONTEXT (FROM OCR/PARSER):\n{extracted_text}")
 
@@ -65,36 +87,25 @@ class OCREngine:
         elif media_type.startswith("image/"):
             content_items.append({"mime_type": media_type, "data": data})
 
-        # Using structured output mode (JSON Mode)
         try:
-            response = self.model.generate_content(
+            response = model.generate_content(
                 content_items,
-                generation_config=genai.GenerationConfig(response_mime_type="application/json", temperature=0.0),
+                generation_config=genai.GenerationConfig(
+                    response_mime_type="application/json",
+                    temperature=0.0,
+                    # response_schema is supported in newer genai versions
+                    # but for safety let's use the schema if possible
+                ),
             )
-            return self._parse_json(response.text)
-        except Exception as first_err:
-            print(f"Primary model ({self.model_name}) failed: {first_err}")
-            try:
-                # Use the latest stable alias as fallback
-                fallback_name = "gemini-flash-latest"
-                print(f"Attempting fallback with {fallback_name}...")
-                fallback_model = genai.GenerativeModel(model_name=fallback_name, system_instruction=SYSTEM_PROMPT)
-                response = fallback_model.generate_content(
-                    content_items,
-                    generation_config=genai.GenerationConfig(response_mime_type="application/json", temperature=0.0),
-                )
-                return self._parse_json(response.text)
-            except Exception as e:
-                # If it's a 429, we should propagate that specifically
-                if "429" in str(first_err):
-                    raise Exception(f"Quota exceeded (429). Please check your Gemini API billing/limits. {first_err}")
-                raise Exception(f"Gemini error: {str(first_err)} -> Fallback error: {str(e)}")
+            return {"doc_type": doc_type, "data": self._parse_json(response.text)}
+        except Exception as e:
+            print(f"Extraction error: {e}")
+            raise e
 
     def _parse_json(self, text: str) -> dict:
         try:
             return json.loads(text)
         except json.JSONDecodeError:
-            # Fallback cleanup for occasional hallucinations
             text = text.strip()
             if text.startswith("```"):
                 text = text.split("```")[1]

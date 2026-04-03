@@ -25,7 +25,6 @@ export async function proxy(request: NextRequest) {
 
   const isPublicRoute = publicRoutes.includes(pathname);
 
-
   if (!sessionToken && !isPublicRoute) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }

@@ -40,3 +40,4 @@ pnpm-debug.log*
 .content-collections
 .DS_Store
 *.pem
+/expent.db

@@ -1,5 +1,5 @@
-import { AuthPage } from "@/components/auth-page";
-import { SignIn } from "@/components/signIn";
+import { AuthPage } from "@/components/auth/auth-page";
+import { SignIn } from "@/components/auth/signIn";
 
 export default function SignInPage() {
   return (

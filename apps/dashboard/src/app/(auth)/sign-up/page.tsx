@@ -1,5 +1,5 @@
-import { AuthPage } from "@/components/auth-page";
-import { SignUp } from "@/components/signUp";
+import { AuthPage } from "@/components/auth/auth-page";
+import { SignUp } from "@/components/auth/signUp";
 
 export default function SignUpPage() {
   return (

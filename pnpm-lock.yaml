@@ -21,7 +21,7 @@ importers:
         specifier: 6.0.2
         version: 6.0.2
 
-  apps/app:
+  apps/dashboard:
     dependencies:
       '@better-auth/passkey':
         specifier: ^1.5.6

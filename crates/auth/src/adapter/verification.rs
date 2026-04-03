@@ -4,7 +4,7 @@ use better_auth::types_mod::{
     AuthError, AuthResult, CreateVerification, Verification, VerificationOps,
 };
 use chrono::Utc;
-use db::entities::verification;
+use db::entities::verifications;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 #[async_trait]
@@ -18,7 +18,7 @@ impl VerificationOps for SqliteAdapter {
         let id = uuid::Uuid::now_v7().to_string();
         let now = Utc::now();
 
-        let active_model = verification::ActiveModel {
+        let active_model = verifications::ActiveModel {
             id: Set(id.clone()),
             identifier: Set(data.identifier.clone()),
             value: Set(data.value.clone()),
@@ -46,9 +46,9 @@ impl VerificationOps for SqliteAdapter {
         identifier: &str,
         value: &str,
     ) -> AuthResult<Option<Self::Verification>> {
-        let model = verification::Entity::find()
-            .filter(verification::Column::Identifier.eq(identifier))
-            .filter(verification::Column::Value.eq(value))
+        let model = verifications::Entity::find()
+            .filter(verifications::Column::Identifier.eq(identifier))
+            .filter(verifications::Column::Value.eq(value))
             .one(&self.db)
             .await
             .map_err(|e| {
@@ -62,8 +62,8 @@ impl VerificationOps for SqliteAdapter {
         &self,
         value: &str,
     ) -> AuthResult<Option<Self::Verification>> {
-        let model = verification::Entity::find()
-            .filter(verification::Column::Value.eq(value))
+        let model = verifications::Entity::find()
+            .filter(verifications::Column::Value.eq(value))
             .one(&self.db)
             .await
             .map_err(|e| {
@@ -86,7 +86,7 @@ impl VerificationOps for SqliteAdapter {
     }
 
     async fn delete_verification(&self, id: &str) -> AuthResult<()> {
-        verification::Entity::delete_by_id(id.to_string())
+        verifications::Entity::delete_by_id(id.to_string())
             .exec(&self.db)
             .await
             .map_err(|e| {
@@ -96,8 +96,8 @@ impl VerificationOps for SqliteAdapter {
     }
 
     async fn delete_expired_verifications(&self) -> AuthResult<usize> {
-        let res = verification::Entity::delete_many()
-            .filter(verification::Column::ExpiresAt.lt(Utc::now()))
+        let res = verifications::Entity::delete_many()
+            .filter(verifications::Column::ExpiresAt.lt(Utc::now()))
             .exec(&self.db)
             .await
             .map_err(|e| {
@@ -107,7 +107,7 @@ impl VerificationOps for SqliteAdapter {
     }
 }
 
-fn map_model_to_verification(m: verification::Model) -> Verification {
+fn map_model_to_verification(m: verifications::Model) -> Verification {
     Verification {
         id: m.id,
         identifier: m.identifier,
