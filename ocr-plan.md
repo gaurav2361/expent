@@ -167,7 +167,7 @@ Update your `extract_from_bytes` method to first classify the image, then route 
 ```python
 # Pseudo-code for core.py logic
 
-# Step 1: Fast Classification (Using gemini-2.0-flash)
+# Step 1: Fast Classification (Using gemini-2.5-flash)
 classification_prompt = "Look at this image. Is it a generic paper retail receipt, or a Google Pay digital screenshot? Reply with exactly 'GENERIC' or 'GPAY'."
 classification = await model.generate_content([classification_prompt, image_data])
 

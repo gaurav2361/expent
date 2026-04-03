@@ -6,8 +6,9 @@ class GPayExtraction(BaseModel):
     # Core Ledger Data
     amount: float
     direction: Literal["IN", "OUT"]  # "OUT" if "To", "IN" if "From"
-    datetime_str: str = Field(description="Exact date and time string e.g. '11 Mar 2026, 1:51 pm'")
+    datetime_str: Optional[str] = Field(None, description="Exact date and time string e.g. '11 Mar 2026, 1:51 pm'")
     status: Literal["COMPLETED", "PENDING", "FAILED"]
+
 
     # Counterparty Info (The person/business you are interacting with)
     counterparty_name: str = Field(description="Name of the person or business")

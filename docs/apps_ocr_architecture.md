@@ -23,7 +23,7 @@ Traditional heuristic parsers remain highly effective.
 ### Tier 2: Vision Model Re-Structure
 OCR text dumps are inherently unstructured and hard to query.
 - The `google.generativeai` package bridges this.
-- Providing Gemini (`gemini-2.0-flash` typically) the original image/PDF binary alongside the **Harvested Context** generated from Tier 1 heavily reduces hallucination rates. 
+- Providing Gemini (`gemini-2.5-flash` typically) the original image/PDF binary alongside the **Harvested Context** generated from Tier 1 heavily reduces hallucination rates. 
 - Using predefined prompt instructions (`SYSTEM_PROMPT`), the Python runtime demands a strict serialization conforming to Expent's expected format (detecting `grand_total`, `date`, `vendor`, and `amount`).
 
 ---
