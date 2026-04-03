@@ -504,7 +504,7 @@ async fn process_image_ocr_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Json(payload): Json<ProcessImageOcrRequest>,
-) -> Result<Json<db::entities::transaction::Model>, (StatusCode, String)> {
+) -> Result<Json<db::entities::transactions::Model>, (StatusCode, String)> {
     // Security check: Ensure the key starts with the user ID to prevent IDOR
     let user_id_prefix = format!("{}/", session.user.id);
     if !payload.key.starts_with(&user_id_prefix) {
