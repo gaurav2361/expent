@@ -1,7 +1,8 @@
 import os
 import json
 import io
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import easyocr
 from typing import Dict, Any
 
@@ -15,9 +16,8 @@ from utils import get_media_type, rasterize_pdf_page, extract_pdf_text, parse_cs
 class OCREngine:
     def __init__(self, api_key: str = None):
         key = api_key or os.getenv("GOOGLE_API_KEY")
-        genai.configure(api_key=key)
+        self.client = genai.Client(api_key=key)
         self.model_name = "gemini-2.0-flash"
-        self.classifier_model = genai.GenerativeModel(model_name=self.model_name)
         self._reader = None
 
     @property
@@ -31,17 +31,23 @@ class OCREngine:
         """Classify the image/document type."""
         classification_prompt = "Look at this image. Is it a generic paper retail receipt, an invoice, a bank statement, or a Google Pay digital screenshot? Reply with exactly 'GENERIC' or 'GPAY'."
 
-        content = [classification_prompt]
-        content.append({"mime_type": media_type, "data": data})
-
         try:
-            response = self.classifier_model.generate_content(content)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=[
+                    classification_prompt,
+                    types.Part.from_bytes(data=data, mime_type=media_type)
+                ]
+            )
             result = response.text.strip().upper()
             if "GPAY" in result:
                 return "GPAY"
             return "GENERIC"
         except Exception as e:
             print(f"Classification error: {e}")
+            # If it's a quota error, we want to re-raise it so the main app handles it as 429
+            if "429" in str(e) or "quota" in str(e).lower():
+                raise e
             return "GENERIC"
 
     async def extract_from_bytes(self, data: bytes, filename: str) -> dict:
@@ -68,32 +74,25 @@ class OCREngine:
 
         if doc_type == "GPAY":
             system_prompt = GPAY_SYSTEM_PROMPT
-            response_schema = GPayExtraction
             user_prompt = "Extract Google Pay transaction data."
         else:
             system_prompt = GENERIC_SYSTEM_PROMPT
-            response_schema = GenericOCRResponse
             user_prompt = GENERIC_USER_PROMPT
-
-        model = genai.GenerativeModel(model_name=self.model_name, system_instruction=system_prompt)
 
         content_items = [user_prompt]
         if extracted_text:
             content_items.append(f"EXTRACTED CONTEXT (FROM OCR/PARSER):\n{extracted_text}")
 
-        if media_type == "application/pdf":
-            content_items.append({"mime_type": "application/pdf", "data": data})
-        elif media_type.startswith("image/"):
-            content_items.append({"mime_type": media_type, "data": data})
+        content_items.append(types.Part.from_bytes(data=data, mime_type=media_type))
 
         try:
-            response = model.generate_content(
-                content_items,
-                generation_config=genai.GenerationConfig(
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=content_items,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
                     response_mime_type="application/json",
                     temperature=0.0,
-                    # response_schema is supported in newer genai versions
-                    # but for safety let's use the schema if possible
                 ),
             )
             return {"doc_type": doc_type, "data": self._parse_json(response.text)}

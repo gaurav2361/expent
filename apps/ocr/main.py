@@ -44,8 +44,16 @@ async def extract_data(file: UploadFile):
     except HTTPException:
         raise
     except Exception as e:
+        # Check for quota exceeded errors (429)
+        error_msg = str(e)
+        if "429" in error_msg or "quota" in error_msg.lower():
+            raise HTTPException(
+                status_code=429,
+                detail=f"Gemini API quota exceeded: {error_msg}"
+            )
+        
         # Log the error in a real app
-        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {error_msg}")
 
 
 # Keep the old /ocr endpoint for backward compatibility if needed

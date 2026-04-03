@@ -542,7 +542,20 @@ async fn process_image_ocr_handler(
         .ocr_service
         .process_file(&bytes, filename, mime_type)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| {
+            // Check if this is a reqwest error with a 429 status code
+            if let Some(re) = e.downcast_ref::<reqwest::Error>() {
+                if let Some(status) = re.status() {
+                    if status == StatusCode::TOO_MANY_REQUESTS {
+                        return (
+                            StatusCode::TOO_MANY_REQUESTS,
+                            "Gemini API quota exceeded. Please try again later.".to_string(),
+                        );
+                    }
+                }
+            }
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+        })?;
 
     let processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json).map_err(|e| {
         (
