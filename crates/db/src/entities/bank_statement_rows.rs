@@ -7,7 +7,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, TS)]
 #[sea_orm(table_name = "bank_statement_rows")]
-#[ts(export, rename = "BankStatementRow", export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(
+    export,
+    rename = "BankStatementRow",
+    export_to = "../../../packages/types/src/db/generated.ts"
+)]
 
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]

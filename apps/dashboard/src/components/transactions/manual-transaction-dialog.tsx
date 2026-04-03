@@ -109,7 +109,10 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={() => createMutation.mutate()} disabled={!amount || !description || createMutation.isPending}>
+          <Button
+            onClick={() => createMutation.mutate()}
+            disabled={!amount || !description || createMutation.isPending}
+          >
             {createMutation.isPending ? "Adding..." : "Add Transaction"}
           </Button>
         </DialogFooter>

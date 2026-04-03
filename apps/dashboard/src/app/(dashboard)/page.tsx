@@ -19,7 +19,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { ReceiptTextIcon, Share2Icon, SparklesIcon, MoreVerticalIcon, Trash2Icon, PlusIcon, CheckIcon, PencilIcon, Wand2Icon } from "lucide-react";
+import {
+  ReceiptTextIcon,
+  Share2Icon,
+  SparklesIcon,
+  MoreVerticalIcon,
+  Trash2Icon,
+  PlusIcon,
+  CheckIcon,
+  PencilIcon,
+  Wand2Icon,
+} from "lucide-react";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { ManualTransactionDialog } from "@/components/transactions/manual-transaction-dialog";
@@ -262,7 +272,7 @@ export default function DashboardPage() {
     if (!file) return;
     setIsUploading(true);
     setOcrResult(null);
-    
+
     const steps = [
       { id: "1", label: "Uploading file...", status: "in-progress" },
       { id: "2", label: "Classifying document...", status: "pending" },
@@ -283,8 +293,10 @@ export default function DashboardPage() {
       if (!uploadRes.ok) throw new Error("Upload failed");
       const { key } = await uploadRes.json();
 
-      setUploadSteps((prev) => 
-        prev.map(s => s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s)
+      setUploadSteps((prev) =>
+        prev.map((s) =>
+          s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s
+        )
       );
 
       const processRes = await fetch(`${API_BASE_URL}/api/process-image-ocr`, {
@@ -295,38 +307,36 @@ export default function DashboardPage() {
       });
 
       if (!processRes.ok) throw new Error("Processing failed");
-      
-      setUploadSteps((prev) => 
-        prev.map(s => s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s)
+
+      setUploadSteps((prev) =>
+        prev.map((s) =>
+          s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s
+        )
       );
 
       const result = await processRes.json();
-      
-      setUploadSteps((prev) => 
-        prev.map(s => s.id === "3" ? { ...s, status: "completed" } : s)
-      );
+
+      setUploadSteps((prev) => prev.map((s) => (s.id === "3" ? { ...s, status: "completed" } : s)));
 
       // Map the backend result to our OcrResult structure
       setOcrResult({
         id: result.id,
         doc_type: "Standard Receipt",
-        items: [
-          { id: "1", name: result.purpose_tag || "Item 1", quantity: 1, unitPrice: parseFloat(result.amount) }
-        ],
+        items: [{ id: "1", name: result.purpose_tag || "Item 1", quantity: 1, unitPrice: parseFloat(result.amount) }],
         pricing: {
           subtotal: parseFloat(result.amount),
           total: parseFloat(result.amount),
-          currency: "INR"
+          currency: "INR",
         },
         raw_text: JSON.stringify(result, null, 2),
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       toast.success("File processed successfully!");
       setTimeout(() => setIsUploading(false), 1000);
     } catch (error) {
       console.error(error);
-      setUploadSteps((prev) => prev.map(s => s.status === "in-progress" ? { ...s, status: "failed" } : s));
+      setUploadSteps((prev) => prev.map((s) => (s.status === "in-progress" ? { ...s, status: "failed" } : s)));
       toast.error("Upload or processing failed.");
       setTimeout(() => setIsUploading(false), 2000);
     }
@@ -419,7 +429,7 @@ export default function DashboardPage() {
                 </Button>
               </div>
             </div>
-            
+
             <Card className="flex flex-col">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -451,11 +461,16 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t bg-muted/10 p-4 flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setOcrResult(null)}>Discard</Button>
-                <Button size="sm" onClick={() => {
-                  setOcrResult(null);
-                  toast.success("Transaction saved successfully!");
-                }}>
+                <Button variant="outline" size="sm" onClick={() => setOcrResult(null)}>
+                  Discard
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setOcrResult(null);
+                    toast.success("Transaction saved successfully!");
+                  }}
+                >
                   <CheckIcon className="size-4 mr-1" /> Confirm & Save
                 </Button>
               </CardFooter>
@@ -483,9 +498,9 @@ export default function DashboardPage() {
                   }
                   icon={req.status === "GROUP_INVITE" ? "users" : "receipt"}
                   metadata={[
-                    { 
-                      key: "Amount", 
-                      value: `₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}` 
+                    {
+                      key: "Amount",
+                      value: `₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}`,
                     },
                   ]}
                   confirmLabel={req.status === "GROUP_INVITE" ? "Join Group" : "Accept & Merge"}
@@ -537,10 +552,7 @@ export default function DashboardPage() {
         />
       )}
 
-      <ManualTransactionDialog
-        open={manualDialogOpen}
-        onOpenChange={setManualDialogOpen}
-      />
+      <ManualTransactionDialog open={manualDialogOpen} onOpenChange={setManualDialogOpen} />
     </>
   );
 }

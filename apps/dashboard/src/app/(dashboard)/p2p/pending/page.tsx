@@ -63,7 +63,7 @@ export default function PendingPage() {
       <div className="flex items-center justify-between">
         <h1 className="font-semibold text-lg md:text-2xl">Pending Requests</h1>
       </div>
-      
+
       {!p2pRequests || p2pRequests.length === 0 ? (
         <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-xs min-h-[400px]">
           <div className="flex flex-col items-center gap-1 text-center">

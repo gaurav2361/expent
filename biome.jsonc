@@ -32,6 +32,7 @@
       "!**/nix/store",
       "!**/.pnpm-store",
       "!**/*/generated",
+      "!**/*/generated.ts",
       "!**/node_modules",
       "!**/pnpm-lock.yaml",
       "!**/src/routeTree.gen.ts"

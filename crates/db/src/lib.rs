@@ -745,9 +745,16 @@ mod tests {
         let db_backend = db.get_database_backend();
         let schema = Schema::new(db_backend);
 
-        db.execute(db_backend.build(&schema.create_table_from_entity(entities::users::Entity))).await?;
-        db.execute(db_backend.build(&schema.create_table_from_entity(entities::transactions::Entity))).await?;
-        db.execute(db_backend.build(&schema.create_table_from_entity(entities::p2p_requests::Entity))).await?;
+        db.execute(db_backend.build(&schema.create_table_from_entity(entities::users::Entity)))
+            .await?;
+        db.execute(
+            db_backend.build(&schema.create_table_from_entity(entities::transactions::Entity)),
+        )
+        .await?;
+        db.execute(
+            db_backend.build(&schema.create_table_from_entity(entities::p2p_requests::Entity)),
+        )
+        .await?;
 
         // Create a user
         let user = entities::users::ActiveModel {
@@ -793,7 +800,10 @@ mod tests {
         SmartMerge::split_transaction(&db, "user_1", &txn_id, splits).await?;
         let duration = start.elapsed();
 
-        println!("\nBENCHMARK_RESULT: {} splits took {:?}", num_splits, duration);
+        println!(
+            "\nBENCHMARK_RESULT: {} splits took {:?}",
+            num_splits, duration
+        );
 
         Ok(())
     }

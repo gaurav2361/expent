@@ -107,7 +107,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let api_router = Router::new()
         .route("/transactions", get(list_transactions_handler))
-        .route("/transactions/manual", post(create_manual_transaction_handler))
+        .route(
+            "/transactions/manual",
+            post(create_manual_transaction_handler),
+        )
         .route("/transactions/{id}", patch(update_transaction_handler))
         .route("/transactions/{id}", delete(delete_transaction_handler))
         .route("/transactions/split", post(split_transaction_handler))
@@ -510,7 +513,8 @@ async fn process_image_ocr_handler(
     if !payload.key.starts_with(&user_id_prefix) {
         tracing::warn!(
             "🔒 Potential IDOR attempt by user {} for key {}",
-            session.user.id, payload.key
+            session.user.id,
+            payload.key
         );
         return Err((
             StatusCode::FORBIDDEN,
@@ -540,8 +544,12 @@ async fn process_image_ocr_handler(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to parse OCR response: {}", e)))?;
+    let processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to parse OCR response: {}", e),
+        )
+    })?;
 
     let result = SmartMerge::process_ocr(&state.db, &session.user.id, processed_ocr)
         .await
