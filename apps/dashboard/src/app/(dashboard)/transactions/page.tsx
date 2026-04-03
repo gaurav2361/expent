@@ -22,8 +22,6 @@ import {
 } from "@expent/ui/components/dropdown-menu";
 import { Input } from "@expent/ui/components/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
-import { Separator } from "@expent/ui/components/separator";
-import { SidebarTrigger } from "@expent/ui/components/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 import { Tabs, TabsList, TabsTrigger } from "@expent/ui/components/tabs";
 import {
