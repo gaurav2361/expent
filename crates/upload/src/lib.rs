@@ -308,4 +308,11 @@ mod tests {
             FileCategory::Unknown
         );
     }
+
+    #[test]
+    fn test_convert_to_png_error() {
+        let data = b"invalid image data";
+        let result = UploadProcessor::convert_to_png(data);
+        assert!(matches!(result, Err(UploadError::ImageError(_))));
+    }
 }
