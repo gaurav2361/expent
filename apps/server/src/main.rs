@@ -504,6 +504,19 @@ async fn process_image_ocr_handler(
     session: AuthSession,
     Json(payload): Json<ProcessImageOcrRequest>,
 ) -> Result<Json<db::entities::transaction::Model>, (StatusCode, String)> {
+    // Security check: Ensure the key starts with the user ID to prevent IDOR
+    let user_id_prefix = format!("{}/", session.user.id);
+    if !payload.key.starts_with(&user_id_prefix) {
+        tracing::warn!(
+            "🔒 Potential IDOR attempt by user {} for key {}",
+            session.user.id, payload.key
+        );
+        return Err((
+            StatusCode::FORBIDDEN,
+            "You do not have permission to access this file".to_string(),
+        ));
+    }
+
     let bytes = state
         .upload_client
         .get_file(&payload.key)
@@ -511,7 +524,7 @@ async fn process_image_ocr_handler(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     // Determine filename and mime type from the key or payload
-    let filename = payload.key.split('/').last().unwrap_or("upload");
+    let filename = payload.key.split("/").last().unwrap_or("upload");
     let mime_type = if filename.ends_with(".pdf") {
         "application/pdf"
     } else if filename.ends_with(".csv") {
