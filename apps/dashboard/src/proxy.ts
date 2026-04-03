@@ -11,15 +11,17 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // better-auth cookie names vary:
-  //   Development (HTTP):  better-auth.session_token
-  //   Production (HTTPS):  __Secure-better-auth.session_token
-  // Check all cookies for any that contain "session_token" as a fallback
+  // better-auth cookie names:
+  //   Development:  better-auth.session_token or better-auth.session-token
+  //   Production:   __Secure-better-auth.session_token or __Secure-better-auth.session-token
   const allCookies = request.cookies.getAll();
   const sessionToken = allCookies.find(
     (c) =>
+      c.name === "better-auth.session_token" ||
       c.name === "better-auth.session-token" ||
+      c.name === "__Secure-better-auth.session_token" ||
       c.name === "__Secure-better-auth.session-token" ||
+      c.name.includes("session_token") ||
       c.name.includes("session-token")
   );
 
@@ -27,10 +29,6 @@ export async function proxy(request: NextRequest) {
 
   if (!sessionToken && !isPublicRoute) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
-  }
-
-  if (sessionToken && isPublicRoute) {
-    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

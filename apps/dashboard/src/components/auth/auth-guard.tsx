@@ -14,12 +14,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [session.data, session.isPending, router]);
 
-  if (session.isPending) {
+  if (session.isPending || !session.data) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
-  }
-
-  if (!session.data) {
-    return null;
   }
 
   return <>{children}</>;

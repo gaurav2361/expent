@@ -290,7 +290,10 @@ export default function DashboardPage() {
         credentials: "include",
       });
 
-      if (!uploadRes.ok) throw new Error("Upload failed");
+      if (!uploadRes.ok) {
+        const errorData = await uploadRes.text().catch(() => "Upload failed");
+        throw new Error(errorData || "Upload failed");
+      }
       const { key } = await uploadRes.json();
 
       setUploadSteps((prev) =>
@@ -306,7 +309,13 @@ export default function DashboardPage() {
         credentials: "include",
       });
 
-      if (!processRes.ok) throw new Error("Processing failed");
+      if (!processRes.ok) {
+        if (processRes.status === 429) {
+          throw new Error("Gemini API quota exceeded. Please try again in a few minutes.");
+        }
+        const errorData = await processRes.text().catch(() => "Processing failed");
+        throw new Error(errorData || "Processing failed");
+      }
 
       setUploadSteps((prev) =>
         prev.map((s) =>
@@ -337,7 +346,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error(error);
       setUploadSteps((prev) => prev.map((s) => (s.status === "in-progress" ? { ...s, status: "failed" } : s)));
-      toast.error("Upload or processing failed.");
+      toast.error(error instanceof Error ? error.message : "Upload or processing failed.");
       setTimeout(() => setIsUploading(false), 2000);
     }
   };
