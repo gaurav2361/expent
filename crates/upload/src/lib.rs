@@ -61,7 +61,11 @@ impl UploadClient {
         content_type: &str,
         expires_in: Duration,
     ) -> Result<(String, String), UploadError> {
-        let key = format!("{}/{}-{}", user_id, Uuid::new_v4(), file_name);
+        let sanitized_name = Path::new(file_name)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unnamed");
+        let key = format!("{}/{}-{}", user_id, Uuid::new_v4(), sanitized_name);
 
         let presigning_config = PresigningConfig::expires_in(expires_in)
             .map_err(|e| UploadError::Internal(e.to_string()))?;
@@ -94,8 +98,12 @@ impl UploadClient {
             normalize_images,
         )?;
 
-        let file_name = original_name.unwrap_or_else(|| "unnamed".to_string());
-        let key = format!("{}/{}-{}", user_id, processed.id, file_name);
+        let sanitized_name = original_name
+            .as_deref()
+            .and_then(|name| Path::new(name).file_name())
+            .and_then(|n| n.to_str())
+            .unwrap_or("unnamed");
+        let key = format!("{}/{}-{}", user_id, processed.id, sanitized_name);
 
         self.s3_client
             .put_object()
@@ -307,5 +315,23 @@ mod tests {
             UploadProcessor::determine_category(b"unknown data", None, None),
             FileCategory::Unknown
         );
+    }
+
+    #[test]
+    fn test_s3_key_path_traversal_mitigated() {
+        let user_id = "user123";
+        let file_name = "../dangerous.txt";
+        let id = Uuid::new_v4();
+
+        // Simulate the fixed key generation
+        let sanitized_name = Path::new(file_name)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unnamed");
+        let key = format!("{}/{}-{}", user_id, id, sanitized_name);
+
+        // The key should NO LONGER contain "../"
+        assert!(!key.contains("../"));
+        assert_eq!(key, format!("user123/{}-dangerous.txt", id));
     }
 }
