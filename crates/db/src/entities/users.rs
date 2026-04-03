@@ -3,12 +3,16 @@
 use super::enums::GroupRole;
 
 use sea_orm::entity::prelude::*;
-use ts_rs::TS;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, TS)]
 #[sea_orm(table_name = "users")]
-#[ts(export, rename = "User", export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(
+    export,
+    rename = "User",
+    export_to = "../../../packages/types/src/db/generated.ts"
+)]
 
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]

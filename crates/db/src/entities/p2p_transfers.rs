@@ -7,7 +7,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, TS)]
 #[sea_orm(table_name = "p2p_transfers")]
-#[ts(export, rename = "P2PTransfer", export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(
+    export,
+    rename = "P2PTransfer",
+    export_to = "../../../packages/types/src/db/generated.ts"
+)]
 
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
