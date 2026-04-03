@@ -17,7 +17,7 @@ class OCREngine:
     def __init__(self, api_key: str = None):
         key = api_key or os.getenv("GOOGLE_API_KEY")
         self.client = genai.Client(api_key=key)
-        self.model_name = "gemini-2.0-flash"
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self._reader = None
 
     @property
@@ -74,9 +74,11 @@ class OCREngine:
 
         if doc_type == "GPAY":
             system_prompt = GPAY_SYSTEM_PROMPT
+            response_schema = GPayExtraction
             user_prompt = "Extract Google Pay transaction data."
         else:
             system_prompt = GENERIC_SYSTEM_PROMPT
+            response_schema = GenericOCRResponse
             user_prompt = GENERIC_USER_PROMPT
 
         content_items = [user_prompt]
@@ -92,10 +94,19 @@ class OCREngine:
                 config=types.GenerateContentConfig(
                     system_instruction=system_prompt,
                     response_mime_type="application/json",
+                    response_schema=response_schema,
                     temperature=0.0,
                 ),
             )
-            return {"doc_type": doc_type, "data": self._parse_json(response.text)}
+            result_data = self._parse_json(response.text)
+            
+            # Ensure raw_text is populated for Generic results if Gemini skipped it
+            if doc_type == "GENERIC" and not result_data.get("raw_text") and extracted_text:
+                result_data["raw_text"] = extracted_text
+            elif doc_type == "GENERIC" and not result_data.get("raw_text"):
+                result_data["raw_text"] = "No text extracted"
+
+            return {"doc_type": doc_type, "data": result_data}
         except Exception as e:
             print(f"Extraction error: {e}")
             raise e
