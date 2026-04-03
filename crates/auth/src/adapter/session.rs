@@ -2,7 +2,7 @@ use crate::adapter::SqliteAdapter;
 use async_trait::async_trait;
 use better_auth::types_mod::{AuthError, AuthResult, CreateSession, Session, SessionOps};
 use chrono::{DateTime, Utc};
-use db::entities::session;
+use db::entities::sessions;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, prelude::Expr};
 
 #[async_trait]
@@ -14,7 +14,7 @@ impl SessionOps for SqliteAdapter {
         let token = format!("session_{}", uuid::Uuid::now_v7());
         let now = Utc::now();
 
-        let active_model = session::ActiveModel {
+        let active_model = sessions::ActiveModel {
             id: Set(id.clone()),
             expires_at: Set(data.expires_at.into()),
             token: Set(token.clone()),
@@ -45,8 +45,8 @@ impl SessionOps for SqliteAdapter {
     }
 
     async fn get_session(&self, token: &str) -> AuthResult<Option<Self::Session>> {
-        let model = session::Entity::find()
-            .filter(session::Column::Token.eq(token))
+        let model = sessions::Entity::find()
+            .filter(sessions::Column::Token.eq(token))
             .one(&self.db)
             .await
             .map_err(|e| {
@@ -57,8 +57,8 @@ impl SessionOps for SqliteAdapter {
     }
 
     async fn get_user_sessions(&self, user_id: &str) -> AuthResult<Vec<Self::Session>> {
-        let models = session::Entity::find()
-            .filter(session::Column::UserId.eq(user_id))
+        let models = sessions::Entity::find()
+            .filter(sessions::Column::UserId.eq(user_id))
             .all(&self.db)
             .await
             .map_err(|e| {
@@ -73,10 +73,10 @@ impl SessionOps for SqliteAdapter {
         token: &str,
         expires_at: DateTime<Utc>,
     ) -> AuthResult<()> {
-        session::Entity::update_many()
-            .col_expr(session::Column::ExpiresAt, Expr::value(expires_at))
-            .col_expr(session::Column::UpdatedAt, Expr::value(Utc::now()))
-            .filter(session::Column::Token.eq(token))
+        sessions::Entity::update_many()
+            .col_expr(sessions::Column::ExpiresAt, Expr::value(expires_at))
+            .col_expr(sessions::Column::UpdatedAt, Expr::value(Utc::now()))
+            .filter(sessions::Column::Token.eq(token))
             .exec(&self.db)
             .await
             .map_err(|e| {
@@ -86,8 +86,8 @@ impl SessionOps for SqliteAdapter {
     }
 
     async fn delete_session(&self, token: &str) -> AuthResult<()> {
-        session::Entity::delete_many()
-            .filter(session::Column::Token.eq(token))
+        sessions::Entity::delete_many()
+            .filter(sessions::Column::Token.eq(token))
             .exec(&self.db)
             .await
             .map_err(|e| {
@@ -97,8 +97,8 @@ impl SessionOps for SqliteAdapter {
     }
 
     async fn delete_user_sessions(&self, user_id: &str) -> AuthResult<()> {
-        session::Entity::delete_many()
-            .filter(session::Column::UserId.eq(user_id))
+        sessions::Entity::delete_many()
+            .filter(sessions::Column::UserId.eq(user_id))
             .exec(&self.db)
             .await
             .map_err(|e| {
@@ -108,8 +108,8 @@ impl SessionOps for SqliteAdapter {
     }
 
     async fn delete_expired_sessions(&self) -> AuthResult<usize> {
-        let res = session::Entity::delete_many()
-            .filter(session::Column::ExpiresAt.lt(Utc::now()))
+        let res = sessions::Entity::delete_many()
+            .filter(sessions::Column::ExpiresAt.lt(Utc::now()))
             .exec(&self.db)
             .await
             .map_err(|e| {
@@ -127,7 +127,7 @@ impl SessionOps for SqliteAdapter {
     }
 }
 
-fn map_model_to_session(m: session::Model) -> Session {
+fn map_model_to_session(m: sessions::Model) -> Session {
     Session {
         id: m.id,
         user_id: m.user_id,

@@ -1,6 +1,6 @@
 use crate::entities::enums::{
-    GroupRole, P2PRequestStatus, SubscriptionCycle, TransactionDirection, TransactionSource,
-    TransactionStatus,
+    GroupRole, LedgerTabStatus, LedgerTabType, P2PRequestStatus, SubscriptionCycle,
+    TransactionDirection, TransactionSource, TransactionStatus, WalletType,
 };
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use rust_decimal::Decimal;
@@ -13,7 +13,7 @@ use std::str::FromStr;
 pub mod entities;
 
 /// Represents a single line item in a purchase, typically extracted via OCR.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LineItem {
     pub name: String,
     pub quantity: i32,
@@ -21,7 +21,7 @@ pub struct LineItem {
 }
 
 /// The result of an OCR process, containing raw text and extracted transaction details.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OcrResult {
     pub raw_text: String,
     pub amount: Option<Decimal>,
@@ -29,6 +29,29 @@ pub struct OcrResult {
     pub upi_id: Option<String>,
     #[serde(default)]
     pub items: Vec<LineItem>,
+}
+
+/// Specialized extraction for Google Pay screenshots.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GPayExtraction {
+    pub amount: Decimal,
+    pub direction: String, // "IN" | "OUT"
+    pub datetime_str: String,
+    pub status: String,
+    pub counterparty_name: String,
+    pub counterparty_phone: Option<String>,
+    pub counterparty_upi_id: Option<String>,
+    pub is_merchant: bool,
+    pub upi_transaction_id: Option<String>,
+    pub google_transaction_id: Option<String>,
+    pub source_bank_account: Option<String>,
+}
+
+/// Unified OCR data from the Python worker.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProcessedOcr {
+    pub doc_type: String, // "GPAY" or "GENERIC"
+    pub data: serde_json::Value,
 }
 
 /// Details for splitting a transaction among multiple users.
@@ -46,20 +69,81 @@ impl SmartMerge {
     pub async fn process_ocr(
         db: &DatabaseConnection,
         user_id: &str,
-        ocr_data: OcrResult,
-    ) -> Result<entities::transaction::Model, DbErr> {
+        processed: ProcessedOcr,
+    ) -> Result<entities::transactions::Model, DbErr> {
+        if processed.doc_type == "GPAY" {
+            let gpay: GPayExtraction = serde_json::from_value(processed.data.clone())
+                .map_err(|e| DbErr::Custom(format!("Failed to parse GPay data: {}", e)))?;
+
+            let direction = if gpay.direction == "IN" {
+                TransactionDirection::In
+            } else {
+                TransactionDirection::Out
+            };
+
+            let txn = entities::transactions::ActiveModel {
+                id: Set(uuid::Uuid::now_v7().to_string()),
+                user_id: Set(user_id.to_string()),
+                amount: Set(gpay.amount),
+                direction: Set(direction),
+                date: Set(Utc::now().into()), // Should parse gpay.datetime_str if possible
+                source: Set(TransactionSource::Ocr),
+                status: Set(TransactionStatus::Completed),
+                purpose_tag: Set(Some(gpay.counterparty_name.clone())),
+                group_id: Set(None),
+                source_wallet_id: Set(None),
+                destination_wallet_id: Set(None),
+                ledger_tab_id: Set(None),
+                deleted_at: Set(None),
+            };
+
+            let result = txn.insert(db).await?;
+
+            let p2p = entities::p2p_transfers::ActiveModel {
+                id: Set(uuid::Uuid::now_v7().to_string()),
+                transaction_id: Set(result.id.clone()),
+                direction: Set(gpay.direction),
+                counterparty_name: Set(gpay.counterparty_name.clone()),
+                counterparty_phone: Set(gpay.counterparty_phone),
+                counterparty_upi_id: Set(gpay.counterparty_upi_id),
+                is_merchant: Set(gpay.is_merchant),
+                upi_transaction_id: Set(gpay.upi_transaction_id),
+                google_transaction_id: Set(gpay.google_transaction_id),
+                source_bank_account: Set(gpay.source_bank_account),
+            };
+            p2p.insert(db).await?;
+
+            if gpay.is_merchant {
+                let purchase = entities::purchases::ActiveModel {
+                    id: Set(uuid::Uuid::now_v7().to_string()),
+                    transaction_id: Set(result.id.clone()),
+                    vendor: Set(gpay.counterparty_name),
+                    total: Set(gpay.amount),
+                    order_id: Set(None),
+                };
+                purchase.insert(db).await?;
+            }
+
+            return Ok(result);
+        }
+
+        // GENERIC logic
+        let ocr_data: OcrResult = serde_json::from_value(processed.data.clone())
+            .map_err(|e| DbErr::Custom(format!("Failed to parse Generic OCR data: {}", e)))?;
+
         let start_date = ocr_data.date.map(|d| d - Duration::hours(48));
         let end_date = ocr_data.date.map(|d| d + Duration::hours(48));
 
-        let mut query = entities::transaction::Entity::find()
-            .filter(entities::transaction::Column::UserId.eq(user_id));
+        let mut query = entities::transactions::Entity::find()
+            .filter(entities::transactions::Column::UserId.eq(user_id))
+            .filter(entities::transactions::Column::DeletedAt.is_null());
 
         if let Some(amount) = ocr_data.amount {
-            query = query.filter(entities::transaction::Column::Amount.eq(amount));
+            query = query.filter(entities::transactions::Column::Amount.eq(amount));
         }
 
         if let (Some(start), Some(end)) = (start_date, end_date) {
-            query = query.filter(entities::transaction::Column::Date.between(start, end));
+            query = query.filter(entities::transactions::Column::Date.between(start, end));
         }
 
         let existing_txns = query.all(db).await?;
@@ -69,7 +153,7 @@ impl SmartMerge {
 
         let txn = if !existing_txns.is_empty() {
             let existing = existing_txns[0].clone();
-            let source = entities::transaction_source::ActiveModel {
+            let source = entities::transaction_sources::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 transaction_id: Set(existing.id.clone()),
                 source_type: Set("OCR_SCREENSHOT_MERGED".to_string()),
@@ -79,7 +163,7 @@ impl SmartMerge {
             source.insert(db).await?;
             existing
         } else {
-            let new_txn = entities::transaction::ActiveModel {
+            let new_txn = entities::transactions::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 user_id: Set(user_id.to_string()),
                 amount: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
@@ -89,6 +173,10 @@ impl SmartMerge {
                 status: Set(TransactionStatus::Completed),
                 purpose_tag: Set(None),
                 group_id: Set(None),
+                source_wallet_id: Set(None),
+                destination_wallet_id: Set(None),
+                ledger_tab_id: Set(None),
+                deleted_at: Set(None),
             };
 
             let result = new_txn.insert(db).await?;
@@ -102,7 +190,7 @@ impl SmartMerge {
             };
             metadata.insert(db).await?;
 
-            let source = entities::transaction_source::ActiveModel {
+            let source = entities::transaction_sources::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 transaction_id: Set(result.id.clone()),
                 source_type: Set("OCR_SCREENSHOT".to_string()),
@@ -114,7 +202,7 @@ impl SmartMerge {
         };
 
         if !ocr_data.items.is_empty() {
-            let purchase = entities::purchase::ActiveModel {
+            let purchase = entities::purchases::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 transaction_id: Set(txn.id.clone()),
                 vendor: Set("Extracted Vendor".to_string()),
@@ -124,7 +212,7 @@ impl SmartMerge {
             let p_result = purchase.insert(db).await?;
 
             for item in ocr_data.items {
-                let p_item = entities::purchase_item::ActiveModel {
+                let p_item = entities::purchase_items::ActiveModel {
                     id: Set(uuid::Uuid::now_v7().to_string()),
                     purchase_id: Set(p_result.id.clone()),
                     name: Set(item.name),
@@ -145,8 +233,8 @@ impl SmartMerge {
         sender_id: &str,
         receiver_email: &str,
         txn_id: &str,
-    ) -> Result<entities::p2p_request::Model, DbErr> {
-        let txn = entities::transaction::Entity::find_by_id(txn_id.to_string())
+    ) -> Result<entities::p2p_requests::Model, DbErr> {
+        let txn = entities::transactions::Entity::find_by_id(txn_id.to_string())
             .one(db)
             .await?
             .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
@@ -154,12 +242,12 @@ impl SmartMerge {
         let txn_json = serde_json::to_value(&txn)
             .map_err(|e| DbErr::Custom(format!("Failed to serialize transaction: {}", e)))?;
 
-        let request = entities::p2p_request::ActiveModel {
+        let request = entities::p2p_requests::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
             sender_user_id: Set(sender_id.to_string()),
             receiver_email: Set(receiver_email.to_string()),
             transaction_data: Set(txn_json),
-            status: Set(P2PRequestStatus::Pending),
+            status: Set(P2PRequestStatus::Pending.to_string()),
             linked_txn_id: Set(None),
         };
 
@@ -172,15 +260,15 @@ impl SmartMerge {
         sender_id: &str,
         txn_id: &str,
         splits: Vec<SplitDetail>,
-    ) -> Result<Vec<entities::p2p_request::Model>, DbErr> {
-        let txn = entities::transaction::Entity::find_by_id(txn_id.to_string())
+    ) -> Result<Vec<entities::p2p_requests::Model>, DbErr> {
+        let txn = entities::transactions::Entity::find_by_id(txn_id.to_string())
             .one(db)
             .await?
             .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
 
-        let requests: Vec<entities::p2p_request::ActiveModel> = splits
-            .into_iter()
-            .map(|split| entities::p2p_request::ActiveModel {
+        let mut results = Vec::new();
+        for split in splits {
+            let request = entities::p2p_requests::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 sender_user_id: Set(sender_id.to_string()),
                 receiver_email: Set(split.receiver_email),
@@ -189,18 +277,12 @@ impl SmartMerge {
                     "date": txn.date,
                     "purpose": format!("Split for {}", txn.purpose_tag.as_deref().unwrap_or("Expense"))
                 })),
-                status: Set(P2PRequestStatus::Pending),
+                status: Set(P2PRequestStatus::Pending.to_string()),
                 linked_txn_id: Set(None),
-            })
-            .collect();
-
-        if requests.is_empty() {
-            return Ok(Vec::new());
+            };
+            let result = request.insert(db).await?;
+            results.push(result);
         }
-
-        let results = entities::p2p_request::Entity::insert_many(requests)
-            .exec_with_returning(db)
-            .await?;
 
         Ok(results)
     }
@@ -210,19 +292,19 @@ impl SmartMerge {
         db: &DatabaseConnection,
         receiver_id: &str,
         request_id: &str,
-    ) -> Result<entities::p2p_request::Model, DbErr> {
-        let request = entities::p2p_request::Entity::find_by_id(request_id.to_string())
+    ) -> Result<entities::p2p_requests::Model, DbErr> {
+        let request = entities::p2p_requests::Entity::find_by_id(request_id.to_string())
             .one(db)
             .await?
             .ok_or_else(|| DbErr::Custom("Request not found".to_string()))?;
 
-        if request.status != P2PRequestStatus::Pending
-            && request.status != P2PRequestStatus::GroupInvite
+        if request.status != P2PRequestStatus::Pending.to_string()
+            && request.status != P2PRequestStatus::GroupInvite.to_string()
         {
             return Err(DbErr::Custom("Request is not pending".to_string()));
         }
 
-        if request.status == P2PRequestStatus::GroupInvite {
+        if request.status == P2PRequestStatus::GroupInvite.to_string() {
             let metadata: serde_json::Value =
                 serde_json::from_value(request.transaction_data.clone())
                     .map_err(|e| DbErr::Custom(format!("Failed to parse invite data: {}", e)))?;
@@ -231,15 +313,15 @@ impl SmartMerge {
                 .as_str()
                 .ok_or_else(|| DbErr::Custom("Missing group_id in invite".to_string()))?;
 
-            let user_group = entities::user_group::ActiveModel {
+            let user_group = entities::user_groups::ActiveModel {
                 user_id: Set(receiver_id.to_string()),
                 group_id: Set(group_id.to_string()),
-                role: Set(GroupRole::Member),
+                role: Set(GroupRole::Member.to_string()),
             };
             user_group.insert(db).await?;
 
-            let mut request: entities::p2p_request::ActiveModel = request.into();
-            request.status = Set(P2PRequestStatus::Approved);
+            let mut request: entities::p2p_requests::ActiveModel = request.into();
+            request.status = Set(P2PRequestStatus::Approved.to_string());
             return request.update(db).await;
         }
 
@@ -247,7 +329,7 @@ impl SmartMerge {
             serde_json::from_value(request.transaction_data.clone())
                 .map_err(|e| DbErr::Custom(format!("Failed to parse transaction data: {}", e)))?;
 
-        let mirrored_txn = entities::transaction::ActiveModel {
+        let mirrored_txn = entities::transactions::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
             user_id: Set(receiver_id.to_string()),
             amount: Set(original_txn["amount"]
@@ -264,12 +346,16 @@ impl SmartMerge {
             status: Set(TransactionStatus::Completed),
             purpose_tag: Set(original_txn["purpose"].as_str().map(|s| s.to_string())),
             group_id: Set(None),
+            source_wallet_id: Set(None),
+            destination_wallet_id: Set(None),
+            ledger_tab_id: Set(None),
+            deleted_at: Set(None),
         };
 
         let result_txn = mirrored_txn.insert(db).await?;
 
-        let mut request: entities::p2p_request::ActiveModel = request.into();
-        request.status = Set(P2PRequestStatus::Mapped);
+        let mut request: entities::p2p_requests::ActiveModel = request.into();
+        request.status = Set(P2PRequestStatus::Mapped.to_string());
         request.linked_txn_id = Set(Some(result_txn.id));
 
         request.update(db).await
@@ -279,11 +365,11 @@ impl SmartMerge {
     pub async fn detect_subscriptions(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::subscription::Model>, DbErr> {
+    ) -> Result<Vec<entities::subscriptions::Model>, DbErr> {
         let ninety_days_ago = Utc::now() - Duration::days(90);
-        let transactions = entities::transaction::Entity::find()
-            .filter(entities::transaction::Column::UserId.eq(user_id))
-            .filter(entities::transaction::Column::Date.gte(ninety_days_ago))
+        let transactions = entities::transactions::Entity::find()
+            .filter(entities::transactions::Column::UserId.eq(user_id))
+            .filter(entities::transactions::Column::Date.gte(ninety_days_ago))
             .all(db)
             .await?;
 
@@ -321,12 +407,12 @@ impl SmartMerge {
                         _ => last_date + Duration::days(30),
                     };
 
-                    let sub = entities::subscription::Model {
+                    let sub = entities::subscriptions::Model {
                         id: uuid::Uuid::now_v7().to_string(),
                         user_id: user_id.to_string(),
                         name: name.clone(),
                         amount,
-                        cycle,
+                        cycle: cycle.to_string(),
                         start_date: dates[0],
                         next_charge_date: next_charge,
                         detection_keywords: None,
@@ -342,10 +428,11 @@ impl SmartMerge {
     pub async fn list_transactions(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::transaction::Model>, DbErr> {
-        entities::transaction::Entity::find()
-            .filter(entities::transaction::Column::UserId.eq(user_id))
-            .order_by_desc(entities::transaction::Column::Date)
+    ) -> Result<Vec<entities::transactions::Model>, DbErr> {
+        entities::transactions::Entity::find()
+            .filter(entities::transactions::Column::UserId.eq(user_id))
+            .filter(entities::transactions::Column::DeletedAt.is_null())
+            .order_by_desc(entities::transactions::Column::Date)
             .all(db)
             .await
     }
@@ -353,10 +440,10 @@ impl SmartMerge {
     pub async fn list_pending_p2p_requests(
         db: &DatabaseConnection,
         email: &str,
-    ) -> Result<Vec<entities::p2p_request::Model>, DbErr> {
-        entities::p2p_request::Entity::find()
-            .filter(entities::p2p_request::Column::ReceiverEmail.eq(email))
-            .filter(entities::p2p_request::Column::Status.is_in(["PENDING", "GROUP_INVITE"]))
+    ) -> Result<Vec<entities::p2p_requests::Model>, DbErr> {
+        entities::p2p_requests::Entity::find()
+            .filter(entities::p2p_requests::Column::ReceiverEmail.eq(email))
+            .filter(entities::p2p_requests::Column::Status.is_in(["PENDING", "GROUP_INVITE"]))
             .all(db)
             .await
     }
@@ -366,8 +453,8 @@ impl SmartMerge {
         user_id: &str,
         name: &str,
         description: Option<String>,
-    ) -> Result<entities::group::Model, DbErr> {
-        let group = entities::group::ActiveModel {
+    ) -> Result<entities::groups::Model, DbErr> {
+        let group = entities::groups::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
             name: Set(name.to_string()),
             description: Set(description),
@@ -375,10 +462,10 @@ impl SmartMerge {
         };
         let result = group.insert(db).await?;
 
-        let user_group = entities::user_group::ActiveModel {
+        let user_group = entities::user_groups::ActiveModel {
             user_id: Set(user_id.to_string()),
             group_id: Set(result.id.clone()),
-            role: Set(GroupRole::Admin),
+            role: Set(GroupRole::Admin.to_string()),
         };
         user_group.insert(db).await?;
 
@@ -390,13 +477,13 @@ impl SmartMerge {
         sender_id: &str,
         receiver_email: &str,
         group_id: &str,
-    ) -> Result<entities::p2p_request::Model, DbErr> {
-        let group = entities::group::Entity::find_by_id(group_id.to_string())
+    ) -> Result<entities::p2p_requests::Model, DbErr> {
+        let group = entities::groups::Entity::find_by_id(group_id.to_string())
             .one(db)
             .await?
             .ok_or(DbErr::Custom("Group not found".to_string()))?;
 
-        let request = entities::p2p_request::ActiveModel {
+        let request = entities::p2p_requests::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
             sender_user_id: Set(sender_id.to_string()),
             receiver_email: Set(receiver_email.to_string()),
@@ -405,7 +492,7 @@ impl SmartMerge {
                 "group_id": group.id,
                 "group_name": group.name
             })),
-            status: Set(P2PRequestStatus::GroupInvite),
+            status: Set(P2PRequestStatus::GroupInvite.to_string()),
             linked_txn_id: Set(None),
         };
 
@@ -415,10 +502,10 @@ impl SmartMerge {
     pub async fn list_groups(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::group::Model>, DbErr> {
-        entities::group::Entity::find()
-            .inner_join(entities::user_group::Entity)
-            .filter(entities::user_group::Column::UserId.eq(user_id))
+    ) -> Result<Vec<entities::groups::Model>, DbErr> {
+        entities::groups::Entity::find()
+            .inner_join(entities::user_groups::Entity)
+            .filter(entities::user_groups::Column::UserId.eq(user_id))
             .all(db)
             .await
     }
@@ -426,10 +513,11 @@ impl SmartMerge {
     pub async fn list_group_transactions(
         db: &DatabaseConnection,
         group_id: &str,
-    ) -> Result<Vec<entities::transaction::Model>, DbErr> {
-        entities::transaction::Entity::find()
-            .filter(entities::transaction::Column::GroupId.eq(group_id))
-            .order_by_desc(entities::transaction::Column::Date)
+    ) -> Result<Vec<entities::transactions::Model>, DbErr> {
+        entities::transactions::Entity::find()
+            .filter(entities::transactions::Column::GroupId.eq(group_id))
+            .filter(entities::transactions::Column::DeletedAt.is_null())
+            .order_by_desc(entities::transactions::Column::Date)
             .all(db)
             .await
     }
@@ -442,8 +530,8 @@ impl SmartMerge {
         date: Option<DateTimeWithTimeZone>,
         purpose_tag: Option<String>,
         status: Option<TransactionStatus>,
-    ) -> Result<entities::transaction::Model, DbErr> {
-        let txn = entities::transaction::Entity::find_by_id(txn_id.to_string())
+    ) -> Result<entities::transactions::Model, DbErr> {
+        let txn = entities::transactions::Entity::find_by_id(txn_id.to_string())
             .one(db)
             .await?
             .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
@@ -452,9 +540,21 @@ impl SmartMerge {
             return Err(DbErr::Custom("Unauthorized".to_string()));
         }
 
-        let mut txn: entities::transaction::ActiveModel = txn.into();
+        let old_amount = txn.amount;
+        let mut txn: entities::transactions::ActiveModel = txn.into();
 
         if let Some(amt) = amount {
+            if amt != old_amount {
+                // Log the edit
+                let edit = entities::transaction_edits::ActiveModel {
+                    id: Set(uuid::Uuid::now_v7().to_string()),
+                    transaction_id: Set(txn.id.as_ref().to_string()),
+                    old_amount: Set(old_amount),
+                    new_amount: Set(amt),
+                    edited_at: Set(Utc::now().into()),
+                };
+                edit.insert(db).await?;
+            }
             txn.amount = Set(amt);
         }
         if let Some(dt) = date {
@@ -475,7 +575,7 @@ impl SmartMerge {
         user_id: &str,
         txn_id: &str,
     ) -> Result<u64, DbErr> {
-        let txn = entities::transaction::Entity::find_by_id(txn_id.to_string())
+        let txn = entities::transactions::Entity::find_by_id(txn_id.to_string())
             .one(db)
             .await?
             .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
@@ -484,11 +584,151 @@ impl SmartMerge {
             return Err(DbErr::Custom("Unauthorized".to_string()));
         }
 
-        let result = entities::transaction::Entity::delete_by_id(txn_id.to_string())
-            .exec(db)
-            .await?;
+        let mut txn: entities::transactions::ActiveModel = txn.into();
+        txn.deleted_at = Set(Some(Utc::now().into()));
+        txn.update(db).await?;
 
-        Ok(result.rows_affected)
+        Ok(1)
+    }
+
+    pub async fn revert_transaction(
+        db: &DatabaseConnection,
+        user_id: &str,
+        txn_id: &str,
+    ) -> Result<entities::transactions::Model, DbErr> {
+        let txn = entities::transactions::Entity::find_by_id(txn_id.to_string())
+            .one(db)
+            .await?
+            .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
+
+        if txn.user_id != user_id {
+            return Err(DbErr::Custom("Unauthorized".to_string()));
+        }
+
+        let mut txn: entities::transactions::ActiveModel = txn.into();
+        txn.deleted_at = Set(None);
+        txn.update(db).await
+    }
+
+    pub async fn register_repayment(
+        db: &DatabaseConnection,
+        user_id: &str,
+        tab_id: &str,
+        amount: Decimal,
+        source_wallet_id: Option<String>,
+    ) -> Result<entities::transactions::Model, DbErr> {
+        let tab = entities::ledger_tabs::Entity::find_by_id(tab_id.to_string())
+            .one(db)
+            .await?
+            .ok_or_else(|| DbErr::Custom("Ledger tab not found".to_string()))?;
+
+        let txn = entities::transactions::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            user_id: Set(user_id.to_string()),
+            amount: Set(amount),
+            direction: Set(TransactionDirection::In),
+            date: Set(Utc::now().into()),
+            source: Set(TransactionSource::Manual),
+            status: Set(TransactionStatus::Completed),
+            purpose_tag: Set(Some(format!("Repayment for: {}", tab.title))),
+            group_id: Set(None),
+            source_wallet_id: Set(source_wallet_id),
+            destination_wallet_id: Set(None),
+            ledger_tab_id: Set(Some(tab.id.clone())),
+            deleted_at: Set(None),
+        };
+
+        let result = txn.insert(db).await?;
+
+        let total_paid: Decimal = entities::transactions::Entity::find()
+            .filter(entities::transactions::Column::LedgerTabId.eq(tab.id.clone()))
+            .filter(entities::transactions::Column::DeletedAt.is_null())
+            .all(db)
+            .await?
+            .iter()
+            .map(|t| t.amount)
+            .sum();
+
+        if total_paid >= tab.target_amount {
+            let mut tab: entities::ledger_tabs::ActiveModel = tab.into();
+            tab.status = Set(LedgerTabStatus::Settled.to_string());
+            tab.update(db).await?;
+        } else if total_paid > Decimal::ZERO {
+            let mut tab: entities::ledger_tabs::ActiveModel = tab.into();
+            tab.status = Set(LedgerTabStatus::PartiallyPaid.to_string());
+            tab.update(db).await?;
+        }
+
+        Ok(result)
+    }
+
+    pub async fn create_transaction(
+        db: &DatabaseConnection,
+        user_id: &str,
+        amount: Decimal,
+        direction: TransactionDirection,
+        date: DateTime<FixedOffset>,
+        source: TransactionSource,
+        purpose_tag: Option<String>,
+    ) -> Result<entities::transactions::Model, DbErr> {
+        let txn = entities::transactions::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            user_id: Set(user_id.to_string()),
+            amount: Set(amount),
+            direction: Set(direction),
+            date: Set(date),
+            source: Set(source),
+            status: Set(TransactionStatus::Completed),
+            purpose_tag: Set(purpose_tag),
+            group_id: Set(None),
+            source_wallet_id: Set(None),
+            destination_wallet_id: Set(None),
+            ledger_tab_id: Set(None),
+            deleted_at: Set(None),
+        };
+
+        txn.insert(db).await
+    }
+
+    pub async fn create_wallet(
+        db: &DatabaseConnection,
+        user_id: &str,
+        name: &str,
+        wallet_type: WalletType,
+        initial_balance: Decimal,
+    ) -> Result<entities::wallets::Model, DbErr> {
+        let wallet = entities::wallets::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            user_id: Set(user_id.to_string()),
+            name: Set(name.to_string()),
+            r#type: Set(wallet_type.to_string()),
+            balance: Set(initial_balance),
+            created_at: Set(Utc::now().into()),
+            updated_at: Set(Utc::now().into()),
+        };
+        wallet.insert(db).await
+    }
+
+    pub async fn create_ledger_tab(
+        db: &DatabaseConnection,
+        creator_id: &str,
+        counterparty_id: Option<String>,
+        tab_type: LedgerTabType,
+        title: &str,
+        target_amount: Decimal,
+    ) -> Result<entities::ledger_tabs::Model, DbErr> {
+        let tab = entities::ledger_tabs::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            creator_id: Set(creator_id.to_string()),
+            counterparty_id: Set(counterparty_id),
+            tab_type: Set(tab_type.to_string()),
+            title: Set(title.to_string()),
+            target_amount: Set(target_amount),
+            status: Set(LedgerTabStatus::Open.to_string()),
+            created_at: Set(Utc::now().into()),
+            updated_at: Set(Utc::now().into()),
+        };
+        tab.insert(db).await
     }
 }
 
@@ -505,12 +745,26 @@ mod tests {
         let db_backend = db.get_database_backend();
         let schema = Schema::new(db_backend);
 
-        db.execute(db_backend.build(&schema.create_table_from_entity(entities::transaction::Entity))).await?;
-        db.execute(db_backend.build(&schema.create_table_from_entity(entities::p2p_request::Entity))).await?;
+        db.execute(db_backend.build(&schema.create_table_from_entity(entities::users::Entity))).await?;
+        db.execute(db_backend.build(&schema.create_table_from_entity(entities::transactions::Entity))).await?;
+        db.execute(db_backend.build(&schema.create_table_from_entity(entities::p2p_requests::Entity))).await?;
+
+        // Create a user
+        let user = entities::users::ActiveModel {
+            id: Set("user_1".to_string()),
+            email: Set("user_1@example.com".to_string()),
+            name: Set("User One".to_string()),
+            email_verified: Set(true),
+            is_active: Set(true),
+            created_at: Set(Utc::now().into()),
+            updated_at: Set(Utc::now().into()),
+            ..Default::default()
+        };
+        user.insert(&db).await?;
 
         // Create a transaction
         let txn_id = uuid::Uuid::now_v7().to_string();
-        let txn = entities::transaction::ActiveModel {
+        let txn = entities::transactions::ActiveModel {
             id: Set(txn_id.clone()),
             user_id: Set("user_1".to_string()),
             amount: Set(Decimal::new(100, 0)),
@@ -520,6 +774,10 @@ mod tests {
             status: Set(TransactionStatus::Completed),
             purpose_tag: Set(Some("Lunch".to_string())),
             group_id: Set(None),
+            source_wallet_id: Set(None),
+            destination_wallet_id: Set(None),
+            ledger_tab_id: Set(None),
+            deleted_at: Set(None),
         };
         txn.insert(&db).await?;
 

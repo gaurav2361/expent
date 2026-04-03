@@ -7,7 +7,7 @@ use axum::{
     routing::{delete, get, patch, post},
 };
 use better_auth::AxumIntegration;
-use db::{OcrResult, SmartMerge, SplitDetail};
+use db::{SmartMerge, SplitDetail};
 use ocr::OcrService;
 use sea_orm::{Database, DatabaseConnection};
 use serde::Deserialize;
@@ -107,6 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let api_router = Router::new()
         .route("/transactions", get(list_transactions_handler))
+        .route("/transactions/manual", post(create_manual_transaction_handler))
         .route("/transactions/{id}", patch(update_transaction_handler))
         .route("/transactions/{id}", delete(delete_transaction_handler))
         .route("/transactions/split", post(split_transaction_handler))
@@ -168,7 +169,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn list_transactions_handler(
     State(state): State<AppState>,
     session: AuthSession,
-) -> Result<Json<Vec<db::entities::transaction::Model>>, (StatusCode, String)> {
+) -> Result<Json<Vec<db::entities::transactions::Model>>, (StatusCode, String)> {
     let result = SmartMerge::list_transactions(&state.db, &session.user.id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -189,7 +190,7 @@ async fn update_transaction_handler(
     session: AuthSession,
     Path(id): Path<String>,
     Json(payload): Json<UpdateTransactionRequest>,
-) -> Result<Json<db::entities::transaction::Model>, (StatusCode, String)> {
+) -> Result<Json<db::entities::transactions::Model>, (StatusCode, String)> {
     let result = SmartMerge::update_transaction(
         &state.db,
         &session.user.id,
@@ -227,7 +228,7 @@ async fn split_transaction_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Json(payload): Json<SplitTransactionRequest>,
-) -> Result<Json<Vec<db::entities::p2p_request::Model>>, (StatusCode, String)> {
+) -> Result<Json<Vec<db::entities::p2p_requests::Model>>, (StatusCode, String)> {
     let result = SmartMerge::split_transaction(
         &state.db,
         &session.user.id,
@@ -243,7 +244,7 @@ async fn split_transaction_handler(
 async fn list_pending_p2p_handler(
     State(state): State<AppState>,
     session: AuthSession,
-) -> Result<Json<Vec<db::entities::p2p_request::Model>>, (StatusCode, String)> {
+) -> Result<Json<Vec<db::entities::p2p_requests::Model>>, (StatusCode, String)> {
     let email = session
         .user
         .email
@@ -259,9 +260,9 @@ async fn list_pending_p2p_handler(
 async fn process_ocr_handler(
     State(state): State<AppState>,
     session: AuthSession,
-    Json(ocr_data): Json<OcrResult>,
-) -> Result<Json<db::entities::transaction::Model>, (StatusCode, String)> {
-    let result = SmartMerge::process_ocr(&state.db, &session.user.id, ocr_data)
+    Json(processed_ocr): Json<db::ProcessedOcr>,
+) -> Result<Json<db::entities::transactions::Model>, (StatusCode, String)> {
+    let result = SmartMerge::process_ocr(&state.db, &session.user.id, processed_ocr)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -278,7 +279,7 @@ async fn create_p2p_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Json(payload): Json<CreateP2PRequest>,
-) -> Result<Json<db::entities::p2p_request::Model>, (StatusCode, String)> {
+) -> Result<Json<db::entities::p2p_requests::Model>, (StatusCode, String)> {
     let result = SmartMerge::create_p2p_request(
         &state.db,
         &session.user.id,
@@ -295,7 +296,7 @@ async fn accept_p2p_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Json(payload): Json<AcceptP2PRequest>,
-) -> Result<Json<db::entities::p2p_request::Model>, (StatusCode, String)> {
+) -> Result<Json<db::entities::p2p_requests::Model>, (StatusCode, String)> {
     let result = SmartMerge::accept_p2p_request(&state.db, &session.user.id, &payload.request_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -318,7 +319,7 @@ async fn create_group_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Json(payload): Json<CreateGroupRequest>,
-) -> Result<Json<db::entities::group::Model>, (StatusCode, String)> {
+) -> Result<Json<db::entities::groups::Model>, (StatusCode, String)> {
     let result = SmartMerge::create_group(
         &state.db,
         &session.user.id,
@@ -341,7 +342,7 @@ async fn invite_to_group_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Json(payload): Json<InviteGroupRequest>,
-) -> Result<Json<db::entities::p2p_request::Model>, (StatusCode, String)> {
+) -> Result<Json<db::entities::p2p_requests::Model>, (StatusCode, String)> {
     let result = SmartMerge::invite_to_group(
         &state.db,
         &session.user.id,
@@ -357,7 +358,7 @@ async fn invite_to_group_handler(
 async fn list_groups_handler(
     State(state): State<AppState>,
     session: AuthSession,
-) -> Result<Json<Vec<db::entities::group::Model>>, (StatusCode, String)> {
+) -> Result<Json<Vec<db::entities::groups::Model>>, (StatusCode, String)> {
     let result = SmartMerge::list_groups(&state.db, &session.user.id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -369,7 +370,7 @@ async fn list_group_transactions_handler(
     State(state): State<AppState>,
     _session: AuthSession,
     Path(group_id): Path<String>,
-) -> Result<Json<Vec<db::entities::transaction::Model>>, (StatusCode, String)> {
+) -> Result<Json<Vec<db::entities::transactions::Model>>, (StatusCode, String)> {
     let result = SmartMerge::list_group_transactions(&state.db, &group_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -380,7 +381,7 @@ async fn list_group_transactions_handler(
 async fn detect_subscriptions_handler(
     State(state): State<AppState>,
     session: AuthSession,
-) -> Result<Json<Vec<db::entities::subscription::Model>>, (StatusCode, String)> {
+) -> Result<Json<Vec<db::entities::subscriptions::Model>>, (StatusCode, String)> {
     let result = SmartMerge::detect_subscriptions(&state.db, &session.user.id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -539,29 +540,40 @@ async fn process_image_ocr_handler(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    use rust_decimal::prelude::FromPrimitive;
-    let amount = ocr_json["grand_total"]
-        .as_f64()
-        .or_else(|| ocr_json["amount"].as_f64())
-        .and_then(|a| rust_decimal::Decimal::from_f64(a));
+    let processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to parse OCR response: {}", e)))?;
 
-    let upi_id = ocr_json["receiver_upi_id"]
-        .as_str()
-        .or(ocr_json["upi_transaction_id"].as_str())
-        .or(ocr_json["sender_upi_id"].as_str())
-        .map(|s| s.to_string());
-
-    let ocr_data = OcrResult {
-        raw_text: serde_json::to_string_pretty(&ocr_json).unwrap_or_default(),
-        amount,
-        date: None,
-        upi_id,
-        items: vec![],
-    };
-
-    let result = SmartMerge::process_ocr(&state.db, &session.user.id, ocr_data)
+    let result = SmartMerge::process_ocr(&state.db, &session.user.id, processed_ocr)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+struct CreateManualTransactionRequest {
+    amount: rust_decimal::Decimal,
+    purpose_tag: Option<String>,
+    direction: db::entities::enums::TransactionDirection,
+    date: chrono::DateTime<chrono::FixedOffset>,
+}
+
+async fn create_manual_transaction_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Json(payload): Json<CreateManualTransactionRequest>,
+) -> Result<Json<db::entities::transactions::Model>, (StatusCode, String)> {
+    let result = SmartMerge::create_transaction(
+        &state.db,
+        &session.user.id,
+        payload.amount,
+        payload.direction,
+        payload.date,
+        db::entities::enums::TransactionSource::Manual,
+        payload.purpose_tag,
+    )
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(result))
 }

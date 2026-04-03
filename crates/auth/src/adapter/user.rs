@@ -5,7 +5,7 @@ use better_auth::types_mod::{
 };
 use chrono::{DateTime, FixedOffset, Utc};
 use db::entities::enums::GroupRole;
-use db::entities::user;
+use db::entities::users;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use std::str::FromStr;
 
@@ -25,7 +25,7 @@ impl UserOps for SqliteAdapter {
             .and_then(|r| GroupRole::from_str(&r.to_uppercase()).ok())
             .or(Some(GroupRole::Member));
 
-        let active_model = user::ActiveModel {
+        let active_model = users::ActiveModel {
             id: Set(id.clone()),
             name: Set(data.name.unwrap_or_default()),
             email: Set(data.email.unwrap_or_default()),
@@ -58,7 +58,7 @@ impl UserOps for SqliteAdapter {
     }
 
     async fn get_user_by_id(&self, id: &str) -> AuthResult<Option<Self::User>> {
-        let model = user::Entity::find_by_id(id.to_string())
+        let model = users::Entity::find_by_id(id.to_string())
             .one(&self.db)
             .await
             .map_err(|e| {
@@ -69,8 +69,8 @@ impl UserOps for SqliteAdapter {
     }
 
     async fn get_user_by_email(&self, email: &str) -> AuthResult<Option<Self::User>> {
-        let model = user::Entity::find()
-            .filter(user::Column::Email.eq(email))
+        let model = users::Entity::find()
+            .filter(users::Column::Email.eq(email))
             .one(&self.db)
             .await
             .map_err(|e| {
@@ -81,8 +81,8 @@ impl UserOps for SqliteAdapter {
     }
 
     async fn get_user_by_username(&self, username: &str) -> AuthResult<Option<Self::User>> {
-        let model = user::Entity::find()
-            .filter(user::Column::Username.eq(username))
+        let model = users::Entity::find()
+            .filter(users::Column::Username.eq(username))
             .one(&self.db)
             .await
             .map_err(|e| {
@@ -93,7 +93,7 @@ impl UserOps for SqliteAdapter {
     }
 
     async fn update_user(&self, id: &str, update: UpdateUser) -> AuthResult<Self::User> {
-        let model = user::Entity::find_by_id(id.to_string())
+        let model = users::Entity::find_by_id(id.to_string())
             .one(&self.db)
             .await
             .map_err(|e| {
@@ -101,7 +101,7 @@ impl UserOps for SqliteAdapter {
             })?
             .ok_or(AuthError::UserNotFound)?;
 
-        let mut active_model: user::ActiveModel = model.into();
+        let mut active_model: users::ActiveModel = model.into();
         active_model.updated_at = Set(Utc::now().into());
 
         if let Some(name) = update.name {
@@ -142,7 +142,7 @@ impl UserOps for SqliteAdapter {
     }
 
     async fn delete_user(&self, id: &str) -> AuthResult<()> {
-        user::Entity::delete_by_id(id.to_string())
+        users::Entity::delete_by_id(id.to_string())
             .exec(&self.db)
             .await
             .map_err(|e| {
@@ -152,8 +152,8 @@ impl UserOps for SqliteAdapter {
     }
 
     async fn list_users(&self, _params: ListUsersParams) -> AuthResult<(Vec<Self::User>, usize)> {
-        let models = user::Entity::find()
-            .order_by_desc(user::Column::CreatedAt)
+        let models = users::Entity::find()
+            .order_by_desc(users::Column::CreatedAt)
             .all(&self.db)
             .await
             .map_err(|e| {
@@ -166,7 +166,7 @@ impl UserOps for SqliteAdapter {
     }
 }
 
-fn map_model_to_user(m: user::Model) -> User {
+fn map_model_to_user(m: users::Model) -> User {
     let mut metadata = m.metadata.unwrap_or_default();
 
     // Inject associated_contact_id into metadata for better-auth to see it

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "@expent/ui/globals.css";
-import { Providers } from "@/components/providers";
+import { Providers } from "@/components/ui-elements/providers";
 
 export const metadata: Metadata = {
   title: "Expent",

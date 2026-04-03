@@ -9,23 +9,29 @@ import {
   BreadcrumbSeparator,
 } from "@expent/ui/components/breadcrumb";
 import { Button } from "@expent/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Input } from "@expent/ui/components/input";
+import { Label } from "@expent/ui/components/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { Separator } from "@expent/ui/components/separator";
 import { SidebarTrigger } from "@expent/ui/components/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { ReceiptTextIcon, Share2Icon, SparklesIcon, MoreVerticalIcon, Trash2Icon } from "lucide-react";
+import { ReceiptTextIcon, Share2Icon, SparklesIcon, MoreVerticalIcon, Trash2Icon, PlusIcon, CheckIcon, PencilIcon, Wand2Icon } from "lucide-react";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { SplitDialog } from "@/components/split-dialog";
+import { SplitDialog } from "@/components/transactions/split-dialog";
+import { ManualTransactionDialog } from "@/components/transactions/manual-transaction-dialog";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/data-table-types";
-import { TransactionViewer } from "@/components/transaction-viewer";
-import type { Transaction as TransactionType } from "@/components/transaction-viewer";
+import { TransactionViewer } from "@/components/transactions/transaction-viewer";
+import type { Transaction as TransactionType } from "@/components/transactions/transaction-viewer";
+import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
+import { OrderSummary } from "@/components/tool-ui/order-summary";
+import { ApprovalCard } from "@/components/tool-ui/approval-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,15 +44,24 @@ import {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 interface OcrItem {
+  id: string;
   name: string;
+  description?: string;
   quantity: number;
-  price: string;
+  unitPrice: number;
 }
 
 interface OcrResult {
   id: string;
+  doc_type?: string;
   items?: OcrItem[];
+  pricing?: {
+    subtotal: number;
+    total: number;
+    currency?: string;
+  };
   raw_text?: string;
+  data?: any;
 }
 
 interface P2PRequest {
@@ -66,8 +81,10 @@ export default function DashboardPage() {
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadSteps, setUploadSteps] = useState<any[]>([]);
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
 
   const { data: transactions, isLoading: isTxnsLoading } = useQuery({
@@ -244,7 +261,15 @@ export default function DashboardPage() {
   const handleUpload = async () => {
     if (!file) return;
     setIsUploading(true);
-    const toastId = toast("Uploading and processing file...");
+    setOcrResult(null);
+    
+    const steps = [
+      { id: "1", label: "Uploading file...", status: "in-progress" },
+      { id: "2", label: "Classifying document...", status: "pending" },
+      { id: "3", label: "Extracting transaction data...", status: "pending" },
+    ];
+    setUploadSteps(steps);
+
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -258,6 +283,10 @@ export default function DashboardPage() {
       if (!uploadRes.ok) throw new Error("Upload failed");
       const { key } = await uploadRes.json();
 
+      setUploadSteps((prev) => 
+        prev.map(s => s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s)
+      );
+
       const processRes = await fetch(`${API_BASE_URL}/api/process-image-ocr`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -266,15 +295,40 @@ export default function DashboardPage() {
       });
 
       if (!processRes.ok) throw new Error("Processing failed");
+      
+      setUploadSteps((prev) => 
+        prev.map(s => s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s)
+      );
+
       const result = await processRes.json();
-      setOcrResult(result);
+      
+      setUploadSteps((prev) => 
+        prev.map(s => s.id === "3" ? { ...s, status: "completed" } : s)
+      );
+
+      // Map the backend result to our OcrResult structure
+      setOcrResult({
+        id: result.id,
+        doc_type: "Standard Receipt",
+        items: [
+          { id: "1", name: result.purpose_tag || "Item 1", quantity: 1, unitPrice: parseFloat(result.amount) }
+        ],
+        pricing: {
+          subtotal: parseFloat(result.amount),
+          total: parseFloat(result.amount),
+          currency: "INR"
+        },
+        raw_text: JSON.stringify(result, null, 2),
+      });
+      
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.update(toastId, { title: "File processed successfully!", type: "success" });
+      toast.success("File processed successfully!");
+      setTimeout(() => setIsUploading(false), 1000);
     } catch (error) {
       console.error(error);
-      toast.update(toastId, { title: "Upload or processing failed. Please try again.", type: "error" });
-    } finally {
-      setIsUploading(false);
+      setUploadSteps((prev) => prev.map(s => s.status === "in-progress" ? { ...s, status: "failed" } : s));
+      toast.error("Upload or processing failed.");
+      setTimeout(() => setIsUploading(false), 2000);
     }
   };
 
@@ -285,6 +339,9 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+              <Button variant="ghost" size="icon-sm" onClick={() => router.push("/p2p/pending")}>
+                <MoreVerticalIcon className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{p2pRequests?.length || 0}</div>
@@ -293,6 +350,9 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Quick Upload (Images, PDF, CSV)</CardTitle>
+              <Button variant="ghost" size="icon-sm" onClick={() => setManualDialogOpen(true)}>
+                <PlusIcon className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent className="flex gap-2">
               <Input
@@ -327,122 +387,127 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* OCR Result / Itemized Parsing Section */}
+        {isUploading && (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+            <ProgressTracker id="upload-progress" steps={uploadSteps} />
+          </div>
+        )}
+
+        {/* OCR Result / Itemized Review Section using OrderSummary */}
         {ocrResult && (
-          <Card className="border-primary/20 bg-primary/5 animate-in zoom-in-95 duration-300">
-            <CardHeader className="flex flex-row items-center gap-4">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <ReceiptTextIcon className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Receipt Itemized</CardTitle>
-                <CardDescription>We've extracted items and data from your upload.</CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setOcrResult(null)}>
-                Dismiss
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {ocrResult.items && ocrResult.items.length > 0 && (
-                  <div className="rounded-md border bg-background">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Item</TableHead>
-                          <TableHead className="text-right">Qty</TableHead>
-                          <TableHead className="text-right">Price</TableHead>
-                          <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {ocrResult.items.map((item) => (
-                          <TableRow key={item.name}>
-                            <TableCell className="font-medium">{item.name}</TableCell>
-                            <TableCell className="text-right">{item.quantity}</TableCell>
-                            <TableCell className="text-right font-mono">₹{item.price}</TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => triggerSplit(ocrResult.id, item.price || "0")}
-                              >
-                                <Share2Icon className="h-3 w-3 mr-1" /> Split
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+          <div className="grid gap-4 lg:grid-cols-2 animate-in zoom-in-95 duration-300">
+            <div className="space-y-4">
+              <OrderSummary
+                id="ocr-review"
+                title="Verify Extracted Data"
+                items={ocrResult.items || []}
+                pricing={ocrResult.pricing || { subtotal: 0, total: 0 }}
+                className="max-w-full"
+              />
+              <div className="flex justify-between items-center bg-card p-4 rounded-2xl border shadow-xs">
+                <div className="flex items-center gap-2">
+                  <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <SparklesIcon className="size-4 text-primary" />
                   </div>
-                )}
-                <div className="bg-muted/50 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap overflow-auto max-h-40">
+                  <div>
+                    <p className="text-sm font-medium">Auto-Categorization</p>
+                    <p className="text-[10px] text-muted-foreground">AI suggested tags and categories applied.</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="rounded-full">
+                  <Wand2Icon className="size-3 mr-1" /> Re-run
+                </Button>
+              </div>
+            </div>
+            
+            <Card className="flex flex-col">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Raw Data & Correction</CardTitle>
+                    <CardDescription>Manually adjust fields if the AI missed something.</CardDescription>
+                  </div>
+                  <Button variant="ghost" size="icon-sm" onClick={() => setOcrResult(null)}>
+                    <Trash2Icon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 space-y-4">
+                <div className="bg-muted/30 p-3 rounded-lg text-[10px] font-mono whitespace-pre-wrap overflow-auto max-h-64 text-muted-foreground/70 border">
                   {ocrResult.raw_text}
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" size="sm">
-                    <SparklesIcon className="h-3 w-3 mr-1" /> Auto-Categorize
-                  </Button>
-                  <Button size="sm">Confirm All</Button>
+                <div className="grid gap-2">
+                  <Label className="text-xs">Classification</Label>
+                  <Select defaultValue="receipt">
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="receipt">Retail Receipt</SelectItem>
+                      <SelectItem value="invoice">Business Invoice</SelectItem>
+                      <SelectItem value="p2p">P2P Screenshot</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+              <CardFooter className="border-t bg-muted/10 p-4 flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setOcrResult(null)}>Discard</Button>
+                <Button size="sm" onClick={() => {
+                  setOcrResult(null);
+                  toast.success("Transaction saved successfully!");
+                }}>
+                  <CheckIcon className="size-4 mr-1" /> Confirm & Save
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
         )}
 
         {/* Pending P2P Requests Section */}
-        {p2pRequests && p2pRequests.length > 0 && (
-          <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20 animate-in fade-in slide-in-from-top-4 duration-500">
-            <CardHeader>
-              <CardTitle className="text-orange-800 dark:text-orange-300 text-base">
-                Action Required: P2P Requests
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {(p2pRequests as P2PRequest[]).map((req) => (
-                  <div
-                    key={req.id}
-                    className="flex items-center justify-between border-b border-orange-100 dark:border-orange-900/50 pb-2 last:border-0"
-                  >
-                    <div>
-                      <p className="font-semibold text-sm">
-                        {req.status === "GROUP_INVITE"
-                          ? "Group Invitation"
-                          : `${req.sender_user_id} shared a transaction`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {req.status === "GROUP_INVITE"
-                          ? `You've been invited to join ${req.transaction_data.group_name}`
-                          : `Amount: ₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}`}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-orange-300 hover:bg-orange-100"
-                      onClick={() => acceptMutation.mutate(req.id)}
-                    >
-                      {acceptMutation.isPending
-                        ? "..."
-                        : req.status === "GROUP_INVITE"
-                          ? "Join Group"
-                          : "Merge & Accept"}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+        {p2pRequests && p2pRequests.length > 0 && !ocrResult && (
+          <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+            <h2 className="text-base font-semibold flex items-center gap-2 px-1">
+              <Share2Icon className="h-4 w-4 text-primary" /> Pending Approvals
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {(p2pRequests as P2PRequest[]).map((req) => (
+                <ApprovalCard
+                  key={req.id}
+                  id={req.id}
+                  className="max-w-none"
+                  title={req.status === "GROUP_INVITE" ? "Group Invitation" : "Transaction Split"}
+                  description={
+                    req.status === "GROUP_INVITE"
+                      ? `Join "${req.transaction_data.group_name}"`
+                      : `From ${req.sender_user_id.substring(0, 8)}...`
+                  }
+                  icon={req.status === "GROUP_INVITE" ? "users" : "receipt"}
+                  metadata={[
+                    { 
+                      key: "Amount", 
+                      value: `₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}` 
+                    },
+                  ]}
+                  confirmLabel={req.status === "GROUP_INVITE" ? "Join Group" : "Accept & Merge"}
+                  onConfirm={() => acceptMutation.mutate(req.id)}
+                />
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Recent Transactions Table */}
         <Card className="flex-1 overflow-hidden">
           <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
             <CardTitle>Recent Transactions</CardTitle>
-            <Button variant="outline" size="sm">
-              View All
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => router.push("/transactions")}>
+                View All
+              </Button>
+              <Button size="sm" onClick={() => setManualDialogOpen(true)}>
+                <PlusIcon className="h-4 w-4 mr-1" /> Add
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {isTxnsLoading ? (
@@ -471,6 +536,11 @@ export default function DashboardPage() {
           totalAmount={selectedTxn.amount || "0"}
         />
       )}
+
+      <ManualTransactionDialog
+        open={manualDialogOpen}
+        onOpenChange={setManualDialogOpen}
+      />
     </>
   );
 }

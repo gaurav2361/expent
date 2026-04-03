@@ -120,10 +120,11 @@
 
               # Display versions
               echo "Versions:"
-              echo "  Rust:   $(cargo --version)"
-              echo "  Python: $(python --version)"
+              echo "  rust:   $(cargo --version)"
+              echo "  python: $(python --version)"
               echo "  uv:     $(uv --version)"
-              echo "  Node:   $(node --version)"
+              echo "  node:   $(node --version)"
+              echo "  pnpm:   $(pnpm --version)"
             '';
           };
         }

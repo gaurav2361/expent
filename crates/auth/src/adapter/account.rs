@@ -4,7 +4,7 @@ use better_auth::types_mod::{
     Account, AccountOps, AuthError, AuthResult, CreateAccount, UpdateAccount,
 };
 use chrono::Utc;
-use db::entities::account;
+use db::entities::accounts;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 #[async_trait]
@@ -15,7 +15,7 @@ impl AccountOps for SqliteAdapter {
         let id = uuid::Uuid::now_v7().to_string();
         let now = Utc::now().into();
 
-        let active_model = account::ActiveModel {
+        let active_model = accounts::ActiveModel {
             id: Set(id.clone()),
             account_id: Set(data.account_id.clone()),
             provider_id: Set(data.provider_id.clone()),
@@ -57,9 +57,9 @@ impl AccountOps for SqliteAdapter {
         provider: &str,
         account_id: &str,
     ) -> AuthResult<Option<Self::Account>> {
-        let model = account::Entity::find()
-            .filter(account::Column::ProviderId.eq(provider))
-            .filter(account::Column::AccountId.eq(account_id))
+        let model = accounts::Entity::find()
+            .filter(accounts::Column::ProviderId.eq(provider))
+            .filter(accounts::Column::AccountId.eq(account_id))
             .one(&self.db)
             .await
             .map_err(|e| {
@@ -70,8 +70,8 @@ impl AccountOps for SqliteAdapter {
     }
 
     async fn get_user_accounts(&self, user_id: &str) -> AuthResult<Vec<Self::Account>> {
-        let models = account::Entity::find()
-            .filter(account::Column::UserId.eq(user_id))
+        let models = accounts::Entity::find()
+            .filter(accounts::Column::UserId.eq(user_id))
             .all(&self.db)
             .await
             .map_err(|e| {
@@ -86,7 +86,7 @@ impl AccountOps for SqliteAdapter {
     }
 
     async fn delete_account(&self, id: &str) -> AuthResult<()> {
-        account::Entity::delete_by_id(id.to_string())
+        accounts::Entity::delete_by_id(id.to_string())
             .exec(&self.db)
             .await
             .map_err(|e| {
@@ -96,7 +96,7 @@ impl AccountOps for SqliteAdapter {
     }
 }
 
-fn map_model_to_account(m: account::Model) -> Account {
+fn map_model_to_account(m: accounts::Model) -> Account {
     Account {
         id: m.id,
         user_id: m.user_id,

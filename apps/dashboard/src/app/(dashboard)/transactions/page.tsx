@@ -53,10 +53,10 @@ import {
   Share2Icon,
 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SplitDialog } from "@/components/split-dialog";
-import { TransactionViewer } from "@/components/transaction-viewer";
-import type { Transaction } from "@/components/transaction-viewer";
+import { AppSidebar } from "@/components/layout/app-sidebar";
+import { SplitDialog } from "@/components/transactions/split-dialog";
+import { TransactionViewer } from "@/components/transactions/transaction-viewer";
+import type { Transaction } from "@/components/transactions/transaction-viewer";
 import { toast } from "@expent/ui/components/goey-toaster";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";

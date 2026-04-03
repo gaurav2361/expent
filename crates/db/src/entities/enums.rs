@@ -261,3 +261,90 @@ pub enum GroupRole {
     #[sea_orm(string_value = "MEMBER")]
     Member,
 }
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum WalletType {
+    #[sea_orm(string_value = "CASH")]
+    Cash,
+    #[sea_orm(string_value = "BANK")]
+    Bank,
+    #[sea_orm(string_value = "CREDIT_CARD")]
+    CreditCard,
+    #[sea_orm(string_value = "UPI_WALLET")]
+    UpiWallet,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum LedgerTabType {
+    #[sea_orm(string_value = "LENT")]
+    Lent,
+    #[sea_orm(string_value = "BORROWED")]
+    Borrowed,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
+#[ts(
+    export,
+    export_to = "../../../packages/types/src/db/generated/enums.ts"
+)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum LedgerTabStatus {
+    #[sea_orm(string_value = "OPEN")]
+    Open,
+    #[sea_orm(string_value = "PARTIALLY_PAID")]
+    PartiallyPaid,
+    #[sea_orm(string_value = "SETTLED")]
+    Settled,
+}
