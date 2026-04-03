@@ -36,7 +36,7 @@ pub struct OcrResult {
 pub struct GPayExtraction {
     pub amount: Decimal,
     pub direction: String, // "IN" | "OUT"
-    pub datetime_str: String,
+    pub datetime_str: Option<String>,
     pub status: String,
     pub counterparty_name: String,
     pub counterparty_phone: Option<String>,
