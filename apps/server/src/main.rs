@@ -111,8 +111,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/transactions/manual",
             post(create_manual_transaction_handler),
         )
-        .route("/transactions/{id}", patch(update_transaction_handler))
-        .route("/transactions/{id}", delete(delete_transaction_handler))
+        .route("/transactions/:id", patch(update_transaction_handler))
+        .route("/transactions/:id", delete(delete_transaction_handler))
         .route("/transactions/split", post(split_transaction_handler))
         .route("/p2p/pending", get(list_pending_p2p_handler))
         .route("/process-ocr", post(process_ocr_handler))
@@ -122,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/groups/create", post(create_group_handler))
         .route("/groups/invite", post(invite_to_group_handler))
         .route(
-            "/groups/{id}/transactions",
+            "/groups/:id/transactions",
             get(list_group_transactions_handler),
         )
         .route("/subscriptions/detect", get(detect_subscriptions_handler))
@@ -133,6 +133,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .nest("/api/auth", auth_router.with_state(auth.clone()))
         .nest("/api", api_router)
+        .layer(TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(
             CorsLayer::new()
@@ -140,14 +141,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "http://localhost:3000".parse::<HeaderValue>().unwrap(),
                     "http://127.0.0.1:3000".parse::<HeaderValue>().unwrap(),
                 ])
-                .allow_methods([
-                    Method::GET,
-                    Method::POST,
-                    Method::PATCH,
-                    Method::PUT,
-                    Method::DELETE,
-                    Method::OPTIONS,
-                ])
+                .allow_methods(tower_http::cors::Any)
                 .allow_headers([
                     axum::http::header::CONTENT_TYPE,
                     axum::http::header::AUTHORIZATION,
@@ -157,7 +151,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ])
                 .allow_credentials(true),
         )
-        .layer(TraceLayer::new_for_http())
         .with_state(state);
 
     let port = std::env::var("API_PORT").unwrap_or_else(|_| "8080".into());
