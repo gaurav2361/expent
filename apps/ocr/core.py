@@ -16,7 +16,6 @@ class OCREngine:
         self.model_name = "gemini-2.0-flash"
         self.model = genai.GenerativeModel(model_name=self.model_name, system_instruction=SYSTEM_PROMPT)
         self._reader = None
-        print(f"DEBUG: OCREngine initialized with model={self.model_name}, key_prefix={key[:8] if key else 'None'}...")
 
     @property
     def reader(self):
