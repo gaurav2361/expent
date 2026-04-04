@@ -34,7 +34,7 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
       setCounterparty(d.counterparty_name || "");
       setUpiId(d.counterparty_upi_id || "");
       setDescription(d.counterparty_name ? `Payment to ${d.counterparty_name}` : "GPay Transaction");
-      
+
       // Parse '11 Mar 2026, 1:51 pm' if possible, or just use today
       if (d.datetime_str) {
         try {
@@ -45,8 +45,18 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
             const monthStr = parts[1];
             const year = parts[2].replace(",", "");
             const months: Record<string, string> = {
-              Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
-              Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12"
+              Jan: "01",
+              Feb: "02",
+              Mar: "03",
+              Apr: "04",
+              May: "05",
+              Jun: "06",
+              Jul: "07",
+              Aug: "08",
+              Sep: "09",
+              Oct: "10",
+              Nov: "11",
+              Dec: "12",
             };
             const month = months[monthStr] || "01";
             setDate(`${year}-${month}-${day}`);
@@ -71,12 +81,12 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // We send back the modified ProcessedOcr structure but updated
     const updatedData = { ...processedOcr.data };
     updatedData.amount = parseFloat(amount);
     updatedData.direction = direction;
-    
+
     if (processedOcr.doc_type === "GPAY") {
       updatedData.counterparty_name = counterparty;
       updatedData.counterparty_upi_id = upiId;
@@ -86,7 +96,7 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
 
     onConfirm({
       doc_type: processedOcr.doc_type,
-      data: updatedData
+      data: updatedData,
     });
   };
 
@@ -99,7 +109,9 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
           </div>
           <div>
             <CardTitle>Review Extracted Data</CardTitle>
-            <CardDescription>Confirm the details from your {processedOcr.doc_type === "GPAY" ? "GPay screenshot" : "receipt"}.</CardDescription>
+            <CardDescription>
+              Confirm the details from your {processedOcr.doc_type === "GPAY" ? "GPay screenshot" : "receipt"}.
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -120,13 +132,7 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
             </div>
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
+              <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
             </div>
           </div>
 
@@ -194,7 +200,13 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : <><CheckIcon className="h-4 w-4 mr-2" /> Confirm & Save</>}
+              {isSubmitting ? (
+                "Saving..."
+              ) : (
+                <>
+                  <CheckIcon className="h-4 w-4 mr-2" /> Confirm & Save
+                </>
+              )}
             </Button>
           </div>
         </CardFooter>

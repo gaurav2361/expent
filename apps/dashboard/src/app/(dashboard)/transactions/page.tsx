@@ -230,8 +230,8 @@ export default function TransactionsPage() {
         header: "Description",
         cell: ({ row }) => {
           return (
-            <TransactionViewer 
-              item={row.original} 
+            <TransactionViewer
+              item={row.original}
               onUpdate={(id, data) => updateMutation.mutate({ id, data })}
               open={editingTxnId === row.original.id}
               onOpenChange={(open) => !open && setEditingTxnId(null)}
@@ -390,9 +390,9 @@ export default function TransactionsPage() {
                 <p className="text-sm font-medium">Quick Upload</p>
                 <p className="text-xs text-muted-foreground">Drop a receipt, PDF, or CSV here to auto-import</p>
               </div>
-              <input 
-                type="file" 
-                className="absolute inset-0 opacity-0 cursor-pointer" 
+              <input
+                type="file"
+                className="absolute inset-0 opacity-0 cursor-pointer"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleUpload(file);
@@ -463,9 +463,15 @@ export default function TransactionsPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-col justify-start">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b bg-muted/40 gap-4">
               <TabsList className="h-9 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground">
-                <TabsTrigger value="all" className="rounded-md px-4">All</TabsTrigger>
-                <TabsTrigger value="income" className="rounded-md px-4 text-green-600 dark:text-green-400">Income</TabsTrigger>
-                <TabsTrigger value="expense" className="rounded-md px-4 text-red-600 dark:text-red-400">Expense</TabsTrigger>
+                <TabsTrigger value="all" className="rounded-md px-4">
+                  All
+                </TabsTrigger>
+                <TabsTrigger value="income" className="rounded-md px-4 text-green-600 dark:text-green-400">
+                  Income
+                </TabsTrigger>
+                <TabsTrigger value="expense" className="rounded-md px-4 text-red-600 dark:text-red-400">
+                  Expense
+                </TabsTrigger>
               </TabsList>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">

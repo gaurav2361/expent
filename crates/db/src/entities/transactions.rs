@@ -30,6 +30,7 @@ pub struct Model {
     pub destination_wallet_id: Option<String>,
     pub ledger_tab_id: Option<String>,
     pub deleted_at: Option<DateTimeWithTimeZone>,
+    pub notes: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -29,6 +29,7 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
           date: data.date,
           purpose_tag: data.category || data.source,
           status: data.status,
+          notes: data.notes,
         }),
       }),
     onSuccess: () => {

@@ -65,6 +65,11 @@ const navSections: SidebarSection[] = [
         icon: <ReceiptIcon />,
       },
       {
+        title: "Wallets",
+        url: "/wallets",
+        icon: <WalletIcon />,
+      },
+      {
         title: "P2P & Sharing",
         url: "#",
         icon: <MessageSquareShareIcon />,
@@ -79,12 +84,22 @@ const navSections: SidebarSection[] = [
             url: "/p2p/shared-ledgers",
             icon: <NotebookTabsIcon />,
           },
+          {
+            title: "Ledger Tabs",
+            url: "/p2p/ledger-tabs",
+            icon: <HistoryIcon />,
+          },
         ],
       },
       {
         title: "Subscriptions",
         url: "/subscriptions",
         icon: <RepeatIcon />,
+      },
+      {
+        title: "Reconciliation",
+        url: "/reconciliation",
+        icon: <ScaleIcon />,
       },
       {
         title: "Contacts",

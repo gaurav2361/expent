@@ -4,7 +4,9 @@ export type Account = { id: string, account_id: string, provider_id: string, use
 
 export type AlertChannel = "EMAIL" | "PUSH";
 
-export type BankStatementRow = { id: string, date: string, description: string, debit: string | null, credit: string | null, balance: string, };
+export type BankStatementRow = { id: string, date: string, description: string, debit: string | null, credit: string | null, balance: string, user_id: string, is_matched: boolean, };
+
+export type Category = { id: string, user_id: string, name: string, icon: string | null, color: string | null, };
 
 export type Contact = { id: string, name: string, phone: string | null, is_pinned: boolean, };
 
@@ -18,7 +20,7 @@ export type GroupRole = "ADMIN" | "MEMBER";
 
 export type IdentifierType = "UPI" | "PHONE" | "BANK_ACC";
 
-export type LedgerTab = { id: string, creator_id: string, counterparty_id: string | null, tab_type: string, title: string, target_amount: string, status: string, created_at: string, updated_at: string, };
+export type LedgerTab = { id: string, creator_id: string, counterparty_id: string | null, tab_type: string, title: string, description: string | null, target_amount: string, status: string, created_at: string, updated_at: string, };
 
 export type LedgerTabStatus = "OPEN" | "PARTIALLY_PAID" | "SETTLED";
 
@@ -38,7 +40,7 @@ export type PurchaseItem = { id: string, purchase_id: string, name: string, quan
 
 export type Session = { id: string, expires_at: string, token: string, created_at: string, updated_at: string, ip_address: string | null, user_agent: string | null, user_id: string, };
 
-export type StatementTxnMatch = { row_id: string, transaction_id: string, confidence: string, };
+export type StatementTxnMatch = { row_id: string, transaction_id: string, confidence: string, matched_at: string, };
 
 export type SubAlert = { id: string, subscription_id: string, days_before: number, sent_at: string | null, channel: string, };
 
@@ -48,7 +50,7 @@ export type SubscriptionCharge = { id: string, subscription_id: string, transact
 
 export type SubscriptionCycle = "WEEKLY" | "MONTHLY" | "YEARLY";
 
-export type Transaction = { id: string, user_id: string, amount: string, direction: TransactionDirection, date: string, source: TransactionSource, status: TransactionStatus, purpose_tag: string | null, group_id: string | null, source_wallet_id: string | null, destination_wallet_id: string | null, ledger_tab_id: string | null, deleted_at: string | null, };
+export type Transaction = { id: string, user_id: string, amount: string, direction: TransactionDirection, date: string, source: TransactionSource, status: TransactionStatus, purpose_tag: string | null, group_id: string | null, source_wallet_id: string | null, destination_wallet_id: string | null, ledger_tab_id: string | null, deleted_at: string | null, notes: string | null, };
 
 export type TransactionDirection = "IN" | "OUT";
 

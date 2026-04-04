@@ -88,10 +88,10 @@ export default function ContactDetailPage() {
   const txnColumns: Column<any>[] = [
     { key: "date", label: "Date", format: { kind: "date", dateFormat: "short" } },
     { key: "purpose_tag", label: "Description" },
-    { 
-      key: "direction", 
-      label: "Direction", 
-      format: { kind: "badge", colorMap: { IN: "success", OUT: "danger" } } 
+    {
+      key: "direction",
+      label: "Direction",
+      format: { kind: "badge", colorMap: { IN: "success", OUT: "danger" } },
     },
     { key: "amount", label: "Amount", format: { kind: "currency", currency: "INR" }, align: "right" },
   ];
@@ -105,14 +105,18 @@ export default function ContactDetailPage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">{contact.name}</h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-            {contact.phone && <span className="flex items-center gap-1"><PhoneIcon className="h-3 w-3" /> {contact.phone}</span>}
+            {contact.phone && (
+              <span className="flex items-center gap-1">
+                <PhoneIcon className="h-3 w-3" /> {contact.phone}
+              </span>
+            )}
             {contact.phone && identifiers.length > 0 && <span>•</span>}
             {identifiers.length > 0 && <span>{identifiers.length} identifier(s)</span>}
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="text-destructive hover:bg-destructive/10"
           onClick={() => {
             if (confirm("Are you sure you want to remove this contact from your list?")) {
@@ -164,7 +168,9 @@ export default function ContactDetailPage() {
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsAddIdDialogOpen(false)}>Cancel</Button>
+                      <Button variant="outline" onClick={() => setIsAddIdDialogOpen(false)}>
+                        Cancel
+                      </Button>
                       <Button onClick={() => addIdMutation.mutate()} disabled={!newIdValue || addIdMutation.isPending}>
                         Add Identifier
                       </Button>
@@ -177,9 +183,7 @@ export default function ContactDetailPage() {
               {identifiers.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic">No identifiers added yet.</p>
               ) : (
-                identifiers.map((id: any) => (
-                  <IdentifierChip key={id.id} identifier={id} />
-                ))
+                identifiers.map((id: any) => <IdentifierChip key={id.id} identifier={id} />)
               )}
             </CardContent>
           </Card>
@@ -202,7 +206,15 @@ export default function ContactDetailPage() {
               <Separator />
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-primary/5 text-[10px]">
-                  {transactions.some((t: any) => t.is_merchant) ? <><StoreIcon className="h-3 w-3 mr-1" /> Vendor</> : <><UserIcon className="h-3 w-3 mr-1" /> Person</>}
+                  {transactions.some((t: any) => t.is_merchant) ? (
+                    <>
+                      <StoreIcon className="h-3 w-3 mr-1" /> Vendor
+                    </>
+                  ) : (
+                    <>
+                      <UserIcon className="h-3 w-3 mr-1" /> Person
+                    </>
+                  )}
                 </Badge>
               </div>
             </CardContent>
@@ -247,7 +259,11 @@ function IdentifierChip({ identifier }: { identifier: any }) {
     <div className="group flex items-center justify-between p-2 rounded-lg border bg-muted/30 text-xs transition-colors hover:bg-muted/50">
       <div className="flex items-center gap-2 min-w-0">
         <div className="size-6 rounded-md bg-background flex items-center justify-center border shadow-xs">
-          {identifier.type === "UPI" ? <WalletIcon className="h-3 w-3 text-primary" /> : <PhoneIcon className="h-3 w-3" />}
+          {identifier.type === "UPI" ? (
+            <WalletIcon className="h-3 w-3 text-primary" />
+          ) : (
+            <PhoneIcon className="h-3 w-3" />
+          )}
         </div>
         <div className="min-w-0">
           <p className="font-mono truncate">{identifier.value}</p>

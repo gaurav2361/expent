@@ -78,6 +78,15 @@ pub struct OcrTransactionResponse {
     pub contact_created: bool,
 }
 
+/// Transaction with optional wallet and contact info.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TransactionWithDetail {
+    #[serde(flatten)]
+    pub transaction: entities::transactions::Model,
+    pub source_wallet_name: Option<String>,
+    pub destination_wallet_name: Option<String>,
+}
+
 /// Business logic for merging and processing transaction data.
 pub struct SmartMerge;
 
@@ -168,6 +177,7 @@ impl SmartMerge {
                 destination_wallet_id: Set(None),
                 ledger_tab_id: Set(None),
                 deleted_at: Set(None),
+                notes: Set(None),
             };
 
             let result = txn.insert(db).await?;
@@ -244,6 +254,7 @@ impl SmartMerge {
                 destination_wallet_id: Set(None),
                 ledger_tab_id: Set(None),
                 deleted_at: Set(None),
+                notes: Set(None),
             };
 
             let result = txn.insert(db).await?;
@@ -408,6 +419,7 @@ impl SmartMerge {
             destination_wallet_id: Set(None),
             ledger_tab_id: Set(None),
             deleted_at: Set(None),
+            notes: Set(None),
         };
 
         let result_txn = mirrored_txn.insert(db).await?;
@@ -488,7 +500,7 @@ impl SmartMerge {
         user_id: &str,
         limit: Option<u64>,
         offset: Option<u64>,
-    ) -> Result<Vec<entities::transactions::Model>, DbErr> {
+    ) -> Result<Vec<TransactionWithDetail>, DbErr> {
         let mut query = entities::transactions::Entity::find()
             .filter(entities::transactions::Column::UserId.eq(user_id))
             .filter(entities::transactions::Column::DeletedAt.is_null())
@@ -501,7 +513,39 @@ impl SmartMerge {
             query = query.offset(o);
         }
 
-        query.all(db).await
+        let results = query.all(db).await?;
+
+        let mut final_results = Vec::new();
+        for txn in results {
+            let mut source_name = None;
+            let mut dest_name = None;
+
+            if let Some(sw_id) = &txn.source_wallet_id {
+                if let Some(w) = entities::wallets::Entity::find_by_id(sw_id.clone())
+                    .one(db)
+                    .await?
+                {
+                    source_name = Some(w.name);
+                }
+            }
+
+            if let Some(dw_id) = &txn.destination_wallet_id {
+                if let Some(w) = entities::wallets::Entity::find_by_id(dw_id.clone())
+                    .one(db)
+                    .await?
+                {
+                    dest_name = Some(w.name);
+                }
+            }
+
+            final_results.push(TransactionWithDetail {
+                transaction: txn,
+                source_wallet_name: source_name,
+                destination_wallet_name: dest_name,
+            });
+        }
+
+        Ok(final_results)
     }
 
     pub async fn list_contacts(
@@ -549,16 +593,20 @@ impl SmartMerge {
         phone: Option<String>,
         is_pinned: Option<bool>,
     ) -> Result<entities::contacts::Model, DbErr> {
-        let _link = entities::contact_links::Entity::find_by_id((user_id.to_string(), contact_id.to_string()))
-            .one(db)
-            .await?
-            .ok_or(DbErr::Custom("Contact link not found".to_string()))?;
+        let _link = entities::contact_links::Entity::find_by_id((
+            user_id.to_string(),
+            contact_id.to_string(),
+        ))
+        .one(db)
+        .await?
+        .ok_or(DbErr::Custom("Contact link not found".to_string()))?;
 
-        let mut contact: entities::contacts::ActiveModel = entities::contacts::Entity::find_by_id(contact_id.to_string())
-            .one(db)
-            .await?
-            .ok_or(DbErr::Custom("Contact not found".to_string()))?
-            .into();
+        let mut contact: entities::contacts::ActiveModel =
+            entities::contacts::Entity::find_by_id(contact_id.to_string())
+                .one(db)
+                .await?
+                .ok_or(DbErr::Custom("Contact not found".to_string()))?
+                .into();
 
         if let Some(n) = name {
             contact.name = Set(n);
@@ -578,9 +626,12 @@ impl SmartMerge {
         user_id: &str,
         contact_id: &str,
     ) -> Result<(), DbErr> {
-        entities::contact_links::Entity::delete_by_id((user_id.to_string(), contact_id.to_string()))
-            .exec(db)
-            .await?;
+        entities::contact_links::Entity::delete_by_id((
+            user_id.to_string(),
+            contact_id.to_string(),
+        ))
+        .exec(db)
+        .await?;
         Ok(())
     }
 
@@ -596,10 +647,13 @@ impl SmartMerge {
         ),
         DbErr,
     > {
-        let _link = entities::contact_links::Entity::find_by_id((user_id.to_string(), contact_id.to_string()))
-            .one(db)
-            .await?
-            .ok_or(DbErr::Custom("Contact link not found".to_string()))?;
+        let _link = entities::contact_links::Entity::find_by_id((
+            user_id.to_string(),
+            contact_id.to_string(),
+        ))
+        .one(db)
+        .await?
+        .ok_or(DbErr::Custom("Contact link not found".to_string()))?;
 
         let contact = entities::contacts::Entity::find_by_id(contact_id.to_string())
             .one(db)
@@ -631,10 +685,13 @@ impl SmartMerge {
         r#type: String,
         value: String,
     ) -> Result<entities::contact_identifiers::Model, DbErr> {
-        let _link = entities::contact_links::Entity::find_by_id((user_id.to_string(), contact_id.to_string()))
-            .one(db)
-            .await?
-            .ok_or(DbErr::Custom("Contact link not found".to_string()))?;
+        let _link = entities::contact_links::Entity::find_by_id((
+            user_id.to_string(),
+            contact_id.to_string(),
+        ))
+        .one(db)
+        .await?
+        .ok_or(DbErr::Custom("Contact link not found".to_string()))?;
 
         let identifier = entities::contact_identifiers::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
@@ -741,6 +798,65 @@ impl SmartMerge {
             .await
     }
 
+    pub async fn remove_group_member(
+        db: &DatabaseConnection,
+        admin_id: &str,
+        group_id: &str,
+        target_user_id: &str,
+    ) -> Result<(), DbErr> {
+        // Verify admin permissions
+        let admin_membership =
+            entities::user_groups::Entity::find_by_id((admin_id.to_string(), group_id.to_string()))
+                .one(db)
+                .await?
+                .ok_or(DbErr::Custom("Admin not in group".to_string()))?;
+
+        if admin_membership.role != GroupRole::Admin.to_string() {
+            return Err(DbErr::Custom("Insufficient permissions".to_string()));
+        }
+
+        entities::user_groups::Entity::delete_by_id((
+            target_user_id.to_string(),
+            group_id.to_string(),
+        ))
+        .exec(db)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn update_member_role(
+        db: &DatabaseConnection,
+        admin_id: &str,
+        group_id: &str,
+        target_user_id: &str,
+        new_role: GroupRole,
+    ) -> Result<(), DbErr> {
+        // Verify admin permissions
+        let admin_membership =
+            entities::user_groups::Entity::find_by_id((admin_id.to_string(), group_id.to_string()))
+                .one(db)
+                .await?
+                .ok_or(DbErr::Custom("Admin not in group".to_string()))?;
+
+        if admin_membership.role != GroupRole::Admin.to_string() {
+            return Err(DbErr::Custom("Insufficient permissions".to_string()));
+        }
+
+        let mut membership: entities::user_groups::ActiveModel =
+            entities::user_groups::Entity::find_by_id((
+                target_user_id.to_string(),
+                group_id.to_string(),
+            ))
+            .one(db)
+            .await?
+            .ok_or(DbErr::Custom("Member not found".to_string()))?
+            .into();
+
+        membership.role = Set(new_role.to_string());
+        membership.update(db).await?;
+        Ok(())
+    }
+
     pub async fn update_transaction(
         db: &DatabaseConnection,
         user_id: &str,
@@ -749,6 +865,7 @@ impl SmartMerge {
         date: Option<DateTimeWithTimeZone>,
         purpose_tag: Option<String>,
         status: Option<TransactionStatus>,
+        notes: Option<String>,
     ) -> Result<entities::transactions::Model, DbErr> {
         let txn = entities::transactions::Entity::find_by_id(txn_id.to_string())
             .one(db)
@@ -782,8 +899,11 @@ impl SmartMerge {
         if let Some(tag) = purpose_tag {
             txn.purpose_tag = Set(Some(tag));
         }
-        if let Some(st) = status {
-            txn.status = Set(st);
+        if let Some(s) = status {
+            txn.status = Set(s);
+        }
+        if let Some(n) = notes {
+            txn.notes = Set(Some(n));
         }
 
         txn.update(db).await
@@ -855,6 +975,7 @@ impl SmartMerge {
             destination_wallet_id: Set(None),
             ledger_tab_id: Set(Some(tab.id.clone())),
             deleted_at: Set(None),
+            notes: Set(None),
         };
 
         let result = txn.insert(db).await?;
@@ -892,6 +1013,7 @@ impl SmartMerge {
         source_wallet_id: Option<String>,
         destination_wallet_id: Option<String>,
         contact_id: Option<String>,
+        notes: Option<String>,
     ) -> Result<entities::transactions::Model, DbErr> {
         let txn = entities::transactions::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
@@ -907,6 +1029,7 @@ impl SmartMerge {
             destination_wallet_id: Set(destination_wallet_id),
             ledger_tab_id: Set(None),
             deleted_at: Set(None),
+            notes: Set(notes),
         };
 
         let result = txn.insert(db).await?;
@@ -981,13 +1104,13 @@ impl SmartMerge {
         wallet.update(db).await
     }
 
-
     pub async fn create_ledger_tab(
         db: &DatabaseConnection,
         creator_id: &str,
         counterparty_id: Option<String>,
         tab_type: LedgerTabType,
         title: &str,
+        description: Option<String>,
         target_amount: Decimal,
     ) -> Result<entities::ledger_tabs::Model, DbErr> {
         let tab = entities::ledger_tabs::ActiveModel {
@@ -996,11 +1119,13 @@ impl SmartMerge {
             counterparty_id: Set(counterparty_id),
             tab_type: Set(tab_type.to_string()),
             title: Set(title.to_string()),
+            description: Set(description),
             target_amount: Set(target_amount),
             status: Set(LedgerTabStatus::Open.to_string()),
             created_at: Set(Utc::now().into()),
             updated_at: Set(Utc::now().into()),
         };
+
         tab.insert(db).await
     }
 
@@ -1011,11 +1136,12 @@ impl SmartMerge {
         username: Option<String>,
         image: Option<String>,
     ) -> Result<entities::users::Model, DbErr> {
-        let mut user: entities::users::ActiveModel = entities::users::Entity::find_by_id(user_id.to_string())
-            .one(db)
-            .await?
-            .ok_or(DbErr::Custom("User not found".to_string()))?
-            .into();
+        let mut user: entities::users::ActiveModel =
+            entities::users::Entity::find_by_id(user_id.to_string())
+                .one(db)
+                .await?
+                .ok_or(DbErr::Custom("User not found".to_string()))?
+                .into();
 
         if let Some(n) = name {
             user.name = Set(n);
@@ -1104,7 +1230,10 @@ impl SmartMerge {
     ) -> Result<(), DbErr> {
         // Unset current primary
         entities::user_upi_ids::Entity::update_many()
-            .col_expr(entities::user_upi_ids::Column::IsPrimary, Expr::value(false))
+            .col_expr(
+                entities::user_upi_ids::Column::IsPrimary,
+                Expr::value(false),
+            )
             .filter(entities::user_upi_ids::Column::UserId.eq(user_id))
             .exec(db)
             .await?;
@@ -1198,6 +1327,119 @@ impl SmartMerge {
         };
         alert.insert(db).await
     }
+
+    pub async fn create_bank_statement_row(
+        db: &DatabaseConnection,
+        user_id: &str,
+        date: DateTime<FixedOffset>,
+        description: String,
+        amount: Decimal,
+        _raw_data: Option<serde_json::Value>,
+    ) -> Result<entities::bank_statement_rows::Model, DbErr> {
+        let (debit, credit) = if amount < Decimal::ZERO {
+            (Some(amount.abs()), None)
+        } else {
+            (None, Some(amount))
+        };
+
+        let row = entities::bank_statement_rows::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            user_id: Set(user_id.to_string()),
+            date: Set(date.into()),
+            description: Set(description),
+            debit: Set(debit),
+            credit: Set(credit),
+            balance: Set(Decimal::ZERO), // Balance should be updated from statement or ignored for simple matching
+            is_matched: Set(false),
+        };
+        row.insert(db).await
+    }
+
+    pub async fn list_unmatched_statement_rows(
+        db: &DatabaseConnection,
+        user_id: &str,
+    ) -> Result<Vec<entities::bank_statement_rows::Model>, DbErr> {
+        entities::bank_statement_rows::Entity::find()
+            .filter(entities::bank_statement_rows::Column::UserId.eq(user_id))
+            .filter(entities::bank_statement_rows::Column::IsMatched.eq(false))
+            .all(db)
+            .await
+    }
+
+    pub async fn find_matches_for_row(
+        db: &DatabaseConnection,
+        user_id: &str,
+        row_id: &str,
+    ) -> Result<Vec<(entities::transactions::Model, i32)>, DbErr> {
+        let row = entities::bank_statement_rows::Entity::find_by_id(row_id.to_string())
+            .one(db)
+            .await?
+            .ok_or(DbErr::Custom("Statement row not found".to_string()))?;
+
+        let amount = row.debit.or(row.credit).unwrap_or(Decimal::ZERO);
+
+        // Find potential transactions within +/- 3 days and matching amount
+        let start_date = row.date - Duration::days(3);
+        let end_date = row.date + Duration::days(3);
+
+        let txns = entities::transactions::Entity::find()
+            .filter(entities::transactions::Column::UserId.eq(user_id))
+            .filter(entities::transactions::Column::Amount.eq(amount.abs()))
+            .filter(entities::transactions::Column::Date.between(start_date, end_date))
+            .all(db)
+            .await?;
+
+        let mut matches = Vec::new();
+        for txn in txns {
+            let mut score = 70; // Base score for amount + date range
+
+            if txn.amount == amount.abs() {
+                score += 10;
+            }
+            if txn.date == row.date {
+                score += 10;
+            }
+
+            // Check narration/description
+            if let Some(tag) = &txn.purpose_tag {
+                if row.description.to_lowercase().contains(&tag.to_lowercase()) {
+                    score += 10;
+                }
+            }
+
+            matches.push((txn, score.min(100)));
+        }
+
+        Ok(matches)
+    }
+
+    pub async fn confirm_match(
+        db: &DatabaseConnection,
+        _user_id: &str,
+        row_id: &str,
+        txn_id: &str,
+        confidence: i32,
+    ) -> Result<(), DbErr> {
+        let match_record = entities::statement_txn_matches::ActiveModel {
+            row_id: Set(row_id.to_string()),
+            transaction_id: Set(txn_id.to_string()),
+            confidence: Set(Decimal::from(confidence)),
+            matched_at: Set(Utc::now().into()),
+        };
+        match_record.insert(db).await?;
+
+        let mut row: entities::bank_statement_rows::ActiveModel =
+            entities::bank_statement_rows::Entity::find_by_id(row_id.to_string())
+                .one(db)
+                .await?
+                .ok_or(DbErr::Custom("Row not found".to_string()))?
+                .into();
+
+        row.is_matched = Set(true);
+        row.update(db).await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -1253,6 +1495,7 @@ mod tests {
             destination_wallet_id: Set(None),
             ledger_tab_id: Set(None),
             deleted_at: Set(None),
+            notes: Set(None),
         };
         txn.insert(&db).await?;
 

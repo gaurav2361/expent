@@ -1,11 +1,11 @@
-use auth::adapter::SqliteAdapter;
 pub use auth::AuthSession;
+use auth::adapter::SqliteAdapter;
 use auth::init_auth;
 use axum::{
+    Router,
     extract::FromRef,
     http::{HeaderValue, Method},
     routing::{delete, get, patch, post, put},
-    Router,
 };
 use better_auth::AxumIntegration;
 use ocr::OcrService;
@@ -107,6 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let auth_router = auth.clone().axum_router();
 
     let api_router = Router::new()
+        .route("/health", get(|| async { "OK" }))
         // Transactions
         .route(
             "/transactions",
@@ -137,18 +138,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/p2p/create", post(routes::p2p::create_p2p_handler))
         .route("/p2p/accept", post(routes::p2p::accept_p2p_handler))
         .route("/p2p/reject/{id}", post(routes::p2p::reject_p2p_handler))
+        .route(
+            "/p2p/ledger-tabs",
+            get(routes::p2p::list_ledger_tabs_handler),
+        )
+        .route(
+            "/p2p/ledger-tabs",
+            post(routes::p2p::create_ledger_tab_handler),
+        )
+        .route(
+            "/p2p/ledger-tabs/{id}/repayment",
+            post(routes::p2p::register_repayment_handler),
+        )
         // Groups
         .route("/groups", get(routes::groups::list_groups_handler))
         .route("/groups/create", post(routes::groups::create_group_handler))
-        .route("/groups/invite", post(routes::groups::invite_to_group_handler))
+        .route(
+            "/groups/invite",
+            post(routes::groups::invite_to_group_handler),
+        )
         .route(
             "/groups/{id}/transactions",
             get(routes::groups::list_group_transactions_handler),
         )
+        .route(
+            "/groups/{id}/members",
+            get(routes::groups::list_group_members_handler),
+        )
+        .route(
+            "/groups/{group_id}/members/{user_id}",
+            delete(routes::groups::remove_group_member_handler),
+        )
+        .route(
+            "/groups/{group_id}/members/{user_id}/role",
+            patch(routes::groups::update_member_role_handler),
+        )
         // Contacts
         .route("/contacts", get(routes::contacts::list_contacts_handler))
         .route("/contacts", post(routes::contacts::create_contact_handler))
-        .route("/contacts/{id}", put(routes::contacts::update_contact_handler))
+        .route(
+            "/contacts/{id}",
+            put(routes::contacts::update_contact_handler),
+        )
         .route(
             "/contacts/{id}",
             delete(routes::contacts::delete_contact_handler),
@@ -174,8 +205,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             put(routes::users::make_primary_upi_handler),
         )
         // Categories
-        .route("/categories", get(routes::categories::list_categories_handler))
-        .route("/categories", post(routes::categories::create_category_handler))
+        .route(
+            "/categories",
+            get(routes::categories::list_categories_handler),
+        )
+        .route(
+            "/categories",
+            post(routes::categories::create_category_handler),
+        )
         .route(
             "/categories/{id}",
             delete(routes::categories::delete_category_handler),
@@ -200,6 +237,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route(
             "/subscriptions/detect",
             get(routes::subscriptions::detect_subscriptions_handler),
+        )
+        // Reconciliation
+        .route(
+            "/reconciliation/rows",
+            get(routes::reconciliation::list_unmatched_rows_handler),
+        )
+        .route(
+            "/reconciliation/rows/{id}/matches",
+            get(routes::reconciliation::get_row_matches_handler),
+        )
+        .route(
+            "/reconciliation/rows/{id}/confirm",
+            post(routes::reconciliation::confirm_match_handler),
+        )
+        .route(
+            "/reconciliation/upload",
+            post(routes::reconciliation::upload_statement_handler),
         )
         // OCR & Uploads
         .route(

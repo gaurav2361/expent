@@ -26,7 +26,8 @@ pub async fn create_contact_handler(
     Json(payload): Json<CreateContactRequest>,
 ) -> Result<Json<db::entities::contacts::Model>, ApiError> {
     let result =
-        SmartMerge::create_contact(&state.db, &session.user.id, payload.name, payload.phone).await?;
+        SmartMerge::create_contact(&state.db, &session.user.id, payload.name, payload.phone)
+            .await?;
     Ok(Json(result))
 }
 

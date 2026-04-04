@@ -30,6 +30,9 @@ export interface Transaction {
   category?: string;
   status?: string;
   purpose_tag?: string;
+  source_wallet_name?: string;
+  destination_wallet_name?: string;
+  notes?: string;
 }
 
 interface TransactionViewerProps {
@@ -45,7 +48,7 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
   const [category, setCategory] = React.useState(item.category || "Uncategorized");
   const [status, setStatus] = React.useState(item.status || "Completed");
   const [amount, setAmount] = React.useState(item.amount);
-  const [note, setNote] = React.useState(item.purpose_tag || "");
+  const [note, setNote] = React.useState(item.notes || "");
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -60,11 +63,7 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
   });
 
   return (
-    <Drawer
-      direction={isMobile ? "bottom" : "right"}
-      open={open}
-      onOpenChange={onOpenChange}
-    >
+    <Drawer direction={isMobile ? "bottom" : "right"} open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
         <Button
           variant="link"
@@ -95,6 +94,18 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
             </Badge>
           </div>
 
+          {(item.source_wallet_name || item.destination_wallet_name) && (
+            <div className="flex flex-col gap-1 px-1">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                Account / Wallet
+              </span>
+              <div className="flex items-center gap-2 text-sm">
+                <WalletIcon className="h-4 w-4 text-primary" />
+                <span>{item.source_wallet_name || item.destination_wallet_name}</span>
+              </div>
+            </div>
+          )}
+
           <Separator className="my-2" />
 
           <form
@@ -106,7 +117,7 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
                 category,
                 status,
                 amount,
-                purpose_tag: note,
+                notes: note,
               });
             }}
           >
@@ -162,11 +173,11 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
 
             <div className="flex flex-col gap-3 mt-2">
               <Label htmlFor="note">Personal Note</Label>
-              <Input 
-                id="note" 
-                value={note} 
+              <Input
+                id="note"
+                value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Add a note about this transaction..." 
+                placeholder="Add a note about this transaction..."
               />
             </div>
 
