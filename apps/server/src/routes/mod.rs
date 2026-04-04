@@ -1,3 +1,4 @@
+pub mod contacts;
 pub mod groups;
 pub mod p2p;
 pub mod subscriptions;
