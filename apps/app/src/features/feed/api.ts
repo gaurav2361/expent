@@ -1,6 +1,6 @@
-import type { AxiosError } from 'axios';
-import { createMutation, createQuery } from 'react-query-kit';
-import { client } from '@/lib/api';
+import type { AxiosError } from "axios";
+import { createMutation, createQuery } from "react-query-kit";
+import { client } from "@/lib/api";
 
 // Types
 export type Post = {
@@ -15,9 +15,9 @@ type PostsResponse = Post[];
 type PostsVariables = void;
 
 export const usePosts = createQuery<PostsResponse, PostsVariables, AxiosError>({
-  queryKey: ['posts'],
+  queryKey: ["posts"],
   fetcher: () => {
-    return client.get(`posts`).then(response => response.data.posts);
+    return client.get(`posts`).then((response) => response.data.posts);
   },
 });
 
@@ -25,11 +25,9 @@ type PostResponse = Post;
 type PostVariables = { id: string };
 
 export const usePost = createQuery<PostResponse, PostVariables, AxiosError>({
-  queryKey: ['posts'],
+  queryKey: ["posts"],
   fetcher: (variables) => {
-    return client
-      .get(`posts/${variables.id}`)
-      .then(response => response.data);
+    return client.get(`posts/${variables.id}`).then((response) => response.data);
   },
 });
 
@@ -37,10 +35,10 @@ type AddPostResponse = Post;
 type AddPostVariables = { title: string; body: string; userId: number };
 
 export const useAddPost = createMutation<AddPostResponse, AddPostVariables, AxiosError>({
-  mutationFn: async variables =>
+  mutationFn: async (variables) =>
     client({
-      url: 'posts/add',
-      method: 'POST',
+      url: "posts/add",
+      method: "POST",
       data: variables,
-    }).then(response => response.data),
+    }).then((response) => response.data),
 });

@@ -1,8 +1,8 @@
-import * as React from 'react';
+import * as React from "react";
 
-import { Button, View } from '@/components/ui';
+import { Button, View } from "@/components/ui";
 
-import { Title } from './title';
+import { Title } from "./title";
 
 export function Buttons() {
   return (
@@ -11,25 +11,10 @@ export function Buttons() {
       <View>
         <View className="flex-row flex-wrap">
           <Button label="small" size="sm" className="mr-2" />
-          <Button
-            label="small"
-            loading
-            size="sm"
-            className="mr-2 min-w-[60px]"
-          />
-          <Button
-            label="small"
-            size="sm"
-            variant="secondary"
-            className="mr-2"
-          />
+          <Button label="small" loading size="sm" className="mr-2 min-w-[60px]" />
+          <Button label="small" size="sm" variant="secondary" className="mr-2" />
           <Button label="small" size="sm" variant="outline" className="mr-2" />
-          <Button
-            label="small"
-            size="sm"
-            variant="destructive"
-            className="mr-2"
-          />
+          <Button label="small" size="sm" variant="destructive" className="mr-2" />
           <Button label="small" size="sm" variant="ghost" className="mr-2" />
           <Button label="small" size="sm" disabled className="mr-2" />
         </View>
@@ -41,11 +26,7 @@ export function Buttons() {
         <Button label="Button" loading={true} />
         <Button label="Button" loading={true} variant="outline" />
         <Button label="Default Button Disabled" disabled />
-        <Button
-          label="Secondary Button Disabled"
-          disabled
-          variant="secondary"
-        />
+        <Button label="Secondary Button Disabled" disabled variant="secondary" />
       </View>
     </>
   );

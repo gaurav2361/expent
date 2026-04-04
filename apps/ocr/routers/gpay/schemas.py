@@ -9,7 +9,6 @@ class GPayExtraction(BaseModel):
     datetime_str: Optional[str] = Field(None, description="Exact date and time string e.g. '11 Mar 2026, 1:51 pm'")
     status: Literal["COMPLETED", "PENDING", "FAILED"]
 
-
     # Counterparty Info (The person/business you are interacting with)
     counterparty_name: str = Field(description="Name of the person or business")
     counterparty_phone: Optional[str] = None

@@ -1,15 +1,11 @@
-import { Link, Redirect, SplashScreen, Tabs } from 'expo-router';
-import * as React from 'react';
-import { useCallback, useEffect } from 'react';
+import { Link, Redirect, SplashScreen, Tabs } from "expo-router";
+import * as React from "react";
+import { useCallback, useEffect } from "react";
 
-import { Pressable, Text } from '@/components/ui';
-import {
-  Feed as FeedIcon,
-  Settings as SettingsIcon,
-  Style as StyleIcon,
-} from '@/components/ui/icons';
-import { useAuthStore as useAuth } from '@/features/auth/use-auth-store';
-import { useIsFirstTime } from '@/lib/hooks/use-is-first-time';
+import { Pressable, Text } from "@/components/ui";
+import { Feed as FeedIcon, Settings as SettingsIcon, Style as StyleIcon } from "@/components/ui/icons";
+import { useAuthStore as useAuth } from "@/features/auth/use-auth-store";
+import { useIsFirstTime } from "@/lib/hooks/use-is-first-time";
 
 export default function TabLayout() {
   const status = useAuth.use.status();
@@ -18,7 +14,7 @@ export default function TabLayout() {
     await SplashScreen.hideAsync();
   }, []);
   useEffect(() => {
-    if (status !== 'idle') {
+    if (status !== "idle") {
       const timer = setTimeout(() => {
         hideSplash();
       }, 1000);
@@ -29,7 +25,7 @@ export default function TabLayout() {
   if (isFirstTime) {
     return <Redirect href="/onboarding" />;
   }
-  if (status === 'signOut') {
+  if (status === "signOut") {
     return <Redirect href="/login" />;
   }
   return (
@@ -37,29 +33,29 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Feed',
+          title: "Feed",
           tabBarIcon: ({ color }) => <FeedIcon color={color} />,
           headerRight: () => <CreateNewPostLink />,
-          tabBarButtonTestID: 'feed-tab',
+          tabBarButtonTestID: "feed-tab",
         }}
       />
 
       <Tabs.Screen
         name="style"
         options={{
-          title: 'Style',
+          title: "Style",
           headerShown: false,
           tabBarIcon: ({ color }) => <StyleIcon color={color} />,
-          tabBarButtonTestID: 'style-tab',
+          tabBarButtonTestID: "style-tab",
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: "Settings",
           headerShown: false,
           tabBarIcon: ({ color }) => <SettingsIcon color={color} />,
-          tabBarButtonTestID: 'settings-tab',
+          tabBarButtonTestID: "settings-tab",
         }}
       />
     </Tabs>

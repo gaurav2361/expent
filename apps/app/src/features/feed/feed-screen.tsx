@@ -1,17 +1,14 @@
-import type { Post } from './api';
-import { FlashList } from '@shopify/flash-list';
+import type { Post } from "./api";
+import { FlashList } from "@shopify/flash-list";
 
-import * as React from 'react';
-import { EmptyList, FocusAwareStatusBar, Text, View } from '@/components/ui';
-import { usePosts } from './api';
-import { PostCard } from './components/post-card';
+import * as React from "react";
+import { EmptyList, FocusAwareStatusBar, Text, View } from "@/components/ui";
+import { usePosts } from "./api";
+import { PostCard } from "./components/post-card";
 
 export function FeedScreen() {
   const { data, isPending, isError } = usePosts();
-  const renderItem = React.useCallback(
-    ({ item }: { item: Post }) => <PostCard {...item} />,
-    [],
-  );
+  const renderItem = React.useCallback(({ item }: { item: Post }) => <PostCard {...item} />, []);
 
   if (isError) {
     return (

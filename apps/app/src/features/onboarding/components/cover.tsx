@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function */
-import type { SvgProps } from 'react-native-svg';
-import * as React from 'react';
-import Svg, { Circle, Path, Polygon } from 'react-native-svg';
+import type { SvgProps } from "react-native-svg";
+import * as React from "react";
+import Svg, { Circle, Path, Polygon } from "react-native-svg";
 // TODO: should be updated to simple images
 export function Cover(props: SvgProps) {
   return (
@@ -168,10 +168,7 @@ export function Cover(props: SvgProps) {
         transform="translate(-184.5 -85.00533)"
         fill="#2f2e41"
       />
-      <Polygon
-        points="394.382 714.123 406.565 715.489 417.632 669.146 399.65 667.13 394.382 714.123"
-        fill="#ffb7b7"
-      />
+      <Polygon points="394.382 714.123 406.565 715.489 417.632 669.146 399.65 667.13 394.382 714.123" fill="#ffb7b7" />
       <Path
         d="M576.22006,794.80228l23.99372,2.69008.001.00011a15.38731,15.38731,0,0,1,13.57568,17.00532l-.05573.49688-39.28462-4.40458Z"
         transform="translate(-184.5 -85.00533)"

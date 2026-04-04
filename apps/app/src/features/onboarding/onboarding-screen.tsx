@@ -1,15 +1,9 @@
-import { useRouter } from 'expo-router';
-import * as React from 'react';
+import { useRouter } from "expo-router";
+import * as React from "react";
 
-import {
-  Button,
-  FocusAwareStatusBar,
-  SafeAreaView,
-  Text,
-  View,
-} from '@/components/ui';
-import { useIsFirstTime } from '@/lib/hooks';
-import { Cover } from './components/cover';
+import { Button, FocusAwareStatusBar, SafeAreaView, Text, View } from "@/components/ui";
+import { useIsFirstTime } from "@/lib/hooks";
+import { Cover } from "./components/cover";
 
 export function OnboardingScreen() {
   const [_, setIsFirstTime] = useIsFirstTime();
@@ -21,33 +15,20 @@ export function OnboardingScreen() {
         <Cover />
       </View>
       <View className="justify-end">
-        <Text className="my-3 text-center text-5xl font-bold">
-          Obytes Starter
-        </Text>
-        <Text className="mb-2 text-center text-lg text-gray-600">
-          The right way to build your mobile app
-        </Text>
+        <Text className="my-3 text-center text-5xl font-bold">Obytes Starter</Text>
+        <Text className="mb-2 text-center text-lg text-gray-600">The right way to build your mobile app</Text>
 
-        <Text className="my-1 pt-6 text-left text-lg">
-          🚀 Production-ready
-          {' '}
-        </Text>
-        <Text className="my-1 text-left text-lg">
-          🥷 Developer experience + Productivity
-        </Text>
-        <Text className="my-1 text-left text-lg">
-          🧩 Minimal code and dependencies
-        </Text>
-        <Text className="my-1 text-left text-lg">
-          💪 well maintained third-party libraries
-        </Text>
+        <Text className="my-1 pt-6 text-left text-lg">🚀 Production-ready </Text>
+        <Text className="my-1 text-left text-lg">🥷 Developer experience + Productivity</Text>
+        <Text className="my-1 text-left text-lg">🧩 Minimal code and dependencies</Text>
+        <Text className="my-1 text-left text-lg">💪 well maintained third-party libraries</Text>
       </View>
       <SafeAreaView className="mt-6">
         <Button
           label="Let's Get Started "
           onPress={() => {
             setIsFirstTime(false);
-            router.replace('/login');
+            router.replace("/login");
           }}
         />
       </SafeAreaView>

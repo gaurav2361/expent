@@ -1,39 +1,37 @@
-import type { TokenType } from '@/lib/auth/utils';
+import type { TokenType } from "@/lib/auth/utils";
 
-import { create } from 'zustand';
-import { getToken, removeToken, setToken } from '@/lib/auth/utils';
-import { createSelectors } from '@/lib/utils';
+import { create } from "zustand";
+import { getToken, removeToken, setToken } from "@/lib/auth/utils";
+import { createSelectors } from "@/lib/utils";
 
 type AuthState = {
   token: TokenType | null;
-  status: 'idle' | 'signOut' | 'signIn';
+  status: "idle" | "signOut" | "signIn";
   signIn: (data: TokenType) => void;
   signOut: () => void;
   hydrate: () => void;
 };
 
 const _useAuthStore = create<AuthState>((set, get) => ({
-  status: 'idle',
+  status: "idle",
   token: null,
   signIn: (token) => {
     setToken(token);
-    set({ status: 'signIn', token });
+    set({ status: "signIn", token });
   },
   signOut: () => {
     removeToken();
-    set({ status: 'signOut', token: null });
+    set({ status: "signOut", token: null });
   },
   hydrate: () => {
     try {
       const userToken = getToken();
       if (userToken !== null) {
         get().signIn(userToken);
-      }
-      else {
+      } else {
         get().signOut();
       }
-    }
-    catch (e) {
+    } catch (e) {
       // only to remove eslint error, handle the error properly
       console.error(e);
       // catch error here

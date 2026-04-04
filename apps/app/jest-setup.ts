@@ -2,14 +2,14 @@
 /* eslint-disable no-restricted-globals */
 
 // Mock react-native-worklets first
-jest.mock('react-native-worklets', () => ({
+jest.mock("react-native-worklets", () => ({
   __esModule: true,
   default: {},
 }));
 
 // Mock react-native-reanimated
-jest.mock('react-native-reanimated', () => {
-  const View = require('react-native').View;
+jest.mock("react-native-reanimated", () => {
+  const View = require("react-native").View;
 
   return {
     __esModule: true,
@@ -19,12 +19,12 @@ jest.mock('react-native-reanimated', () => {
       createAnimatedComponent: (component: any) => component,
     },
     useSharedValue: jest.fn(() => ({ value: 0 })),
-    useAnimatedStyle: jest.fn(fn => fn()),
-    withTiming: jest.fn(value => value),
-    withSpring: jest.fn(value => value),
-    withDecay: jest.fn(value => value),
+    useAnimatedStyle: jest.fn((fn) => fn()),
+    withTiming: jest.fn((value) => value),
+    withSpring: jest.fn((value) => value),
+    withDecay: jest.fn((value) => value),
     withDelay: jest.fn((_, value) => value),
-    withRepeat: jest.fn(value => value),
+    withRepeat: jest.fn((value) => value),
     withSequence: jest.fn((...values) => values[0]),
     cancelAnimation: jest.fn(),
     Easing: {
@@ -33,9 +33,9 @@ jest.mock('react-native-reanimated', () => {
       quad: jest.fn(),
       cubic: jest.fn(),
       bezier: jest.fn(),
-      in: jest.fn(fn => fn),
-      out: jest.fn(fn => fn),
-      inOut: jest.fn(fn => fn),
+      in: jest.fn((fn) => fn),
+      out: jest.fn((fn) => fn),
+      inOut: jest.fn((fn) => fn),
     },
     FadeIn: { duration: jest.fn(() => ({})) },
     FadeOut: { duration: jest.fn(() => ({})) },
@@ -53,7 +53,7 @@ jest.mock('react-native-reanimated', () => {
 });
 
 // Mock react-native-mmkv
-jest.mock('react-native-mmkv', () => ({
+jest.mock("react-native-mmkv", () => ({
   MMKV: jest.fn(() => ({
     set: jest.fn(),
     getString: jest.fn(),
