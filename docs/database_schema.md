@@ -40,9 +40,15 @@ erDiagram
     SUBSCRIPTIONS ||--o{ SUBSCRIPTION_CHARGES : "logs historical payments"
     SUBSCRIPTIONS ||--o{ SUB_ALERTS : "configures reminders"
 
-    %% P2P Payments
+    %% P2P Payments & Ledger
     USERS ||--o{ P2P_REQUESTS : "sends money request"
     TRANSACTIONS |o--o{ P2P_REQUESTS : "links to final settlement"
+    TRANSACTIONS ||--o| P2P_TRANSFERS : "has transfer details"
+    USERS ||--o{ LEDGER_TABS : "creates tab"
+    
+    %% Wallets & Edits
+    USERS ||--o{ WALLETS : "owns"
+    TRANSACTIONS ||--o{ TRANSACTION_EDITS : "has edit history"
 ```
 
 ---
@@ -62,6 +68,9 @@ Before diving into the tables, here are all the shared enums used across multipl
 | `AlertChannel`         | `EMAIL`, `PUSH`                                             | `sub_alerts.channel`             |
 | `P2PRequestStatus`     | `PENDING`, `MAPPED`, `REJECTED`, `APPROVED`, `GROUP_INVITE` | `p2p_requests.status`            |
 | `GroupRole`            | `ADMIN`, `MEMBER`                                           | `user_groups.role`, `users.role` |
+| `WalletType`           | `CASH`, `BANK`, `CREDIT_CARD`, `UPI_WALLET`                 | `wallets.type`                   |
+| `LedgerTabType`        | `LENT`, `BORROWED`                                          | `ledger_tabs.tab_type`           |
+| `LedgerTabStatus`      | `OPEN`, `PARTIALLY_PAID`, `SETTLED`                         | `ledger_tabs.status`             |
 
 ---
 
@@ -100,7 +109,9 @@ This layer powers identification, credentials, third-party sign-ins, and user ve
 | `associated_contact_id` | `String?`               | FK → `contacts.id`        | Links user to their own contact record                    |
 | `metadata`              | `Json?`                 | optional                  | Arbitrary key-value store (preferences, onboarding state) |
 
-**Relations**: `has_many` → Sessions, Accounts, ContactLinks, UserGroups, Transactions, Subscriptions, P2PRequests, UpiIds. `belongs_to` → Contact (via `associated_contact_id`).
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `contacts`
+- **Depended Upon By (Has Many/One)**: `accounts`, `contact_links`, `ledger_tabs`, `p2p_requests`, `sessions`, `subscriptions`, `transactions`, `user_groups`, `user_upi_ids`, `wallets`
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -123,7 +134,6 @@ This layer powers identification, credentials, third-party sign-ins, and user ve
 ---
 
 ### `accounts`
-
 - **Purpose**: Maps third-party OAuth providers (e.g., Google, Apple) or multiple credential sets to a single user context.
 - **UI Standpoint**: Managed in the "Linked Accounts" or "Security" settings panel where users can connect or disconnect social accounts.
 - **API Operations**: `POST /auth/link_oauth`, `DELETE /auth/unlink_oauth`.
@@ -144,7 +154,9 @@ This layer powers identification, credentials, third-party sign-ins, and user ve
 | `created_at`               | `DateTimeWithTimeZone`  | required                  | When this link was created                   |
 | `updated_at`               | `DateTimeWithTimeZone`  | required                  | Last update timestamp                        |
 
-**Relations**: `belongs_to` → User.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `users`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -159,7 +171,6 @@ This layer powers identification, credentials, third-party sign-ins, and user ve
 ---
 
 ### `sessions`
-
 - **Purpose**: Tracks active login tokens, their expiration limits, IP addresses, and User-Agents for robust security.
 - **UI Standpoint**: Powers the "Active Sessions" settings view where users can forcefully "Log out of all devices".
 - **API Operations**: `POST /auth/login` (Create), `GET /auth/sessions` (Read), `DELETE /auth/logout` (Delete token).
@@ -175,7 +186,9 @@ This layer powers identification, credentials, third-party sign-ins, and user ve
 | `user_agent` | `String?`              | optional                  | Browser/device User-Agent string        |
 | `user_id`    | `String`               | FK → `users.id`           | Owning user                             |
 
-**Relations**: `belongs_to` → User.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `users`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -203,7 +216,9 @@ This layer powers identification, credentials, third-party sign-ins, and user ve
 | `created_at` | `DateTimeWithTimeZone?` | optional                  | Creation timestamp                      |
 | `updated_at` | `DateTimeWithTimeZone?` | optional                  | Last update timestamp                   |
 
-**Relations**: None (standalone, consumed-and-deleted).
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: None (Root Level Entity)
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -216,7 +231,6 @@ This layer powers identification, credentials, third-party sign-ins, and user ve
 ---
 
 ### `user_upi_ids`
-
 - **Purpose**: Stores one or more UPI IDs registered directly by the user, noting which one is marked as "Primary."
 - **UI Standpoint**: Displayed in the "Payment Methods" or "UPI Accounts" section of User Settings.
 - **API Operations**: `POST /users/upi`, `PUT /users/upi/:id/make-primary`, `DELETE /users/upi/:id`.
@@ -229,7 +243,9 @@ This layer powers identification, credentials, third-party sign-ins, and user ve
 | `is_primary` | `bool`    | required                  | Whether this is the default UPI for payments       |
 | `label`      | `String?` | optional                  | User-given nickname (e.g., "Personal", "Business") |
 
-**Relations**: `belongs_to` → User.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `users`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -268,8 +284,14 @@ This is the beating heart of Expent. It stores all financial movements, context 
 | `status`      | `TransactionStatus`    | required                  | Current state: `COMPLETED`, `PENDING`, `CANCELLED`      |
 | `purpose_tag` | `String?`              | optional                  | Free-text category tag (e.g., "Food", "Travel")         |
 | `group_id`    | `String?`              | FK → `groups.id`          | If part of a group expense                              |
+| `source_wallet_id`      | `String?`              | FK → `wallets.id`         | Source wallet for transfers/expenses                    |
+| `destination_wallet_id` | `String?`              | FK → `wallets.id`         | Destination wallet for transfers/incomes                |
+| `ledger_tab_id`         | `String?`              | FK → `ledger_tabs.id`     | If this transaction is part of a P2P ledger settlement  |
+| `deleted_at`            | `DateTimeWithTimeZone?`| optional                  | Used for soft deletes                                   |
 
-**Relations**: `belongs_to` → User, Group. `has_one` → TransactionMetadata. `has_many` → TransactionSources, TxnParties, Purchases, StatementTxnMatches, SubscriptionCharges, P2PRequests.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `users`, `groups`, `wallets`, `ledger_tabs`
+- **Depended Upon By (Has Many/One)**: `transaction_edits`, `transaction_metadata`, `transaction_sources`, `txn_parties`, `purchases`, `statement_txn_matches`, `subscription_charges`, `p2p_requests`, `p2p_transfers`
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -302,7 +324,9 @@ This is the beating heart of Expent. It stores all financial movements, context 
 > [!NOTE]
 > Exactly one of `user_id` or `contact_id` should be set. This polymorphic FK lets the same table track both on-platform and off-platform participants.
 
-**Relations**: `belongs_to` → Transaction, User, Contact.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `transactions`, `users`, `contacts`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -315,7 +339,6 @@ This is the beating heart of Expent. It stores all financial movements, context 
 ---
 
 ### `transaction_metadata`
-
 - **Purpose**: Holds volatile / complex identifiers safely separated from the core transaction table (like specific internal API txn IDs, app caller names).
 - **UI Standpoint**: Appears in the "Advanced Details" collapsed view in a transaction popup.
 - **API Operations**: Updated / Read seamlessly alongside the parent transaction query.
@@ -328,7 +351,9 @@ This is the beating heart of Expent. It stores all financial movements, context 
 | `app_name`       | `String?` | optional                       | Name of the app that processed the payment           |
 | `contact_number` | `String?` | optional                       | Phone number extracted from the payment notification |
 
-**Relations**: `belongs_to` → Transaction.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `transactions`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -342,7 +367,6 @@ This is the beating heart of Expent. It stores all financial movements, context 
 ---
 
 ### `transaction_sources`
-
 - **Purpose**: Indicates the origin truth of a transaction. If a transaction was created from a parsed image, the source table links the raw JSON metadata and R2 Cloud uploaded file URL here.
 - **UI Standpoint**: Drives the "View Original Receipt" button or "Source: PDF" badge on the UI.
 - **API Operations**: Read-heavy. Written primarily via Automated workers or Upload handlers (`POST /upload/receipt`).
@@ -355,7 +379,9 @@ This is the beating heart of Expent. It stores all financial movements, context 
 | `r2_file_url`    | `String?` | optional                  | Cloudflare R2 URL of the uploaded source file                |
 | `raw_metadata`   | `Json?`   | optional                  | Full OCR response or parsed PDF payload                      |
 
-**Relations**: `belongs_to` → Transaction.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `transactions`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -367,6 +393,61 @@ This is the beating heart of Expent. It stores all financial movements, context 
 
 ---
 
+### `transaction_edits`
+- **Purpose**: Creates an audit trail when users modify a transaction amount to keep a historical record of revisions.
+- **UI Standpoint**: Displays previous versions of the transaction amount within the transaction drawer context.
+- **API Operations**: Handled seamlessly by the backend during `PUT /transactions/:id`.
+
+| Column           | Type                   | Constraints               | Description                              |
+| ---------------- | ---------------------- | ------------------------- | ---------------------------------------- |
+| `id`             | `String`               | **PK**, no auto-increment | Edit record ID                           |
+| `transaction_id` | `String`               | FK → `transactions.id`    | Changed transaction                      |
+| `old_amount`     | `Decimal`              | required                  | Original transaction amount              |
+| `new_amount`     | `Decimal`              | required                  | Modified transaction amount              |
+| `edited_at`      | `DateTimeWithTimeZone` | required                  | When the edit happened                   |
+
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `transactions`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
+
+**📍 Data Context — What this table holds and where it lives in the UI:**
+
+| Column         | What Data It Contains              | Where It Comes From (UI Source)                                 | Where It Is Displayed / Used (UI Destination)                                  |
+| -------------- | ---------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `old_amount`   | The prior amount like `₹1,000.00`  | Automatically captured during an amount update                  | **Transaction Drawer → Advanced Details** → "Original Amount: ₹1,000.00"       |
+| `new_amount`   | The updated amount like `₹1,200.00`| Captured from the **Edit Transaction Modal** → Amount field     | Replaces the primary transaction amount, referenced here for auditing          |
+
+---
+
+### `wallets`
+- **Purpose**: Tracks a user's discrete balances (Cash, Bank, Credit Card) separate from abstract ledger entries.
+- **UI Standpoint**: Enables a "Wallets" overview showing how much value resides in different accounts.
+- **API Operations**: `POST /wallets`, `GET /wallets`, `PUT /wallets/:id`.
+
+| Column       | Type                   | Constraints               | Description                              |
+| ------------ | ---------------------- | ------------------------- | ---------------------------------------- |
+| `id`         | `String`               | **PK**, no auto-increment | Wallet record ID                         |
+| `user_id`    | `String`               | FK → `users.id`           | Owning user                              |
+| `name`       | `String`               | required                  | Nickname (e.g., "HDFC Bank")             |
+| `type`       | `WalletType`           | required                  | `CASH`, `BANK`, `CREDIT_CARD`, `UPI_WALLET`|
+| `balance`    | `Decimal`              | required                  | Current running balance                  |
+| `created_at` | `DateTimeWithTimeZone` | required                  | When the wallet was created              |
+| `updated_at` | `DateTimeWithTimeZone` | required                  | Last modification date                   |
+
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `users`
+- **Depended Upon By (Has Many/One)**: `transactions`
+
+**📍 Data Context — What this table holds and where it lives in the UI:**
+
+| Column     | What Data It Contains                      | Where It Comes From (UI Source)                               | Where It Is Displayed / Used (UI Destination)                               |
+| ---------- | ------------------------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `name`     | Alias like `"Main Account"`                | **Add Wallet Modal** → Name input field                       | **Wallets Overview** → card title; **Transaction Form** source selector     |
+| `type`     | E.g. `BANK` or `CASH`                      | **Add Wallet Modal** → Type dropdown                          | **Wallets Overview** appends intuitive icons (cash vs bank vs card)         |
+| `balance`  | Amount like `₹5,400.00`                    | Computed by the ledger or updated via adjustment flow         | **Wallets Overview** → prominent figure reflecting available funds          |
+
+---
+
 ## 5. Receipts & Itemization
 
 These tables handle deep item-level logging when the user uploads a shopping receipt (like a Swiggy or Amazon invoice).
@@ -374,7 +455,6 @@ These tables handle deep item-level logging when the user uploads a shopping rec
 ---
 
 ### `purchases`
-
 - **Purpose**: Sits on top of an existing transaction to represent highly granular storefront data (Vendor Name, Total Amount, Native Order ID).
 - **UI Standpoint**: Represents the visual "Receipt Breakdown" in a transaction drawer.
 - **API Operations**: `POST /transactions/:id/purchase` (Link a receipt).
@@ -387,7 +467,9 @@ These tables handle deep item-level logging when the user uploads a shopping rec
 | `total`          | `Decimal` | required                  | Total receipt amount                 |
 | `order_id`       | `String?` | optional                  | Vendor's native order/invoice number |
 
-**Relations**: `belongs_to` → Transaction. `has_many` → PurchaseItems.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `transactions`
+- **Depended Upon By (Has Many/One)**: `purchase_items`
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -400,7 +482,6 @@ These tables handle deep item-level logging when the user uploads a shopping rec
 ---
 
 ### `purchase_items`
-
 - **Purpose**: The direct line-items (Quantity, SKU, Price) broken out of the purchase.
 - **UI Standpoint**: Rendered as a list table like "2x Milk - ₹50.00" inside the Receipt View.
 - **API Operations**: Automatically updated when a `purchase` is created or modified.
@@ -414,7 +495,9 @@ These tables handle deep item-level logging when the user uploads a shopping rec
 | `price`       | `Decimal` | required                  | Unit price                   |
 | `sku`         | `String?` | optional                  | Stock Keeping Unit / barcode |
 
-**Relations**: `belongs_to` → Purchase.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `purchases`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -428,7 +511,6 @@ These tables handle deep item-level logging when the user uploads a shopping rec
 ---
 
 ### `purchase_imports`
-
 - **Purpose**: Captures raw OCR engine output or unstructured text extracted from PDFs before they successfully convert to a `purchase`.
 - **UI Standpoint**: Exists in a "Processing Documents" backlog view.
 - **API Operations**: `POST /imports/upload`, `GET /imports/status`.
@@ -440,7 +522,9 @@ These tables handle deep item-level logging when the user uploads a shopping rec
 | `vendor`      | `String`  | required                  | Detected or user-specified vendor        |
 | `raw_content` | `String?` | optional                  | Raw extracted text from OCR/parser       |
 
-**Relations**: None (standalone staging table).
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: None (Root Level Entity)
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -459,7 +543,6 @@ Expent reads bank statements and matches them securely against transactions.
 ---
 
 ### `bank_statement_rows`
-
 - **Purpose**: Records individual untampered line items pulled directly from uploaded CSV/PDF bank statements.
 - **UI Standpoint**: An interface comparing "Bank Record" vs "Expent Record" to ensure accounting completeness.
 - **API Operations**: `POST /statements/upload`, `GET /statements`.
@@ -473,7 +556,9 @@ Expent reads bank statements and matches them securely against transactions.
 | `credit`      | `Decimal?`             | optional                  | Credit amount (money in)            |
 | `balance`     | `Decimal`              | required                  | Running balance after this row      |
 
-**Relations**: `has_many` → StatementTxnMatches.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: None (Root Level Entity)
+- **Depended Upon By (Has Many/One)**: `statement_txn_matches`
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -487,7 +572,6 @@ Expent reads bank statements and matches them securely against transactions.
 ---
 
 ### `statement_txn_matches`
-
 - **Purpose**: Maps a generated `transaction` to its parsed `bank_statement_row`, storing a programmatic confidence score. Lets users verify the bot's accuracy.
 - **UI Standpoint**: Appears on a "Reconciliation" or "Needs Review" panel where users Accept/Reject matches.
 
@@ -500,7 +584,9 @@ Expent reads bank statements and matches them securely against transactions.
 > [!TIP]
 > The composite primary key `(row_id, transaction_id)` prevents duplicate matches while still allowing a single row to have multiple candidate transactions (reviewed by the user).
 
-**Relations**: `belongs_to` → BankStatementRow, Transaction.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `bank_statement_rows`, `transactions`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -519,7 +605,6 @@ Manages recurring expense predictions and reminders so users never miss a Spotif
 ---
 
 ### `subscriptions`
-
 - **Purpose**: Defines the recurring nature of a service (Cycle: Weekly/Monthly/Yearly), the exact expected amount, detection keywords ("NETFLIXCOM"), and the next charge date.
 - **UI Standpoint**: The main "Subscriptions" tab widget.
 - **API Operations**:
@@ -538,7 +623,9 @@ Manages recurring expense predictions and reminders so users never miss a Spotif
 | `next_charge_date`   | `DateTimeWithTimeZone` | required                  | Predicted next billing date                         |
 | `detection_keywords` | `String?`              | optional                  | Comma-separated keywords to auto-match transactions |
 
-**Relations**: `belongs_to` → User. `has_many` → SubscriptionCharges, SubAlerts.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `users`
+- **Depended Upon By (Has Many/One)**: `subscription_charges`, `sub_alerts`
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -554,7 +641,6 @@ Manages recurring expense predictions and reminders so users never miss a Spotif
 ---
 
 ### `subscription_charges`
-
 - **Purpose**: Every time a transaction is mapped to a subscription, it generates a charge instance indicating the payment succeeded (or failed).
 - **UI Standpoint**: The "History" accordion when clicking on a Subscription.
 - **API Operations**: Read alongside `GET /subscriptions/:id`.
@@ -568,7 +654,9 @@ Manages recurring expense predictions and reminders so users never miss a Spotif
 | `amount`          | `Decimal`              | required                  | Actual charged amount                         |
 | `status`          | `String`               | required                  | Freeform: `CHARGED`, `FAILED`, `PENDING`      |
 
-**Relations**: `belongs_to` → Subscription, Transaction.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `subscriptions`, `transactions`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -583,7 +671,6 @@ Manages recurring expense predictions and reminders so users never miss a Spotif
 ---
 
 ### `sub_alerts`
-
 - **Purpose**: The configuration metric indicating exactly how many days _before_ the charge date that a Push/Email alert needs to fire.
 - **UI Standpoint**: The "Reminder Settings" dropdown on a subscription row.
 - **API Operations**: `POST /subscriptions/:id/alerts` (Setup alert), `DELETE /subscriptions/:id/alerts`.
@@ -596,7 +683,9 @@ Manages recurring expense predictions and reminders so users never miss a Spotif
 | `sent_at`         | `DateTimeWithTimeZone?` | optional                  | Null until the alert is actually dispatched      |
 | `channel`         | `AlertChannel`          | required                  | `EMAIL` or `PUSH`                                |
 
-**Relations**: `belongs_to` → Subscription.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `subscriptions`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -615,7 +704,6 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 ---
 
 ### `contacts`
-
 - **Purpose**: A normalized address book entry for a third party a user has interacted with financially. They might not be an Expent user.
 - **UI Standpoint**: Powers the searchable "Send Money" or "Paid To" target input field.
 - **API Operations**: `POST /contacts`, `GET /contacts`, `PUT /contacts/:id`.
@@ -627,7 +715,9 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 | `phone`     | `String?` | optional                  | Phone number                                          |
 | `is_pinned` | `bool`    | required                  | Whether the user pinned this contact for quick access |
 
-**Relations**: `has_many` → ContactIdentifiers.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: None (Root Level Entity)
+- **Depended Upon By (Has Many/One)**: `users`, `txn_parties`, `contact_identifiers`, `contact_links`
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -640,7 +730,6 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 ---
 
 ### `contact_identifiers`
-
 - **Purpose**: Binds multiple identifiers (Phone, Bank Account, UPI VPA) to a single contact. This enables matching a contact across different payment channels.
 - **UI Standpoint**: Shown as chips/badges under a contact's profile card.
 - **API Operations**: Managed alongside contact CRUD operations.
@@ -653,7 +742,9 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 | `value`          | `String`         | required                  | The actual identifier string                     |
 | `linked_user_id` | `String?`        | optional                  | If this identifier resolves to a registered user |
 
-**Relations**: `belongs_to` → Contact.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `contacts`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -666,7 +757,6 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 ---
 
 ### `contact_links`
-
 - **Purpose**: A join table that scopes contact visibility to a specific user. Ensures User A's contacts are private from User B.
 - **UI Standpoint**: Invisible to the user — it's the authorization layer behind "My Contacts".
 
@@ -675,7 +765,9 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 | `user_id`    | `String` | **PK** (composite), FK → `users.id`    | The user who saved this contact |
 | `contact_id` | `String` | **PK** (composite), FK → `contacts.id` | The contact being saved         |
 
-**Relations**: `belongs_to` → User, Contact.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `users`, `contacts`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -687,7 +779,6 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 ---
 
 ### `groups`
-
 - **Purpose**: A collaborative space (e.g., "Goa Trip" or "Apartment Bills") for shared expense tracking.
 - **UI Standpoint**: Exists inside a standalone "Groups" tab showing collaborative dashboards.
 - **API Operations**: `POST /groups`, `GET /groups/:id`, `DELETE /groups/:id`.
@@ -699,7 +790,9 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 | `description` | `String?`              | optional                  | Short description of the group's purpose |
 | `created_at`  | `DateTimeWithTimeZone` | required                  | When the group was created               |
 
-**Relations**: `has_many` → UserGroups, Transactions.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: None (Root Level Entity)
+- **Depended Upon By (Has Many/One)**: `transactions`, `user_groups`
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -712,7 +805,6 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 ---
 
 ### `user_groups`
-
 - **Purpose**: Join table linking users to groups with role-based access (Admin can edit, Member can only view/add transactions).
 - **UI Standpoint**: The "Members" list inside a group view, with role badges.
 - **API Operations**: `POST /groups/:id/members`, `PUT /groups/:id/members/:uid/role`, `DELETE /groups/:id/members/:uid`.
@@ -723,7 +815,9 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 | `group_id` | `String`    | **PK** (composite), FK → `groups.id` | The group           |
 | `role`     | `GroupRole` | required                             | `ADMIN` or `MEMBER` |
 
-**Relations**: `belongs_to` → User, Group.
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `users`, `groups`
+- **Depended Upon By (Has Many/One)**: None (Leaf Node Entity)
 
 **📍 Data Context — What this table holds and where it lives in the UI:**
 
@@ -767,3 +861,65 @@ Designed for users making peer-to-peer relationships, mapping local phonebooks, 
 | `transaction_data` | JSON snapshot like `{amount: 500, purpose: "Dinner split", date: "2026-04-01"}` | Captured from the **Send Request** form fields (amount, purpose, notes)                                              | **Notifications Page** → request detail card shows the snapshot data; **Pending Requests** → expandable detail                                       |
 | `status`           | `PENDING` → `APPROVED` / `REJECTED` / `MAPPED`                                  | Starts as `PENDING` on creation; changes when receiver clicks **Approve** / **Reject** on the **Notifications Page** | **Pending Requests** → status pill; **Notifications** → action buttons change based on status (Approve/Reject for PENDING, "Settled ✓" for APPROVED) |
 | `linked_txn_id`    | FK to the actual settlement transaction                                         | Set when the receiver approves and a real `transaction` is created to record the payment                             | **Pending Requests** → once settled, shows "View Transaction" link pointing to the actual ledger entry                                               |
+
+---
+
+### `p2p_transfers`
+
+- **Purpose**: A rich mapping for UPI/Google Pay peer-to-peer transfers, holding deep metadata beyond standard transaction attributes to handle refunds, queries, or counterparty mapping.
+- **UI Standpoint**: Fills out the rich visual view when showing complex UPI transfers or Google Pay interactions.
+- **API Operations**: Read/Written alongside the base transaction.
+
+| Column                  | Type      | Constraints               | Description                                      |
+| ----------------------- | --------- | ------------------------- | ------------------------------------------------ |
+| `id`                    | `String`  | **PK**, no auto-increment | Record ID                                        |
+| `transaction_id`        | `String`  | FK → `transactions.id`    | Parent overarching transaction                   |
+| `direction`             | `String`  | required                  | `IN` or `OUT` matching the main transaction      |
+| `counterparty_name`     | `String`  | required                  | The person on the other end of the transaction   |
+| `counterparty_phone`    | `String?` | optional                  | Phone number of the counterparty                 |
+| `counterparty_upi_id`   | `String?` | optional                  | UPI VPA of the counterparty                      |
+| `is_merchant`           | `bool`    | required                  | Whether payment is to a business account         |
+| `upi_transaction_id`    | `String?` | optional                  | Network UPI tracking ID                          |
+| `google_transaction_id` | `String?` | optional                  | Platform-specific ID for Google Pay matching     |
+| `source_bank_account`   | `String?` | optional                  | Partially masked string of the source bank       |
+
+**Relations**: `belongs_to` → Transaction.
+
+**📍 Data Context — What this table holds and where it lives in the UI:**
+
+| Column                  | What Data It Contains                        | Where It Comes From (UI Source)                                 | Where It Is Displayed / Used (UI Destination)                                  |
+| ----------------------- | -------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `counterparty_name`     | Name like `"Aryan"`                          | Extracted from the payment SMS / P2P platform payload           | **Transaction Drawer** → prominent display of the sender/receiver name         |
+| `is_merchant`           | `true` or `false`                            | Derived from MCC code, UPI VPA format, or API flag              | Assists in auto-categorization or merchant vs personal split rules             |
+| `google_transaction_id` | Native string like `"CICAgIDQz_...`"         | From the Google Pay raw integration API or deeply structured SMS| **Transaction Drawer → Advanced Details** (helpful for app-specific reference) |
+
+---
+
+### `ledger_tabs`
+- **Purpose**: Represents an ongoing informal split or "running tab" between two explicit users who lend or borrow frequently over an extended timeframe.
+- **UI Standpoint**: Displays as a distinct unified block like "Owes You" under a friend’s contact screen.
+- **API Operations**: `POST /ledger-tabs`, `GET /ledger-tabs/:id`, `PUT /ledger-tabs/:id`.
+
+| Column            | Type                   | Constraints               | Description                                   |
+| ----------------- | ---------------------- | ------------------------- | --------------------------------------------- |
+| `id`              | `String`               | **PK**, no auto-increment | Tab record ID                                 |
+| `creator_id`      | `String`               | FK → `users.id`           | Initiator user of the tab                     |
+| `counterparty_id` | `String?`              | optional                  | The explicit second user on the tab           |
+| `tab_type`        | `LedgerTabType`        | required                  | `LENT` or `BORROWED`                          |
+| `title`           | `String`               | required                  | Quick reference text (e.g., "April Drinks")   |
+| `target_amount`   | `Decimal`              | required                  | The explicit debt amount initially established|
+| `status`          | `LedgerTabStatus`      | required                  | `OPEN`, `PARTIALLY_PAID`, or `SETTLED`        |
+| `created_at`      | `DateTimeWithTimeZone` | required                  | Setup timestamp                               |
+| `updated_at`      | `DateTimeWithTimeZone` | required                  | Last interaction on the tab                   |
+
+**Dependencies & Connections**:
+- **Depends On (Foreign Keys)**: `users`
+- **Depended Upon By (Has Many/One)**: `transactions`
+
+**📍 Data Context — What this table holds and where it lives in the UI:**
+
+| Column            | What Data It Contains                                | Where It Comes From (UI Source)                         | Where It Is Displayed / Used (UI Destination)                                 |
+| ----------------- | ---------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `title`           | User-provided informal name like `"Trip to Delhi"`   | **Create Tab Modal** → Title input field                | **P2P Overview** → shows distinct running debts categorized by name           |
+| `target_amount`   | High-water mark or exact split amount `₹4,000.00`    | **Create Tab Modal** → Initial split specification      | Displayed alongside the settled amount to show progress                       |
+| `status`          | `OPEN`, `PARTIALLY_PAID`, `SETTLED`                  | Transitioned as linked transactions decrease owed total | Provides `PARTIALLY_PAID` badge dynamically across UI                         |
