@@ -4,7 +4,7 @@ use auth::init_auth;
 use axum::{
     extract::FromRef,
     http::{HeaderValue, Method},
-    routing::{delete, get, patch, post},
+    routing::{delete, get, patch, post, put},
     Router,
 };
 use better_auth::AxumIntegration;
@@ -137,6 +137,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route(
             "/groups/{id}/transactions",
             get(routes::groups::list_group_transactions_handler),
+        )
+        .route("/contacts", get(routes::contacts::list_contacts_handler))
+        .route("/contacts", post(routes::contacts::create_contact_handler))
+        .route("/contacts/{id}", put(routes::contacts::update_contact_handler))
+        .route(
+            "/contacts/{id}",
+            delete(routes::contacts::delete_contact_handler),
+        )
+        .route(
+            "/contacts/{id}",
+            get(routes::contacts::get_contact_detail_handler),
+        )
+        .route(
+            "/contacts/{id}/identifiers",
+            post(routes::contacts::add_contact_identifier_handler),
         )
         .route(
             "/subscriptions/detect",
