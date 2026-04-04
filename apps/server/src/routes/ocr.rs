@@ -1,20 +1,9 @@
 use axum::extract::{Json, State};
-use db::SmartMerge;
-use serde::Deserialize;
 use axum::http::StatusCode;
+use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
-
-pub async fn process_ocr_handler(
-    State(state): State<AppState>,
-    session: AuthSession,
-    Json(processed_ocr): Json<db::ProcessedOcr>,
-) -> Result<Json<db::entities::transactions::Model>, ApiError> {
-    let result = SmartMerge::process_ocr(&state.db, &session.user.id, processed_ocr).await?;
-
-    Ok(Json(result))
-}
 
 #[derive(Deserialize)]
 pub struct ProcessImageOcrRequest {
@@ -25,7 +14,7 @@ pub async fn process_image_ocr_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Json(payload): Json<ProcessImageOcrRequest>,
-) -> Result<Json<db::entities::transactions::Model>, ApiError> {
+) -> Result<Json<db::ProcessedOcr>, ApiError> {
     // Security check: Ensure the key starts with the user ID to prevent IDOR
     let user_id_prefix = format!("{}/", session.user.id);
     if !payload.key.starts_with(&user_id_prefix) {
@@ -64,7 +53,9 @@ pub async fn process_image_ocr_handler(
             if let Some(re) = e.downcast_ref::<reqwest::Error>() {
                 if let Some(status) = re.status() {
                     if status == StatusCode::TOO_MANY_REQUESTS {
-                        return ApiError::Internal("Gemini API quota exceeded. Please try again later.".to_string());
+                        return ApiError::Internal(
+                            "Gemini API quota exceeded. Please try again later.".to_string(),
+                        );
                     }
                 }
             }
@@ -78,9 +69,8 @@ pub async fn process_image_ocr_handler(
             "GENERIC".to_string()
         },
         data: ocr_json,
+        r2_key: Some(payload.key),
     };
 
-    let result = SmartMerge::process_ocr(&state.db, &session.user.id, processed_ocr).await?;
-
-    Ok(Json(result))
+    Ok(Json(processed_ocr))
 }

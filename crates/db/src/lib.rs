@@ -24,6 +24,7 @@ pub struct LineItem {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OcrResult {
     pub raw_text: String,
+    pub vendor: Option<String>,
     pub amount: Option<Decimal>,
     pub date: Option<DateTime<FixedOffset>>,
     pub upi_id: Option<String>,
@@ -52,6 +53,7 @@ pub struct GPayExtraction {
 pub struct ProcessedOcr {
     pub doc_type: String, // "GPAY" or "GENERIC"
     pub data: serde_json::Value,
+    pub r2_key: Option<String>,
 }
 
 /// Details for splitting a transaction among multiple users.
@@ -69,6 +71,13 @@ pub struct P2PRequestWithSender {
     pub sender_name: Option<String>,
 }
 
+/// Response for OCR transaction creation.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OcrTransactionResponse {
+    pub transaction: entities::transactions::Model,
+    pub contact_created: bool,
+}
+
 /// Business logic for merging and processing transaction data.
 pub struct SmartMerge;
 
@@ -78,10 +87,54 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         processed: ProcessedOcr,
-    ) -> Result<entities::transactions::Model, DbErr> {
+    ) -> Result<OcrTransactionResponse, DbErr> {
+        let mut contact_id = None;
+        let mut contact_created = false;
+
         if processed.doc_type == "GPAY" {
             let gpay: GPayExtraction = serde_json::from_value(processed.data.clone())
                 .map_err(|e| DbErr::Custom(format!("Failed to parse GPay data: {}", e)))?;
+
+            // 2.6 Auto-Contact Creation Logic
+            if let Some(upi_id) = &gpay.counterparty_upi_id {
+                // Check if identifier exists
+                let identifier = entities::contact_identifiers::Entity::find()
+                    .filter(entities::contact_identifiers::Column::Value.eq(upi_id))
+                    .one(db)
+                    .await?;
+
+                if let Some(ident) = identifier {
+                    contact_id = Some(ident.contact_id);
+                } else {
+                    // Create new contact
+                    let new_contact = entities::contacts::ActiveModel {
+                        id: Set(uuid::Uuid::now_v7().to_string()),
+                        name: Set(gpay.counterparty_name.clone()),
+                        phone: Set(gpay.counterparty_phone.clone()),
+                        is_pinned: Set(false),
+                    };
+                    let c_result = new_contact.insert(db).await?;
+                    contact_id = Some(c_result.id.clone());
+                    contact_created = true;
+
+                    // Create identifier
+                    let new_ident = entities::contact_identifiers::ActiveModel {
+                        id: Set(uuid::Uuid::now_v7().to_string()),
+                        contact_id: Set(c_result.id.clone()),
+                        r#type: Set("UPI".to_string()),
+                        value: Set(upi_id.clone()),
+                        linked_user_id: Set(None),
+                    };
+                    new_ident.insert(db).await?;
+
+                    // Create link for user
+                    let new_link = entities::contact_links::ActiveModel {
+                        user_id: Set(user_id.to_string()),
+                        contact_id: Set(c_result.id),
+                    };
+                    new_link.insert(db).await?;
+                }
+            }
 
             let direction = if gpay.direction == "IN" {
                 TransactionDirection::In
@@ -91,12 +144,10 @@ impl SmartMerge {
 
             let date = if let Some(dt_str) = &gpay.datetime_str {
                 match chrono::NaiveDateTime::parse_from_str(dt_str, "%d %b %Y, %I:%M %p") {
-                    Ok(naive) => {
-                        DateTime::<FixedOffset>::from_naive_utc_and_offset(
-                            naive,
-                            FixedOffset::east_opt(0).unwrap(),
-                        )
-                    }
+                    Ok(naive) => DateTime::<FixedOffset>::from_naive_utc_and_offset(
+                        naive,
+                        FixedOffset::east_opt(0).unwrap(),
+                    ),
                     Err(_) => Utc::now().into(),
                 }
             } else {
@@ -121,7 +172,29 @@ impl SmartMerge {
 
             let result = txn.insert(db).await?;
 
-            let p2p = entities::p2p_transfers::ActiveModel {
+            // 2.7 Store r2_file_url in transaction_sources
+            let source = entities::transaction_sources::ActiveModel {
+                id: Set(uuid::Uuid::now_v7().to_string()),
+                transaction_id: Set(result.id.clone()),
+                source_type: Set("GPAY_OCR".to_string()),
+                r2_file_url: Set(processed.r2_key),
+                raw_metadata: Set(Some(processed.data)),
+            };
+            source.insert(db).await?;
+
+            // 2.6 Create txn_parties record
+            if let Some(c_id) = contact_id {
+                let party = entities::txn_parties::ActiveModel {
+                    id: Set(uuid::Uuid::now_v7().to_string()),
+                    transaction_id: Set(result.id.clone()),
+                    user_id: Set(None),
+                    contact_id: Set(Some(c_id)),
+                    role: Set("COUNTERPARTY".to_string()),
+                };
+                party.insert(db).await?;
+            }
+
+            let transfer = entities::p2p_transfers::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 transaction_id: Set(result.id.clone()),
                 direction: Set(gpay.direction),
@@ -133,7 +206,7 @@ impl SmartMerge {
                 google_transaction_id: Set(gpay.google_transaction_id),
                 source_bank_account: Set(gpay.source_bank_account),
             };
-            p2p.insert(db).await?;
+            transfer.insert(db).await?;
 
             if gpay.is_merchant {
                 let purchase = entities::purchases::ActiveModel {
@@ -146,54 +219,26 @@ impl SmartMerge {
                 purchase.insert(db).await?;
             }
 
-            return Ok(result);
-        }
-
-        // GENERIC logic
-        let ocr_data: OcrResult = serde_json::from_value(processed.data.clone())
-            .map_err(|e| DbErr::Custom(format!("Failed to parse Generic OCR data: {}", e)))?;
-
-        let start_date = ocr_data.date.map(|d| d - Duration::hours(48));
-        let end_date = ocr_data.date.map(|d| d + Duration::hours(48));
-
-        let mut query = entities::transactions::Entity::find()
-            .filter(entities::transactions::Column::UserId.eq(user_id))
-            .filter(entities::transactions::Column::DeletedAt.is_null());
-
-        if let Some(amount) = ocr_data.amount {
-            query = query.filter(entities::transactions::Column::Amount.eq(amount));
-        }
-
-        if let (Some(start), Some(end)) = (start_date, end_date) {
-            query = query.filter(entities::transactions::Column::Date.between(start, end));
-        }
-
-        let existing_txns = query.all(db).await?;
-
-        let ocr_data_json = serde_json::to_value(&ocr_data)
-            .map_err(|e| DbErr::Custom(format!("Failed to serialize OCR data: {}", e)))?;
-
-        let txn = if !existing_txns.is_empty() {
-            let existing = existing_txns[0].clone();
-            let source = entities::transaction_sources::ActiveModel {
-                id: Set(uuid::Uuid::now_v7().to_string()),
-                transaction_id: Set(existing.id.clone()),
-                source_type: Set("OCR_SCREENSHOT_MERGED".to_string()),
-                r2_file_url: Set(None),
-                raw_metadata: Set(Some(ocr_data_json)),
-            };
-            source.insert(db).await?;
-            existing
+            Ok(OcrTransactionResponse {
+                transaction: result,
+                contact_created,
+            })
         } else {
-            let new_txn = entities::transactions::ActiveModel {
+            // Generic OCR path
+            let generic: OcrResult = serde_json::from_value(processed.data.clone())
+                .map_err(|e| DbErr::Custom(format!("Failed to parse Generic data: {}", e)))?;
+
+            let amount = generic.amount.unwrap_or(Decimal::ZERO);
+
+            let txn = entities::transactions::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 user_id: Set(user_id.to_string()),
-                amount: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
+                amount: Set(amount),
                 direction: Set(TransactionDirection::Out),
-                date: Set(ocr_data.date.unwrap_or_else(|| Utc::now().into())),
+                date: Set(generic.date.unwrap_or_else(|| Utc::now().into())),
                 source: Set(TransactionSource::Ocr),
                 status: Set(TransactionStatus::Completed),
-                purpose_tag: Set(None),
+                purpose_tag: Set(generic.vendor.clone()),
                 group_id: Set(None),
                 source_wallet_id: Set(None),
                 destination_wallet_id: Set(None),
@@ -201,39 +246,27 @@ impl SmartMerge {
                 deleted_at: Set(None),
             };
 
-            let result = new_txn.insert(db).await?;
-
-            let metadata = entities::transaction_metadata::ActiveModel {
-                transaction_id: Set(result.id.clone()),
-                upi_txn_id: Set(ocr_data.upi_id.clone()),
-                app_txn_id: Set(None),
-                app_name: Set(None),
-                contact_number: Set(None),
-            };
-            metadata.insert(db).await?;
+            let result = txn.insert(db).await?;
 
             let source = entities::transaction_sources::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 transaction_id: Set(result.id.clone()),
-                source_type: Set("OCR_SCREENSHOT".to_string()),
-                r2_file_url: Set(None),
-                raw_metadata: Set(Some(ocr_data_json)),
+                source_type: Set("GENERIC_OCR".to_string()),
+                r2_file_url: Set(processed.r2_key),
+                raw_metadata: Set(Some(processed.data)),
             };
             source.insert(db).await?;
-            result
-        };
 
-        if !ocr_data.items.is_empty() {
             let purchase = entities::purchases::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
-                transaction_id: Set(txn.id.clone()),
-                vendor: Set("Extracted Vendor".to_string()),
-                total: Set(ocr_data.amount.unwrap_or(Decimal::ZERO)),
+                transaction_id: Set(result.id.clone()),
+                vendor: Set(generic.vendor.unwrap_or_else(|| "Unknown".to_string())),
+                total: Set(amount),
                 order_id: Set(None),
             };
             let p_result = purchase.insert(db).await?;
 
-            for item in ocr_data.items {
+            for item in generic.items {
                 let p_item = entities::purchase_items::ActiveModel {
                     id: Set(uuid::Uuid::now_v7().to_string()),
                     purchase_id: Set(p_result.id.clone()),
@@ -244,9 +277,12 @@ impl SmartMerge {
                 };
                 p_item.insert(db).await?;
             }
-        }
 
-        Ok(txn)
+            Ok(OcrTransactionResponse {
+                transaction: result,
+                contact_created: false,
+            })
+        }
     }
 
     /// Creates a peer-to-peer (P2P) request for a given transaction.

@@ -1,19 +1,13 @@
 "use client";
 
 import { Button } from "@expent/ui/components/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Input } from "@expent/ui/components/input";
-import { Label } from "@expent/ui/components/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import {
-  ReceiptTextIcon,
   Share2Icon,
-  SparklesIcon,
   MoreVerticalIcon,
   Trash2Icon,
   PlusIcon,
-  CheckIcon,
-  Wand2Icon,
 } from "lucide-react";
 import { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -27,7 +21,6 @@ import type { Column } from "@/components/data-table/data-table-types";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
 import type { Transaction as TransactionType } from "@/components/transactions/transaction-viewer";
 import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
-import { OrderSummary } from "@/components/tool-ui/order-summary";
 import { ApprovalCard } from "@/components/tool-ui/approval-card";
 import {
   DropdownMenu,
@@ -41,27 +34,7 @@ import { useTransactions } from "@/hooks/use-transactions";
 import { useP2P } from "@/hooks/use-p2p";
 import type { P2PRequest } from "@/hooks/use-p2p";
 import { apiClient } from "@/lib/api-client";
-
-interface OcrItem {
-  id: string;
-  name: string;
-  description?: string;
-  quantity: number;
-  unitPrice: number;
-}
-
-interface OcrResult {
-  id: string;
-  doc_type?: string;
-  items?: OcrItem[];
-  pricing?: {
-    subtotal: number;
-    total: number;
-    currency?: string;
-  };
-  raw_text?: string;
-  data?: any;
-}
+import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -73,7 +46,8 @@ export default function DashboardPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSteps, setUploadSteps] = useState<any[]>([]);
-  const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
+  const [processedOcr, setProcessedOcr] = useState<{ doc_type: string; data: any } | null>(null);
+  const [isSavingOcr, setIsSavingOcr] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
@@ -166,7 +140,7 @@ export default function DashboardPage() {
   const handleUpload = async () => {
     if (!file) return;
     setIsUploading(true);
-    setOcrResult(null);
+    setProcessedOcr(null);
 
     const steps = [
       { id: "1", label: "Uploading file...", status: "in-progress" },
@@ -179,7 +153,6 @@ export default function DashboardPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      // We use raw fetch here for FormData as apiClient is optimized for JSON
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
       const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
         method: "POST",
@@ -212,27 +185,35 @@ export default function DashboardPage() {
 
       setUploadSteps((prev) => prev.map((s) => (s.id === "3" ? { ...s, status: "completed" } : s)));
 
-      // Map the backend result to our OcrResult structure
-      setOcrResult({
-        id: result.id,
-        doc_type: "Standard Receipt",
-        items: [{ id: "1", name: result.purpose_tag || "Item 1", quantity: 1, unitPrice: parseFloat(result.amount) }],
-        pricing: {
-          subtotal: parseFloat(result.amount),
-          total: parseFloat(result.amount),
-          currency: "INR",
-        },
-        raw_text: JSON.stringify(result, null, 2),
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("File processed successfully!");
+      setProcessedOcr(result);
+      toast.success("Data extracted successfully! Please review.");
       setTimeout(() => setIsUploading(false), 1000);
     } catch (error) {
       console.error(error);
       setUploadSteps((prev) => prev.map((s) => (s.status === "in-progress" ? { ...s, status: "failed" } : s)));
       toast.error(error instanceof Error ? error.message : "Upload or processing failed.");
       setTimeout(() => setIsUploading(false), 2000);
+    }
+  };
+
+  const handleConfirmOcr = async (finalData: any) => {
+    setIsSavingOcr(true);
+    try {
+      const result = await apiClient<any>("/api/transactions/from-ocr", {
+        method: "POST",
+        body: JSON.stringify(finalData),
+      });
+      setProcessedOcr(null);
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success("Transaction saved successfully!");
+      if (result.contact_created) {
+        toast.success("New contact auto-created from receipt!");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Failed to save transaction.");
+    } finally {
+      setIsSavingOcr(false);
     }
   };
 
@@ -297,83 +278,20 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* OCR Result / Itemized Review Section using OrderSummary */}
-        {ocrResult && (
-          <div className="grid gap-4 lg:grid-cols-2 animate-in zoom-in-95 duration-300">
-            <div className="space-y-4">
-              <OrderSummary
-                id="ocr-review"
-                title="Verify Extracted Data"
-                items={ocrResult.items || []}
-                pricing={ocrResult.pricing || { subtotal: 0, total: 0 }}
-                className="max-w-full"
-              />
-              <div className="flex justify-between items-center bg-card p-4 rounded-2xl border shadow-xs">
-                <div className="flex items-center gap-2">
-                  <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <SparklesIcon className="size-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Auto-Categorization</p>
-                    <p className="text-[10px] text-muted-foreground">AI suggested tags and categories applied.</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="rounded-full">
-                  <Wand2Icon className="size-3 mr-1" /> Re-run
-                </Button>
-              </div>
-            </div>
-
-            <Card className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Raw Data & Correction</CardTitle>
-                    <CardDescription>Manually adjust fields if the AI missed something.</CardDescription>
-                  </div>
-                  <Button variant="ghost" size="icon-sm" onClick={() => setOcrResult(null)}>
-                    <Trash2Icon className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 space-y-4">
-                <div className="bg-muted/30 p-3 rounded-lg text-[10px] font-mono whitespace-pre-wrap overflow-auto max-h-64 text-muted-foreground/70 border">
-                  {ocrResult.raw_text}
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-xs">Classification</Label>
-                  <Select defaultValue="receipt">
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="receipt">Retail Receipt</SelectItem>
-                      <SelectItem value="invoice">Business Invoice</SelectItem>
-                      <SelectItem value="p2p">P2P Screenshot</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t bg-muted/10 p-4 flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setOcrResult(null)}>
-                  Discard
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setOcrResult(null);
-                    toast.success("Transaction saved successfully!");
-                  }}
-                >
-                  <CheckIcon className="size-4 mr-1" /> Confirm & Save
-                </Button>
-              </CardFooter>
-            </Card>
+        {/* OCR Review Form Section */}
+        {processedOcr && (
+          <div className="animate-in zoom-in-95 duration-300">
+            <ReviewTransactionForm
+              processedOcr={processedOcr}
+              onConfirm={handleConfirmOcr}
+              onCancel={() => setProcessedOcr(null)}
+              isSubmitting={isSavingOcr}
+            />
           </div>
         )}
 
         {/* Pending P2P Requests Section */}
-        {p2pRequests && p2pRequests.length > 0 && !ocrResult && (
+        {p2pRequests && p2pRequests.length > 0 && !processedOcr && (
           <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
             <h2 className="text-base font-semibold flex items-center gap-2 px-1">
               <Share2Icon className="h-4 w-4 text-primary" /> Pending Approvals

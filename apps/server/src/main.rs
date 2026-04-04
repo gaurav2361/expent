@@ -117,6 +117,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             post(routes::transactions::create_manual_transaction_handler),
         )
         .route(
+            "/transactions/from-ocr",
+            post(routes::transactions::create_from_ocr_handler),
+        )
+        .route(
             "/transactions/{id}",
             patch(routes::transactions::update_transaction_handler),
         )
@@ -203,7 +207,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             post(routes::uploads::get_presigned_url_handler),
         )
         .route("/upload", post(routes::uploads::direct_upload_handler))
-        .route("/process-ocr", post(routes::ocr::process_ocr_handler))
         .route(
             "/process-image-ocr",
             post(routes::ocr::process_image_ocr_handler),
