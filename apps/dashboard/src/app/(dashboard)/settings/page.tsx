@@ -1,16 +1,18 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
+import { useSession, signOut } from "@/lib/auth-client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Button } from "@expent/ui/components/button";
 import { Separator } from "@expent/ui/components/separator";
 import { UserIcon, BellIcon, ShieldIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { PreferencesPanel } from "@/components/tool-ui/preferences-panel";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
   const session = useSession();
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
 
   const user = session.data?.user;
 
@@ -114,8 +116,14 @@ export default function SettingsPage() {
         <Button
           variant="destructive"
           size="sm"
-          onClick={() => {
-            window.location.href = "/sign-in";
+          onClick={async () => {
+            await signOut({
+              fetchOptions: {
+                onSuccess: () => {
+                  router.push("/sign-in");
+                },
+              },
+            });
           }}
         >
           Sign Out
