@@ -30,9 +30,11 @@ import {
   ClockIcon,
   WalletIcon,
 } from "lucide-react";
+import { useLedgerTabs } from "@/hooks/use-p2p";
+import { useContacts } from "@/hooks/use-contacts";
+import { useWallets } from "@/hooks/use-wallets";
 
 export default function LedgerTabsPage() {
-  const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -40,38 +42,29 @@ export default function LedgerTabsPage() {
   const [tabType, setTabType] = React.useState("LENT");
   const [contactId, setContactId] = React.useState("none");
 
-  const { data: contacts } = useQuery({
-    queryKey: ["contacts"],
-    queryFn: () => apiClient<any[]>("/api/contacts"),
-  });
+  const { contacts } = useContacts();
+  const { ledgerTabs, isLoading, createMutation } = useLedgerTabs();
 
-  const { data: ledgerTabs, isLoading } = useQuery({
-    queryKey: ["ledger-tabs"],
-    queryFn: () => apiClient<any[]>("/api/p2p/ledger-tabs"),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: () =>
-      apiClient("/api/p2p/ledger-tabs", {
-        method: "POST",
-        body: JSON.stringify({
-          title,
-          description: description || null,
-          target_amount: parseFloat(targetAmount),
-          tab_type: tabType,
-          counterparty_id: contactId !== "none" ? contactId : null,
-        }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ledger-tabs"] });
-      setIsCreateDialogOpen(false);
-      setTitle("");
-      setDescription("");
-      setTargetAmount("");
-      setContactId("none");
-      toast.success("Ledger tab created");
-    },
-  });
+  const handleCreate = () => {
+    createMutation.mutate(
+      {
+        title,
+        description: description || null,
+        target_amount: parseFloat(targetAmount),
+        tab_type: tabType,
+        counterparty_id: contactId !== "none" ? contactId : null,
+      },
+      {
+        onSuccess: () => {
+          setIsCreateDialogOpen(false);
+          setTitle("");
+          setDescription("");
+          setTargetAmount("");
+          setContactId("none");
+        },
+      }
+    );
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
@@ -102,7 +95,7 @@ export default function LedgerTabsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="type">Type</Label>
-                  <Select value={tabType} onValueChange={setTabType}>
+                  <Select value={tabType} onValueChange={(val) => setTabType(val || "LENT")}>
                     <SelectTrigger id="type">
                       <SelectValue />
                     </SelectTrigger>
@@ -125,7 +118,7 @@ export default function LedgerTabsPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="contact">Contact (Optional)</Label>
-                <Select value={contactId} onValueChange={setContactId}>
+                <Select value={contactId} onValueChange={(val) => setContactId(val || "none")}>
                   <SelectTrigger id="contact">
                     <SelectValue placeholder="Select contact" />
                   </SelectTrigger>
@@ -153,10 +146,7 @@ export default function LedgerTabsPage() {
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                onClick={() => createMutation.mutate()}
-                disabled={!title || !targetAmount || createMutation.isPending}
-              >
+              <Button onClick={handleCreate} disabled={!title || !targetAmount || createMutation.isPending}>
                 Create Tab
               </Button>
             </DialogFooter>
@@ -258,32 +248,26 @@ function LedgerTabCard({ tab }: { tab: any }) {
 }
 
 function RepaymentDialog({ tab, open, onOpenChange }: { tab: any; open: boolean; onOpenChange: (o: boolean) => void }) {
-  const queryClient = useQueryClient();
   const [amount, setAmount] = React.useState(tab.target_amount);
   const [walletId, setWalletId] = React.useState("none");
 
-  const { data: wallets } = useQuery({
-    queryKey: ["wallets"],
-    queryFn: () => apiClient<any[]>("/api/wallets"),
-    enabled: open,
-  });
+  const { wallets } = useWallets();
+  const { repaymentMutation } = useLedgerTabs();
 
-  const repaymentMutation = useMutation({
-    mutationFn: () =>
-      apiClient(`/api/p2p/ledger-tabs/${tab.id}/repayment`, {
-        method: "POST",
-        body: JSON.stringify({
+  const handleRepay = () => {
+    repaymentMutation.mutate(
+      {
+        id: tab.id,
+        data: {
           amount: parseFloat(amount),
           source_wallet_id: walletId !== "none" ? walletId : null,
-        }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ledger-tabs"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      onOpenChange(false);
-      toast.success("Repayment registered!");
-    },
-  });
+        },
+      },
+      {
+        onSuccess: () => onOpenChange(false),
+      }
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -304,7 +288,7 @@ function RepaymentDialog({ tab, open, onOpenChange }: { tab: any; open: boolean;
             <Label htmlFor="repay-wallet">Source Wallet</Label>
             <div className="relative">
               <WalletIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Select value={walletId} onValueChange={setWalletId}>
+              <Select value={walletId} onValueChange={(val) => setWalletId(val || "none")}>
                 <SelectTrigger className="pl-9">
                   <SelectValue placeholder="Select wallet" />
                 </SelectTrigger>
@@ -324,7 +308,7 @@ function RepaymentDialog({ tab, open, onOpenChange }: { tab: any; open: boolean;
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={() => repaymentMutation.mutate()} disabled={!amount || repaymentMutation.isPending}>
+          <Button onClick={handleRepay} disabled={!amount || repaymentMutation.isPending}>
             Confirm Repayment
           </Button>
         </DialogFooter>

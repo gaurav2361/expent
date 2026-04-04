@@ -2,7 +2,6 @@
 
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
-import { Input } from "@expent/ui/components/input";
 import { Share2Icon, MoreVerticalIcon, Trash2Icon, PlusIcon } from "lucide-react";
 import { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -12,9 +11,8 @@ import { SplitDialog } from "@/components/transactions/split-dialog";
 import { ManualTransactionDialog } from "@/components/transactions/manual-transaction-dialog";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { DataTable } from "@/components/data-table/data-table";
-import type { Column } from "@/components/data-table/data-table-types";
+import type { Column } from "@/lib/data-table-types";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
-import type { Transaction as TransactionType } from "@/components/transactions/transaction-viewer";
 import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
 import { ApprovalCard } from "@/components/tool-ui/approval-card";
 import {
@@ -27,9 +25,9 @@ import {
 
 import { useTransactions } from "@/hooks/use-transactions";
 import { useP2P } from "@/hooks/use-p2p";
-import type { P2PRequest } from "@/hooks/use-p2p";
 import { apiClient } from "@/lib/api-client";
 import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
+import type { Transaction as TransactionType, P2PRequest, P2PRequestWithSender, TransactionWithDetail } from "@expent/types";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -49,7 +47,7 @@ export default function DashboardPage() {
 
   const totalBalance = useMemo(() => {
     if (!transactions) return 0;
-    return transactions.reduce((acc: number, txn: TransactionType) => {
+    return transactions.reduce((acc: number, txn: TransactionWithDetail) => {
       const amount = parseFloat(txn.amount);
       return txn.direction === "IN" ? acc + amount : acc - amount;
     }, 0);
@@ -60,7 +58,7 @@ export default function DashboardPage() {
     setSplitDialogOpen(true);
   }, []);
 
-  const txnColumns = useMemo<Column<TransactionType>[]>(
+  const txnColumns = useMemo<Column<TransactionWithDetail>[]>(
     () =>
       [
         {
@@ -87,21 +85,21 @@ export default function DashboardPage() {
           label: "Description",
         },
         {
-          key: "action" as keyof TransactionType,
+          key: "action" as keyof TransactionWithDetail,
           label: " ",
           sortable: false,
           align: "right",
         },
-      ] as Column<TransactionType>[],
+      ] as Column<TransactionWithDetail>[],
     []
   );
 
   const txnCellRenderers = useMemo(
     () => ({
-      source: (row: TransactionType) => (
+      source: (row: TransactionWithDetail) => (
         <TransactionViewer item={row} onUpdate={(id, data) => updateMutation.mutate({ id, data })} />
       ),
-      action: (row: TransactionType) => (
+      action: (row: TransactionWithDetail) => (
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
@@ -292,7 +290,7 @@ export default function DashboardPage() {
               <Share2Icon className="h-4 w-4 text-primary" /> Pending Approvals
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {(p2pRequests as P2PRequest[]).map((req) => (
+              {(p2pRequests as P2PRequestWithSender[]).map((req) => (
                 <ApprovalCard
                   key={req.id}
                   id={req.id}
@@ -339,10 +337,10 @@ export default function DashboardPage() {
             {isTxnsLoading ? (
               <div className="text-center py-10 text-muted-foreground">Loading transactions...</div>
             ) : (
-              <DataTable<TransactionType>
+              <DataTable<TransactionWithDetail>
                 id="dashboard-recent-transactions"
                 columns={txnColumns}
-                data={(transactions as TransactionType[]) ?? []}
+                data={(transactions as TransactionWithDetail[]) ?? []}
                 rowIdKey="id"
                 defaultSort={{ by: "date", direction: "desc" }}
                 emptyMessage="No transactions found. Start by uploading a receipt!"

@@ -2,7 +2,9 @@ use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use db::SmartMerge;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
+use crate::extractors::ValidatedJson;
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
 
@@ -14,16 +16,18 @@ pub async fn list_contacts_handler(
     Ok(Json(result))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct CreateContactRequest {
+    #[validate(length(min = 1, max = 100))]
     pub name: String,
+    #[validate(length(min = 10, max = 15))]
     pub phone: Option<String>,
 }
 
 pub async fn create_contact_handler(
     State(state): State<AppState>,
     session: AuthSession,
-    Json(payload): Json<CreateContactRequest>,
+    ValidatedJson(payload): ValidatedJson<CreateContactRequest>,
 ) -> Result<Json<db::entities::contacts::Model>, ApiError> {
     let result =
         SmartMerge::create_contact(&state.db, &session.user.id, payload.name, payload.phone)
@@ -31,9 +35,11 @@ pub async fn create_contact_handler(
     Ok(Json(result))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct UpdateContactRequest {
+    #[validate(length(min = 1, max = 100))]
     pub name: Option<String>,
+    #[validate(length(min = 10, max = 15))]
     pub phone: Option<String>,
     pub is_pinned: Option<bool>,
 }
@@ -42,7 +48,7 @@ pub async fn update_contact_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Path(id): Path<String>,
-    Json(payload): Json<UpdateContactRequest>,
+    ValidatedJson(payload): ValidatedJson<UpdateContactRequest>,
 ) -> Result<Json<db::entities::contacts::Model>, ApiError> {
     let result = SmartMerge::update_contact(
         &state.db,
@@ -86,9 +92,10 @@ pub async fn get_contact_detail_handler(
     }))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct AddIdentifierRequest {
     pub r#type: String,
+    #[validate(length(min = 1, max = 255))]
     pub value: String,
 }
 
@@ -96,7 +103,7 @@ pub async fn add_contact_identifier_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Path(id): Path<String>,
-    Json(payload): Json<AddIdentifierRequest>,
+    ValidatedJson(payload): ValidatedJson<AddIdentifierRequest>,
 ) -> Result<Json<db::entities::contact_identifiers::Model>, ApiError> {
     let result = SmartMerge::add_contact_identifier(
         &state.db,

@@ -1,22 +1,24 @@
-pub use auth::AuthSession;
 use auth::adapter::SqliteAdapter;
+pub use auth::AuthSession;
 use auth::init_auth;
 use axum::{
-    Router,
     extract::FromRef,
     http::{HeaderValue, Method},
     routing::{delete, get, patch, post, put},
+    Router,
 };
 use better_auth::AxumIntegration;
 use ocr::OcrService;
 use sea_orm::{Database, DatabaseConnection};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use upload::UploadClient;
 
+pub mod extractors;
 pub mod middleware;
 pub mod routes;
 
@@ -59,7 +61,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     dotenvy::dotenv().ok();
 
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    // Validate required environment variables
+    let required_vars = [
+        "DATABASE_URL",
+        "S3_ENDPOINT",
+        "S3_ACCESS_KEY_ID",
+        "S3_SECRET_ACCESS_KEY",
+        "S3_BUCKET_NAME",
+    ];
+
+    for var in required_vars {
+        if std::env::var(var).is_err() {
+            panic!("❌ Environment variable {} must be set", var);
+        }
+    }
+
+    let database_url = std::env::var("DATABASE_URL").unwrap();
 
     let db = Database::connect(&database_url).await?;
     let auth = init_auth(db.clone()).await?;
@@ -105,6 +122,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let auth_router = auth.clone().axum_router();
+
+    // Rate limiting config: ~1 request per second per IP, burst of 10
+    let governor_conf = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(1)
+            .burst_size(10)
+            .finish()
+            .unwrap(),
+    );
 
     let api_router = Router::new()
         .route("/health", get(|| async { "OK" }))
@@ -264,7 +290,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route(
             "/process-image-ocr",
             post(routes::ocr::process_image_ocr_handler),
-        );
+        )
+        .layer(GovernorLayer::new(governor_conf));
+
+    let allowed_origins = std::env::var("ALLOWED_ORIGINS")
+        .unwrap_or_else(|_| "http://localhost:3000,http://127.0.0.1:3000".to_string())
+        .split(',')
+        .map(|s| s.parse::<HeaderValue>().unwrap())
+        .collect::<Vec<_>>();
 
     let app = Router::new()
         .nest("/api/auth", auth_router.with_state(auth.clone()))
@@ -273,10 +306,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(
             CorsLayer::new()
-                .allow_origin([
-                    "http://localhost:3000".parse::<HeaderValue>().unwrap(),
-                    "http://127.0.0.1:3000".parse::<HeaderValue>().unwrap(),
-                ])
+                .allow_origin(allowed_origins)
                 .allow_methods([
                     Method::GET,
                     Method::POST,

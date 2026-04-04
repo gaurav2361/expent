@@ -2,7 +2,9 @@ use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use db::SmartMerge;
 use serde::Deserialize;
+use validator::Validate;
 
+use crate::extractors::ValidatedJson;
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
 
@@ -14,16 +16,18 @@ pub async fn list_groups_handler(
     Ok(Json(result))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct CreateGroupRequest {
+    #[validate(length(min = 1, max = 100))]
     pub name: String,
+    #[validate(length(max = 500))]
     pub description: Option<String>,
 }
 
 pub async fn create_group_handler(
     State(state): State<AppState>,
     session: AuthSession,
-    Json(payload): Json<CreateGroupRequest>,
+    ValidatedJson(payload): ValidatedJson<CreateGroupRequest>,
 ) -> Result<Json<db::entities::groups::Model>, ApiError> {
     let result = SmartMerge::create_group(
         &state.db,
@@ -36,8 +40,9 @@ pub async fn create_group_handler(
     Ok(Json(result))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct InviteToGroupRequest {
+    #[validate(email)]
     pub receiver_email: String,
     pub group_id: String,
 }
@@ -45,7 +50,7 @@ pub struct InviteToGroupRequest {
 pub async fn invite_to_group_handler(
     State(state): State<AppState>,
     session: AuthSession,
-    Json(payload): Json<InviteToGroupRequest>,
+    ValidatedJson(payload): ValidatedJson<InviteToGroupRequest>,
 ) -> Result<Json<db::entities::p2p_requests::Model>, ApiError> {
     let result = SmartMerge::invite_to_group(
         &state.db,

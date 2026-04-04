@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
-import type { Transaction as TransactionType } from "@/components/transactions/transaction-viewer";
+import type { Transaction, TransactionWithDetail } from "@expent/types";
 
 export function useTransactions(params: { limit?: number; offset?: number } = {}) {
   const session = useSession();
@@ -15,19 +15,19 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
       if (params.limit) searchParams.append("limit", params.limit.toString());
       if (params.offset) searchParams.append("offset", params.offset.toString());
       const queryString = searchParams.toString();
-      return apiClient<TransactionType[]>(`/api/transactions${queryString ? `?${queryString}` : ""}`);
+      return apiClient<TransactionWithDetail[]>(`/api/transactions${queryString ? `?${queryString}` : ""}`);
     },
     enabled: !!session.data,
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<TransactionType> }) =>
-      apiClient<TransactionType>(`/api/transactions/${id}`, {
+    mutationFn: ({ id, data }: { id: string; data: Partial<Transaction> }) =>
+      apiClient<Transaction>(`/api/transactions/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
           amount: data.amount,
           date: data.date,
-          purpose_tag: data.category || data.source,
+          purpose_tag: data.purpose_tag,
           status: data.status,
           notes: data.notes,
         }),

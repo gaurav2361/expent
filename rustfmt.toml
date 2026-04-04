@@ -1,4 +1,6 @@
 error_on_line_overflow  = true
 error_on_unformatted    = true
+group_imports           = "StdExternalCrate"
+imports_granularity     = "Crate"
 overflow_delimited_expr = false
 style_edition           = "2024"

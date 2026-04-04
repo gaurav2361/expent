@@ -47,13 +47,13 @@ import {
 } from "lucide-react";
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
-import type { Transaction } from "@/components/transactions/transaction-viewer";
 import { useTransactions } from "@/hooks/use-transactions";
 import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
 import { useQueryClient } from "@tanstack/react-query";
+import type { Transaction, TransactionWithDetail } from "@expent/types";
 
 // Route Component
 export default function TransactionsPage() {
@@ -79,12 +79,12 @@ export default function TransactionsPage() {
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 15 });
   const [activeTab, setActiveTab] = React.useState("all");
 
-  const data = React.useMemo<Transaction[]>(() => {
+  const data = React.useMemo<TransactionWithDetail[]>(() => {
     if (!rawTransactions) return [];
 
     // Apply tab filtering manually before the table logic
-    if (activeTab === "income") return rawTransactions.filter((t: Transaction) => t.direction === "IN");
-    if (activeTab === "expense") return rawTransactions.filter((t: Transaction) => t.direction === "OUT");
+    if (activeTab === "income") return rawTransactions.filter((t: TransactionWithDetail) => t.direction === "IN");
+    if (activeTab === "expense") return rawTransactions.filter((t: TransactionWithDetail) => t.direction === "OUT");
 
     return rawTransactions;
   }, [rawTransactions, activeTab]);
@@ -94,7 +94,7 @@ export default function TransactionsPage() {
     let income = 0;
     let expense = 0;
 
-    (data || []).forEach((txn: Transaction) => {
+    (data || []).forEach((txn: TransactionWithDetail) => {
       const amount = parseFloat(txn.amount);
       if (txn.direction === "IN") income += amount;
       else expense += amount;
@@ -184,7 +184,7 @@ export default function TransactionsPage() {
     }
   };
 
-  const columns = React.useMemo<ColumnDef<Transaction>[]>(
+  const columns = React.useMemo<ColumnDef<TransactionWithDetail>[]>(
     () => [
       {
         id: "select",
@@ -460,7 +460,7 @@ export default function TransactionsPage() {
 
         {/* Table Area */}
         <div className="flex flex-col flex-1 shadow-sm border rounded-xl bg-card overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-col justify-start">
+          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val || "all")} className="w-full flex-col justify-start">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b bg-muted/40 gap-4">
               <TabsList className="h-9 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground">
                 <TabsTrigger value="all" className="rounded-md px-4">

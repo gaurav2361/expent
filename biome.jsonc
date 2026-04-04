@@ -31,6 +31,7 @@
       "!**/.coverage",
       "!**/nix/store",
       "!**/.pnpm-store",
+      "!**/packages/types",
       "!**/*/generated",
       "!**/*/generated.ts",
       "!**/node_modules",

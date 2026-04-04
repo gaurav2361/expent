@@ -10,6 +10,7 @@ import { apiClient } from "@/lib/api-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { UserIcon, UploadIcon, CheckIcon, Loader2Icon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@expent/ui/components/avatar";
+import { Badge } from "@expent/ui/components/badge";
 
 export function ProfilePanel({ user }: { user: any }) {
   const queryClient = useQueryClient();
