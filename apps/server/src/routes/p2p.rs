@@ -1,4 +1,5 @@
-use axum::extract::{Json, State};
+use axum::extract::{Json, Path, State};
+use axum::http::StatusCode;
 use db::SmartMerge;
 use serde::Deserialize;
 
@@ -54,4 +55,13 @@ pub async fn accept_p2p_handler(
     let result = SmartMerge::accept_p2p_request(&state.db, &session.user.id, &payload.request_id).await?;
 
     Ok(Json(result))
+}
+
+pub async fn reject_p2p_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Path(id): Path<String>,
+) -> Result<StatusCode, ApiError> {
+    SmartMerge::reject_p2p_request(&state.db, &session.user.id, &id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }

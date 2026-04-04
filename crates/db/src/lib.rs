@@ -4,7 +4,7 @@ use crate::entities::enums::{
 };
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use rust_decimal::Decimal;
-use sea_orm::prelude::DateTimeWithTimeZone;
+use sea_orm::prelude::{DateTimeWithTimeZone, Expr};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -950,6 +950,201 @@ impl SmartMerge {
             updated_at: Set(Utc::now().into()),
         };
         tab.insert(db).await
+    }
+
+    pub async fn update_profile(
+        db: &DatabaseConnection,
+        user_id: &str,
+        name: Option<String>,
+        username: Option<String>,
+        image: Option<String>,
+    ) -> Result<entities::users::Model, DbErr> {
+        let mut user: entities::users::ActiveModel = entities::users::Entity::find_by_id(user_id.to_string())
+            .one(db)
+            .await?
+            .ok_or(DbErr::Custom("User not found".to_string()))?
+            .into();
+
+        if let Some(n) = name {
+            user.name = Set(n);
+        }
+        if let Some(u) = username {
+            user.username = Set(Some(u));
+        }
+        if let Some(i) = image {
+            user.image = Set(Some(i));
+        }
+        user.updated_at = Set(Utc::now().into());
+
+        user.update(db).await
+    }
+
+    pub async fn list_categories(
+        db: &DatabaseConnection,
+        user_id: &str,
+    ) -> Result<Vec<entities::categories::Model>, DbErr> {
+        entities::categories::Entity::find()
+            .filter(entities::categories::Column::UserId.eq(user_id))
+            .all(db)
+            .await
+    }
+
+    pub async fn create_category(
+        db: &DatabaseConnection,
+        user_id: &str,
+        name: String,
+        icon: Option<String>,
+        color: Option<String>,
+    ) -> Result<entities::categories::Model, DbErr> {
+        let category = entities::categories::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            user_id: Set(user_id.to_string()),
+            name: Set(name),
+            icon: Set(icon),
+            color: Set(color),
+        };
+        category.insert(db).await
+    }
+
+    pub async fn delete_category(
+        db: &DatabaseConnection,
+        user_id: &str,
+        category_id: &str,
+    ) -> Result<(), DbErr> {
+        entities::categories::Entity::delete_many()
+            .filter(entities::categories::Column::Id.eq(category_id))
+            .filter(entities::categories::Column::UserId.eq(user_id))
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn list_user_upi_ids(
+        db: &DatabaseConnection,
+        user_id: &str,
+    ) -> Result<Vec<entities::user_upi_ids::Model>, DbErr> {
+        entities::user_upi_ids::Entity::find()
+            .filter(entities::user_upi_ids::Column::UserId.eq(user_id))
+            .all(db)
+            .await
+    }
+
+    pub async fn add_user_upi_id(
+        db: &DatabaseConnection,
+        user_id: &str,
+        upi_id: String,
+        label: Option<String>,
+    ) -> Result<entities::user_upi_ids::Model, DbErr> {
+        let upi = entities::user_upi_ids::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            user_id: Set(user_id.to_string()),
+            upi_id: Set(upi_id),
+            is_primary: Set(false),
+            label: Set(label),
+        };
+        upi.insert(db).await
+    }
+
+    pub async fn make_primary_upi(
+        db: &DatabaseConnection,
+        user_id: &str,
+        upi_id: &str,
+    ) -> Result<(), DbErr> {
+        // Unset current primary
+        entities::user_upi_ids::Entity::update_many()
+            .col_expr(entities::user_upi_ids::Column::IsPrimary, Expr::value(false))
+            .filter(entities::user_upi_ids::Column::UserId.eq(user_id))
+            .exec(db)
+            .await?;
+
+        // Set new primary
+        entities::user_upi_ids::Entity::update_many()
+            .col_expr(entities::user_upi_ids::Column::IsPrimary, Expr::value(true))
+            .filter(entities::user_upi_ids::Column::UserId.eq(user_id))
+            .filter(entities::user_upi_ids::Column::Id.eq(upi_id))
+            .exec(db)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn reject_p2p_request(
+        db: &DatabaseConnection,
+        _user_id: &str,
+        request_id: &str,
+    ) -> Result<(), DbErr> {
+        let mut request: entities::p2p_requests::ActiveModel =
+            entities::p2p_requests::Entity::find_by_id(request_id.to_string())
+                .one(db)
+                .await?
+                .ok_or(DbErr::Custom("Request not found".to_string()))?
+                .into();
+
+        request.status = Set("REJECTED".to_string());
+        request.update(db).await?;
+        Ok(())
+    }
+
+    pub async fn list_confirmed_subscriptions(
+        db: &DatabaseConnection,
+        user_id: &str,
+    ) -> Result<Vec<entities::subscriptions::Model>, DbErr> {
+        entities::subscriptions::Entity::find()
+            .filter(entities::subscriptions::Column::UserId.eq(user_id))
+            .all(db)
+            .await
+    }
+
+    pub async fn confirm_subscription(
+        db: &DatabaseConnection,
+        user_id: &str,
+        name: String,
+        amount: Decimal,
+        cycle: String,
+        start_date: DateTime<FixedOffset>,
+        next_charge_date: DateTime<FixedOffset>,
+        keywords: Option<serde_json::Value>,
+    ) -> Result<entities::subscriptions::Model, DbErr> {
+        let sub = entities::subscriptions::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            user_id: Set(user_id.to_string()),
+            name: Set(name),
+            amount: Set(amount),
+            cycle: Set(cycle),
+            start_date: Set(start_date.into()),
+            next_charge_date: Set(next_charge_date.into()),
+            detection_keywords: Set(keywords),
+        };
+        sub.insert(db).await
+    }
+
+    pub async fn stop_tracking_subscription(
+        db: &DatabaseConnection,
+        user_id: &str,
+        sub_id: &str,
+    ) -> Result<(), DbErr> {
+        entities::subscriptions::Entity::delete_many()
+            .filter(entities::subscriptions::Column::Id.eq(sub_id))
+            .filter(entities::subscriptions::Column::UserId.eq(user_id))
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn configure_subscription_alert(
+        db: &DatabaseConnection,
+        sub_id: &str,
+        days_before: i32,
+        channel: String,
+    ) -> Result<entities::sub_alerts::Model, DbErr> {
+        let alert = entities::sub_alerts::ActiveModel {
+            id: Set(uuid::Uuid::now_v7().to_string()),
+            subscription_id: Set(sub_id.to_string()),
+            days_before: Set(days_before),
+            channel: Set(channel),
+            sent_at: Set(None),
+        };
+        alert.insert(db).await
     }
 }
 
