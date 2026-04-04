@@ -153,6 +153,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/contacts/{id}/identifiers",
             post(routes::contacts::add_contact_identifier_handler),
         )
+        .route("/wallets", get(routes::wallets::list_wallets_handler))
+        .route("/wallets", post(routes::wallets::create_wallet_handler))
+        .route("/wallets/{id}", put(routes::wallets::update_wallet_handler))
         .route(
             "/subscriptions/detect",
             get(routes::subscriptions::detect_subscriptions_handler),
