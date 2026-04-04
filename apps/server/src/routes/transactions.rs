@@ -6,10 +6,15 @@ use serde::Deserialize;
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
 
-#[derive(Deserialize)]
+use crate::extractors::ValidatedJson;
+use validator::Validate;
+
+#[derive(Deserialize, Validate)]
 pub struct CreateManualTransactionRequest {
+    #[validate(custom(function = "validate_amount"))]
     pub amount: rust_decimal::Decimal,
     pub date: chrono::DateTime<chrono::FixedOffset>,
+    #[validate(length(min = 1, max = 255))]
     pub purpose_tag: String,
     pub direction: db::entities::enums::TransactionDirection,
     pub source_wallet_id: Option<String>,
@@ -18,10 +23,17 @@ pub struct CreateManualTransactionRequest {
     pub notes: Option<String>,
 }
 
+fn validate_amount(amount: &rust_decimal::Decimal) -> Result<(), validator::ValidationError> {
+    if amount <= &rust_decimal::Decimal::ZERO {
+        return Err(validator::ValidationError::new("amount_must_be_positive"));
+    }
+    Ok(())
+}
+
 pub async fn create_manual_transaction_handler(
     State(state): State<AppState>,
     session: AuthSession,
-    Json(payload): Json<CreateManualTransactionRequest>,
+    ValidatedJson(payload): ValidatedJson<CreateManualTransactionRequest>,
 ) -> Result<Json<db::entities::transactions::Model>, ApiError> {
     let result = SmartMerge::create_transaction(
         &state.db,

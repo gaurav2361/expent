@@ -1,12 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@expent/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Button } from "@expent/ui/components/button";
 import { Input } from "@expent/ui/components/input";
-import { Badge } from "@expent/ui/components/badge";
 import {
   Dialog,
   DialogContent,
@@ -18,57 +15,31 @@ import {
 } from "@expent/ui/components/dialog";
 import { Label } from "@expent/ui/components/label";
 import { toast } from "@expent/ui/components/goey-toaster";
-import {
-  SearchIcon,
-  PlusIcon,
-  UserIcon,
-  PinIcon,
-  MoreVerticalIcon,
-  Trash2Icon,
-  PhoneIcon,
-  WalletIcon,
-  ChevronRightIcon,
-} from "lucide-react";
+import { SearchIcon, PlusIcon, UserIcon, PinIcon, PhoneIcon, ChevronRightIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useContacts } from "@/hooks/use-contacts";
 
 export default function ContactsPage() {
-  const queryClient = useQueryClient();
   const router = useRouter();
   const [searchQuery, setSearchSearchQuery] = React.useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [newName, setNewName] = React.useState("");
   const [newPhone, setNewPhone] = React.useState("");
 
-  const { data: contacts, isLoading } = useQuery({
-    queryKey: ["contacts"],
-    queryFn: () => apiClient<any[]>("/api/contacts"),
-  });
+  const { contacts, isLoading, createMutation, updateMutation } = useContacts();
 
-  const createMutation = useMutation({
-    mutationFn: () =>
-      apiClient("/api/contacts", {
-        method: "POST",
-        body: JSON.stringify({ name: newName, phone: newPhone || null }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      setIsAddDialogOpen(false);
-      setNewName("");
-      setNewPhone("");
-      toast.success("Contact added");
-    },
-  });
-
-  const pinMutation = useMutation({
-    mutationFn: ({ id, is_pinned }: { id: string; is_pinned: boolean }) =>
-      apiClient(`/api/contacts/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({ is_pinned }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
-    },
-  });
+  const handleCreate = () => {
+    createMutation.mutate(
+      { name: newName, phone: newPhone || null },
+      {
+        onSuccess: () => {
+          setIsAddDialogOpen(false);
+          setNewName("");
+          setNewPhone("");
+        },
+      }
+    );
+  };
 
   const filteredContacts = React.useMemo(() => {
     if (!contacts) return [];
@@ -113,7 +84,7 @@ export default function ContactsPage() {
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => createMutation.mutate()} disabled={!newName || createMutation.isPending}>
+              <Button onClick={handleCreate} disabled={!newName || createMutation.isPending}>
                 {createMutation.isPending ? "Adding..." : "Add Contact"}
               </Button>
             </DialogFooter>
@@ -163,7 +134,7 @@ export default function ContactsPage() {
                   <ContactCard
                     key={contact.id}
                     contact={contact}
-                    onPin={() => pinMutation.mutate({ id: contact.id, is_pinned: false })}
+                    onPin={() => updateMutation.mutate({ id: contact.id, data: { is_pinned: false } })}
                     onClick={() => router.push(`/contacts/${contact.id}`)}
                   />
                 ))}
@@ -180,7 +151,7 @@ export default function ContactsPage() {
                 <ContactCard
                   key={contact.id}
                   contact={contact}
-                  onPin={() => pinMutation.mutate({ id: contact.id, is_pinned: true })}
+                  onPin={() => updateMutation.mutate({ id: contact.id, data: { is_pinned: true } })}
                   onClick={() => router.push(`/contacts/${contact.id}`)}
                 />
               ))}

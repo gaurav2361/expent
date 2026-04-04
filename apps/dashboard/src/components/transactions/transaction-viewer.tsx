@@ -17,26 +17,14 @@ import { Separator } from "@expent/ui/components/separator";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
+import { WalletIcon } from "lucide-react";
 import { useIsMobile } from "@expent/ui/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-
-export interface Transaction {
-  id: string;
-  date: string;
-  direction: "IN" | "OUT" | string;
-  amount: string;
-  source: string;
-  category?: string;
-  status?: string;
-  purpose_tag?: string;
-  source_wallet_name?: string;
-  destination_wallet_name?: string;
-  notes?: string;
-}
+import type { Transaction, TransactionWithDetail } from "@expent/types";
 
 interface TransactionViewerProps {
-  item: Transaction;
+  item: TransactionWithDetail;
   onUpdate: (id: string, data: Partial<Transaction>) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -44,9 +32,9 @@ interface TransactionViewerProps {
 
 export function TransactionViewer({ item, onUpdate, open, onOpenChange }: TransactionViewerProps) {
   const isMobile = useIsMobile();
-  const [source, setSource] = React.useState(item.source);
-  const [category, setCategory] = React.useState(item.category || "Uncategorized");
-  const [status, setStatus] = React.useState(item.status || "Completed");
+  const [source, setSource] = React.useState<string>(item.source);
+  const [category, setCategory] = React.useState(item.purpose_tag || "Uncategorized");
+  const [status, setStatus] = React.useState<string>(item.status || "COMPLETED");
   const [amount, setAmount] = React.useState(item.amount);
   const [note, setNote] = React.useState(item.notes || "");
 
@@ -113,9 +101,9 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
             onSubmit={(e) => {
               e.preventDefault();
               onUpdate(item.id, {
-                source,
-                category,
-                status,
+                source: source as any,
+                purpose_tag: category === "Uncategorized" ? note : category,
+                status: status as any,
                 amount,
                 notes: note,
               });
@@ -159,13 +147,14 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
 
               <div className="flex flex-col gap-3">
                 <Label htmlFor="status">Status</Label>
-                <Select value={status} onValueChange={(val) => setStatus(val || "Completed")}>
+                <Select value={status} onValueChange={(val) => setStatus(val || "COMPLETED")}>
                   <SelectTrigger id="status" className="w-full">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Completed">Completed</SelectItem>
-                    <SelectItem value="Pending">Pending Review</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                    <SelectItem value="PENDING">Pending Review</SelectItem>
+                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

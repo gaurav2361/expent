@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 #[ts(
     export,
     rename = "P2PRequest",
-    export_to = "../../../packages/types/src/db/generated.ts"
+    export_to = "../../../packages/types/src/db/P2PRequest.ts"
 )]
 
 pub struct Model {

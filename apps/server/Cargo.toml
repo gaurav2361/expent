@@ -32,6 +32,8 @@ ocr                = { path = "../../crates/ocr", version = "0.1.0" }
 anyhow             = "1.0"
 upload             = { path = "../../crates/upload", version = "0.1.0" }
 thiserror = "2.0.18"
+validator = { version = "0.20.0", features = ["derive"] }
+tower_governor = "0.8.0"
 
 [dev-dependencies]
 http-body-util = "0.1"

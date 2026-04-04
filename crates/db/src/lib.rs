@@ -9,22 +9,35 @@ use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
+use ts_rs::TS;
 
 pub mod entities;
 
 /// Represents a single line item in a purchase, typically extracted via OCR.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "LineItem",
+    export_to = "../../../packages/types/src/db/LineItem.ts"
+)]
 pub struct LineItem {
     pub name: String,
     pub quantity: i32,
+    #[ts(type = "string")]
     pub price: Decimal,
 }
 
 /// The result of an OCR process, containing raw text and extracted transaction details.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "OcrResult",
+    export_to = "../../../packages/types/src/db/OcrResult.ts"
+)]
 pub struct OcrResult {
     pub raw_text: String,
     pub vendor: Option<String>,
+    #[ts(type = "string | null")]
     pub amount: Option<Decimal>,
     pub date: Option<DateTime<FixedOffset>>,
     pub upi_id: Option<String>,
@@ -33,8 +46,14 @@ pub struct OcrResult {
 }
 
 /// Specialized extraction for Google Pay screenshots.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "GPayExtraction",
+    export_to = "../../../packages/types/src/db/GPayExtraction.ts"
+)]
 pub struct GPayExtraction {
+    #[ts(type = "string")]
     pub amount: Decimal,
     pub direction: String, // "IN" | "OUT"
     pub datetime_str: Option<String>,
@@ -49,22 +68,39 @@ pub struct GPayExtraction {
 }
 
 /// Unified OCR data from the Python worker.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "ProcessedOcr",
+    export_to = "../../../packages/types/src/db/ProcessedOcr.ts"
+)]
 pub struct ProcessedOcr {
     pub doc_type: String, // "GPAY" or "GENERIC"
+    #[ts(type = "any")]
     pub data: serde_json::Value,
     pub r2_key: Option<String>,
 }
 
 /// Details for splitting a transaction among multiple users.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, TS)]
+#[ts(
+    export,
+    rename = "SplitDetail",
+    export_to = "../../../packages/types/src/db/SplitDetail.ts"
+)]
 pub struct SplitDetail {
     pub receiver_email: String,
+    #[ts(type = "string")]
     pub amount: Decimal,
 }
 
 /// P2P request with sender's name.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "P2PRequestWithSender",
+    export_to = "../../../packages/types/src/db/P2PRequestWithSender.ts"
+)]
 pub struct P2PRequestWithSender {
     #[serde(flatten)]
     pub request: entities::p2p_requests::Model,
@@ -72,14 +108,24 @@ pub struct P2PRequestWithSender {
 }
 
 /// Response for OCR transaction creation.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "OcrTransactionResponse",
+    export_to = "../../../packages/types/src/db/OcrTransactionResponse.ts"
+)]
 pub struct OcrTransactionResponse {
     pub transaction: entities::transactions::Model,
     pub contact_created: bool,
 }
 
 /// Transaction with optional wallet and contact info.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "TransactionWithDetail",
+    export_to = "../../../packages/types/src/db/TransactionWithDetail.ts"
+)]
 pub struct TransactionWithDetail {
     #[serde(flatten)]
     pub transaction: entities::transactions::Model,
@@ -1446,6 +1492,11 @@ impl SmartMerge {
 mod tests {
     use super::*;
     use std::time::Instant;
+
+    #[tokio::test]
+    async fn export_types() {
+        // This test is just to trigger ts-rs export
+    }
 
     #[tokio::test]
     async fn benchmark_split_transaction() -> Result<(), DbErr> {

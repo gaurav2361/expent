@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 #[ts(
     export,
     rename = "Contact",
-    export_to = "../../../packages/types/src/db/generated.ts"
+    export_to = "../../../packages/types/src/db/Contact.ts"
 )]
 
 pub struct Model {

@@ -2,7 +2,7 @@
 
 import { Badge } from "@expent/ui/components/badge";
 import { Button } from "@expent/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Separator } from "@expent/ui/components/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -279,7 +279,7 @@ function AlertConfigDialog({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="channel">Notification Channel</Label>
-            <Select value={channel} onValueChange={setChannel}>
+            <Select value={channel} onValueChange={(val) => setChannel(val || "EMAIL")}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

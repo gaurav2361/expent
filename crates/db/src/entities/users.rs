@@ -11,7 +11,7 @@ use ts_rs::TS;
 #[ts(
     export,
     rename = "User",
-    export_to = "../../../packages/types/src/db/generated.ts"
+    export_to = "../../../packages/types/src/db/User.ts"
 )]
 
 pub struct Model {

@@ -13,11 +13,13 @@ import { Button } from "@expent/ui/components/button";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@expent/ui/components/goey-toaster";
-import { SearchIcon, PlusIcon, UserIcon, WalletIcon } from "lucide-react";
+import { PlusIcon, UserIcon, WalletIcon } from "lucide-react";
 
 import { apiClient } from "@/lib/api-client";
+import { useWallets } from "@/hooks/use-wallets";
+import { useContacts } from "@/hooks/use-contacts";
 
 interface ManualTransactionDialogProps {
   open: boolean;
@@ -33,17 +35,8 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
   const [walletId, setWalletId] = React.useState<string>("none");
   const [contactId, setContactId] = React.useState<string>("none");
 
-  const { data: wallets } = useQuery({
-    queryKey: ["wallets"],
-    queryFn: () => apiClient<any[]>("/api/wallets"),
-    enabled: open,
-  });
-
-  const { data: contacts } = useQuery({
-    queryKey: ["contacts"],
-    queryFn: () => apiClient<any[]>("/api/contacts"),
-    enabled: open,
-  });
+  const { wallets } = useWallets();
+  const { contacts } = useContacts();
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -107,7 +100,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="direction">Type</Label>
-              <Select value={direction} onValueChange={(v: any) => setDirection(v)}>
+              <Select value={direction} onValueChange={(v: any) => setDirection(v || "OUT")}>
                 <SelectTrigger id="direction">
                   <SelectValue />
                 </SelectTrigger>
@@ -128,7 +121,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <WalletIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Select value={walletId} onValueChange={setWalletId}>
+                <Select value={walletId} onValueChange={(val) => setWalletId(val || "none")}>
                   <SelectTrigger className="pl-9">
                     <SelectValue placeholder="Select wallet" />
                   </SelectTrigger>
@@ -153,7 +146,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <UserIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Select value={contactId} onValueChange={setContactId}>
+                <Select value={contactId} onValueChange={(val) => setContactId(val || "none")}>
                   <SelectTrigger className="pl-9">
                     <SelectValue placeholder="Select contact" />
                   </SelectTrigger>

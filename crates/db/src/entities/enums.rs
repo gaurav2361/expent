@@ -18,7 +18,7 @@ use ts_rs::TS;
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/TransactionDirection.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionDirection {
     #[sea_orm(string_value = "IN")]
@@ -42,7 +42,7 @@ pub enum TransactionDirection {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/TransactionSource.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionSource {
     #[sea_orm(string_value = "MANUAL")]
@@ -70,7 +70,7 @@ pub enum TransactionSource {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/TransactionStatus.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionStatus {
     #[sea_orm(string_value = "COMPLETED")]
@@ -96,7 +96,7 @@ pub enum TransactionStatus {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/IdentifierType.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum IdentifierType {
     #[sea_orm(string_value = "UPI")]
@@ -122,7 +122,7 @@ pub enum IdentifierType {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/TxnPartyRole.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TxnPartyRole {
     #[sea_orm(string_value = "SENDER")]
@@ -146,7 +146,7 @@ pub enum TxnPartyRole {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/SubscriptionCycle.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SubscriptionCycle {
     #[sea_orm(string_value = "WEEKLY")]
@@ -172,7 +172,7 @@ pub enum SubscriptionCycle {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/AlertChannel.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AlertChannel {
     #[sea_orm(string_value = "EMAIL")]
@@ -196,7 +196,7 @@ pub enum AlertChannel {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/P2PRequestStatus.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum P2PRequestStatus {
     #[sea_orm(string_value = "PENDING")]
@@ -226,7 +226,7 @@ pub enum P2PRequestStatus {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/GroupRole.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum GroupRole {
     #[sea_orm(string_value = "ADMIN")]
@@ -250,7 +250,7 @@ pub enum GroupRole {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/WalletType.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WalletType {
     #[sea_orm(string_value = "CASH")]
@@ -278,7 +278,7 @@ pub enum WalletType {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/LedgerTabType.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum LedgerTabType {
     #[sea_orm(string_value = "LENT")]
@@ -302,7 +302,7 @@ pub enum LedgerTabType {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-#[ts(export, export_to = "../../../packages/types/src/db/generated.ts")]
+#[ts(export, export_to = "../../../packages/types/src/db/LedgerTabStatus.ts")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum LedgerTabStatus {
     #[sea_orm(string_value = "OPEN")]

@@ -28,6 +28,9 @@ import {
   ChevronRightIcon,
   AlarmClockIcon,
   NotebookTabsIcon,
+  WalletIcon,
+  HistoryIcon,
+  ScaleIcon,
 } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@expent/ui/components/collapsible";
 import {

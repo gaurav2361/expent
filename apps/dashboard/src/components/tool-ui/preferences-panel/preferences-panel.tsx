@@ -100,9 +100,8 @@ function ToggleControl({
 }) {
   return (
     <ToggleGroup
-      type="single"
-      value={value}
-      onValueChange={(v) => v && onChange(v)}
+      value={value as any}
+      onValueChange={(v: any) => v && onChange(v)}
       disabled={disabled}
       aria-label={label}
       className="gap-1"
@@ -137,7 +136,7 @@ function SelectControl({
   label: string;
 }) {
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
+    <Select value={value} onValueChange={(v) => onChange(v || "")} disabled={disabled}>
       <SelectTrigger id={id} className="w-[180px]" aria-label={label}>
         <SelectValue placeholder="Select..." />
       </SelectTrigger>

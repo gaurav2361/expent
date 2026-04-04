@@ -1,10 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@expent/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@expent/ui/components/card";
 import { Button } from "@expent/ui/components/button";
 import { Badge } from "@expent/ui/components/badge";
 import { Separator } from "@expent/ui/components/separator";
@@ -31,59 +29,31 @@ import {
   StoreIcon,
   CopyIcon,
   CheckIcon,
-  CalendarIcon,
   Trash2Icon,
 } from "lucide-react";
 import { DataTable } from "@/components/data-table/data-table";
-import type { Column } from "@/components/data-table/data-table-types";
+import type { Column } from "@/lib/data-table-types";
+import { useContactDetail, useContacts } from "@/hooks/use-contacts";
 
 export default function ContactDetailPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [isAddIdDialogOpen, setIsAddIdDialogOpen] = React.useState(false);
   const [newIdType, setNewIdType] = React.useState("UPI");
   const [newIdValue, setNewIdValue] = React.useState("");
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["contact-detail", id],
-    queryFn: () => apiClient<any>(`/api/contacts/${id}`),
-  });
-
-  const addIdMutation = useMutation({
-    mutationFn: () =>
-      apiClient(`/api/contacts/${id}/identifiers`, {
-        method: "POST",
-        body: JSON.stringify({ type: newIdType, value: newIdValue }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact-detail", id] });
-      setIsAddIdDialogOpen(false);
-      setNewIdValue("");
-      toast.success("Identifier added");
-    },
-  });
-
-  const deleteContactMutation = useMutation({
-    mutationFn: () =>
-      apiClient(`/api/contacts/${id}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => {
-      toast.success("Contact removed");
-      router.push("/contacts");
-    },
-  });
+  const { contactData, isLoading, addIdentifierMutation } = useContactDetail(id);
+  const { deleteMutation } = useContacts();
 
   if (isLoading) {
     return <div className="p-8 text-center">Loading contact details...</div>;
   }
 
-  if (!data) {
+  if (!contactData) {
     return <div className="p-8 text-center text-destructive">Contact not found</div>;
   }
 
-  const { contact, identifiers, transactions } = data;
+  const { contact, identifiers, transactions } = contactData;
 
   const txnColumns: Column<any>[] = [
     { key: "date", label: "Date", format: { kind: "date", dateFormat: "short" } },
@@ -120,7 +90,9 @@ export default function ContactDetailPage() {
           className="text-destructive hover:bg-destructive/10"
           onClick={() => {
             if (confirm("Are you sure you want to remove this contact from your list?")) {
-              deleteContactMutation.mutate();
+              deleteMutation.mutate(id, {
+                onSuccess: () => router.push("/contacts"),
+              });
             }
           }}
         >
@@ -146,7 +118,7 @@ export default function ContactDetailPage() {
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
                         <Label htmlFor="type">Type</Label>
-                        <Select value={newIdType} onValueChange={setNewIdType}>
+                        <Select value={newIdType} onValueChange={(val) => setNewIdType(val || "UPI")}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -171,7 +143,17 @@ export default function ContactDetailPage() {
                       <Button variant="outline" onClick={() => setIsAddIdDialogOpen(false)}>
                         Cancel
                       </Button>
-                      <Button onClick={() => addIdMutation.mutate()} disabled={!newIdValue || addIdMutation.isPending}>
+                      <Button
+                        onClick={() =>
+                          addIdentifierMutation.mutate(
+                            { type: newIdType, value: newIdValue },
+                            {
+                              onSuccess: () => setIsAddIdDialogOpen(false),
+                            }
+                          )
+                        }
+                        disabled={!newIdValue || addIdentifierMutation.isPending}
+                      >
                         Add Identifier
                       </Button>
                     </DialogFooter>

@@ -16,39 +16,32 @@ import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@expent/ui/components/tooltip";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import {
-  ChevronRightIcon,
-  InfoIcon,
-  PlusIcon,
-  ReceiptIcon,
-  UserPlusIcon,
-  UsersIcon,
-  Trash2Icon,
-  ShieldAlertIcon,
-} from "lucide-react";
+import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, UserPlusIcon, UsersIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { apiClient } from "@/lib/api-client";
+import { useGroups, useGroupMembers } from "@/hooks/use-p2p";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 
 function InviteDialog({ groupId, groupName }: { groupId: string; groupName: string }) {
   const [email, setEmail] = useState("");
   const [open, setOpen] = useState(false);
+  const { inviteMutation } = useGroups();
 
-  const inviteMutation = useMutation({
-    mutationFn: () =>
-      apiClient("/api/groups/invite", {
-        method: "POST",
-        body: JSON.stringify({ group_id: groupId, receiver_email: email }),
-      }),
-    onSuccess: () => {
-      setOpen(false);
-      setEmail("");
-      toast.success("Invite sent!");
-    },
-  });
+  const handleInvite = () => {
+    inviteMutation.mutate(
+      { groupId, email },
+      {
+        onSuccess: () => {
+          setOpen(false);
+          setEmail("");
+        },
+      }
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -76,7 +69,7 @@ function InviteDialog({ groupId, groupName }: { groupId: string; groupName: stri
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={() => inviteMutation.mutate()} disabled={!email || inviteMutation.isPending}>
+          <Button onClick={handleInvite} disabled={!email || inviteMutation.isPending}>
             {inviteMutation.isPending ? "Sending..." : "Send Invite"}
           </Button>
         </DialogFooter>
@@ -86,37 +79,8 @@ function InviteDialog({ groupId, groupName }: { groupId: string; groupName: stri
 }
 
 function MembersDialog({ groupId, groupName }: { groupId: string; groupName: string }) {
-  const queryClient = useQueryClient();
   const session = useSession();
-  const { data: members, isLoading } = useQuery({
-    queryKey: ["group-members", groupId],
-    queryFn: () => apiClient<any[]>(`/api/groups/${groupId}/members`),
-  });
-
-  const removeMemberMutation = useMutation({
-    mutationFn: (userId: string) =>
-      apiClient(`/api/groups/${groupId}/members/${userId}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
-      toast.success("Member removed");
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
-
-  const updateRoleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
-      apiClient(`/api/groups/${groupId}/members/${userId}/role`, {
-        method: "PATCH",
-        body: JSON.stringify({ role }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
-      toast.success("Role updated");
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
+  const { members, isLoading, removeMemberMutation, updateRoleMutation } = useGroupMembers(groupId);
 
   const myMembership = members?.find((m) => m.user_id === session.data?.user?.id);
   const isAdmin = myMembership?.role === "ADMIN";
@@ -159,10 +123,11 @@ function MembersDialog({ groupId, groupName }: { groupId: string; groupName: str
                 <div className="flex items-center gap-2">
                   {isAdmin && m.user_id !== session.data?.user?.id ? (
                     <div className="flex items-center gap-1">
-                      <Select
-                        value={m.role}
-                        onValueChange={(newRole) => updateRoleMutation.mutate({ userId: m.user_id, role: newRole })}
+                      <Select 
+                        value={m.role} 
+                        onValueChange={(newRole) => updateRoleMutation.mutate({ userId: m.user_id, role: newRole || "MEMBER" })}
                       >
+
                         <SelectTrigger className="h-7 text-[10px] w-24">
                           <SelectValue />
                         </SelectTrigger>
@@ -299,33 +264,25 @@ function GroupDetails({ group }: { group: any }) {
 }
 
 export default function SharedLedgersComponent() {
-  const router = useRouter();
-  const session = useSession();
-  const queryClient = useQueryClient();
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
 
-  const { data: groups, isLoading } = useQuery({
-    queryKey: ["groups"],
-    queryFn: () => apiClient<any[]>("/api/groups"),
-    enabled: !!session.data,
-  });
+  const { groups, isLoading, createMutation } = useGroups();
 
-  const createMutation = useMutation({
-    mutationFn: () =>
-      apiClient("/api/groups/create", {
-        method: "POST",
-        body: JSON.stringify({ name: newGroupName, description: newGroupDesc }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["groups"] });
-      setIsDialogOpen(false);
-      setNewGroupName("");
-      setNewGroupDesc("");
-    },
-  });
+  const handleCreate = () => {
+    createMutation.mutate(
+      { name: newGroupName, description: newGroupDesc || null },
+      {
+        onSuccess: () => {
+          setIsDialogOpen(false);
+          setNewGroupName("");
+          setNewGroupDesc("");
+        },
+      }
+    );
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
@@ -362,7 +319,7 @@ export default function SharedLedgersComponent() {
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => createMutation.mutate()} disabled={!newGroupName || createMutation.isPending}>
+              <Button onClick={handleCreate} disabled={!newGroupName || createMutation.isPending}>
                 {createMutation.isPending ? "Creating..." : "Create"}
               </Button>
             </DialogFooter>
@@ -377,7 +334,7 @@ export default function SharedLedgersComponent() {
               <div className="h-24 w-full bg-muted animate-pulse rounded-lg" />
               <div className="h-24 w-full bg-muted animate-pulse rounded-lg" />
             </div>
-          ) : groups?.length === 0 ? (
+          ) : !groups || groups.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-10 text-center">
                 <UsersIcon className="h-8 w-8 text-muted-foreground mb-2" />

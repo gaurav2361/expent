@@ -1,8 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@expent/ui/components/card";
 import { Button } from "@expent/ui/components/button";
 import { Input } from "@expent/ui/components/input";
@@ -27,41 +25,34 @@ import {
   Building2Icon,
   SmartphoneIcon,
   MoreVerticalIcon,
-  PencilIcon,
-  Trash2Icon,
 } from "lucide-react";
+import { useWallets } from "@/hooks/use-wallets";
 
 export default function WalletsPage() {
-  const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
   const [newName, setNewName] = React.useState("");
   const [newType, setNewType] = React.useState("CASH");
   const [newBalance, setNewBalance] = React.useState("0");
 
-  const { data: wallets, isLoading } = useQuery({
-    queryKey: ["wallets"],
-    queryFn: () => apiClient<any[]>("/api/wallets"),
-  });
+  const { wallets, isLoading, createMutation } = useWallets();
 
-  const createMutation = useMutation({
-    mutationFn: () =>
-      apiClient("/api/wallets", {
-        method: "POST",
-        body: JSON.stringify({
-          name: newName,
-          type: newType,
-          initial_balance: parseFloat(newBalance),
-        }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wallets"] });
-      setIsCreateDialogOpen(false);
-      setNewName("");
-      setNewType("CASH");
-      setNewBalance("0");
-      toast.success("Wallet created");
-    },
-  });
+  const handleCreate = () => {
+    createMutation.mutate(
+      {
+        name: newName,
+        type: newType,
+        initial_balance: parseFloat(newBalance),
+      },
+      {
+        onSuccess: () => {
+          setIsCreateDialogOpen(false);
+          setNewName("");
+          setNewType("CASH");
+          setNewBalance("0");
+        },
+      }
+    );
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
@@ -92,7 +83,7 @@ export default function WalletsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="type">Type</Label>
-                  <Select value={newType} onValueChange={setNewType}>
+                  <Select value={newType} onValueChange={(val) => setNewType(val || "CASH")}>
                     <SelectTrigger id="type">
                       <SelectValue />
                     </SelectTrigger>
@@ -120,7 +111,7 @@ export default function WalletsPage() {
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => createMutation.mutate()} disabled={!newName || createMutation.isPending}>
+              <Button onClick={handleCreate} disabled={!newName || createMutation.isPending}>
                 {createMutation.isPending ? "Creating..." : "Create Wallet"}
               </Button>
             </DialogFooter>
