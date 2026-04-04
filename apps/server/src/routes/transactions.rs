@@ -1,4 +1,4 @@
-use axum::extract::{Json, Path, State};
+use axum::extract::{Json, Path, State, Query};
 use axum::http::StatusCode;
 use db::{SmartMerge, SplitDetail};
 use serde::Deserialize;
@@ -33,11 +33,24 @@ pub async fn create_manual_transaction_handler(
     Ok(Json(result))
 }
 
+#[derive(Deserialize)]
+pub struct PaginationParams {
+    pub limit: Option<u64>,
+    pub offset: Option<u64>,
+}
+
 pub async fn list_transactions_handler(
     State(state): State<AppState>,
     session: AuthSession,
+    Query(params): Query<PaginationParams>,
 ) -> Result<Json<Vec<db::entities::transactions::Model>>, ApiError> {
-    let result = SmartMerge::list_transactions(&state.db, &session.user.id).await?;
+    let result = SmartMerge::list_transactions(
+        &state.db,
+        &session.user.id,
+        params.limit,
+        params.offset,
+    )
+    .await?;
     Ok(Json(result))
 }
 
