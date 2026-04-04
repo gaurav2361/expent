@@ -12,6 +12,9 @@ pub struct CreateManualTransactionRequest {
     pub date: chrono::DateTime<chrono::FixedOffset>,
     pub purpose_tag: String,
     pub direction: db::entities::enums::TransactionDirection,
+    pub source_wallet_id: Option<String>,
+    pub destination_wallet_id: Option<String>,
+    pub contact_id: Option<String>,
 }
 
 pub async fn create_manual_transaction_handler(
@@ -27,6 +30,9 @@ pub async fn create_manual_transaction_handler(
         payload.date,
         db::entities::enums::TransactionSource::Manual,
         Some(payload.purpose_tag),
+        payload.source_wallet_id,
+        payload.destination_wallet_id,
+        payload.contact_id,
     )
     .await?;
 

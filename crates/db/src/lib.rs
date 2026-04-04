@@ -889,6 +889,9 @@ impl SmartMerge {
         date: DateTime<FixedOffset>,
         source: TransactionSource,
         purpose_tag: Option<String>,
+        source_wallet_id: Option<String>,
+        destination_wallet_id: Option<String>,
+        contact_id: Option<String>,
     ) -> Result<entities::transactions::Model, DbErr> {
         let txn = entities::transactions::ActiveModel {
             id: Set(uuid::Uuid::now_v7().to_string()),
@@ -900,13 +903,26 @@ impl SmartMerge {
             status: Set(TransactionStatus::Completed),
             purpose_tag: Set(purpose_tag),
             group_id: Set(None),
-            source_wallet_id: Set(None),
-            destination_wallet_id: Set(None),
+            source_wallet_id: Set(source_wallet_id),
+            destination_wallet_id: Set(destination_wallet_id),
             ledger_tab_id: Set(None),
             deleted_at: Set(None),
         };
 
-        txn.insert(db).await
+        let result = txn.insert(db).await?;
+
+        if let Some(c_id) = contact_id {
+            let party = entities::txn_parties::ActiveModel {
+                id: Set(uuid::Uuid::now_v7().to_string()),
+                transaction_id: Set(result.id.clone()),
+                user_id: Set(None),
+                contact_id: Set(Some(c_id)),
+                role: Set("COUNTERPARTY".to_string()),
+            };
+            party.insert(db).await?;
+        }
+
+        Ok(result)
     }
 
     pub async fn list_wallets(
