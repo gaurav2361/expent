@@ -31,6 +31,7 @@ http               = "1.2"
 ocr                = { path = "../../crates/ocr", version = "0.1.0" }
 anyhow             = "1.0"
 upload             = { path = "../../crates/upload", version = "0.1.0" }
+thiserror = "2.0.18"
 
 [dev-dependencies]
 http-body-util = "0.1"
