@@ -54,6 +54,15 @@ pub async fn list_transactions_handler(
     Ok(Json(result))
 }
 
+pub async fn create_from_ocr_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Json(payload): Json<db::ProcessedOcr>,
+) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
+    let result = db::SmartMerge::process_ocr(&state.db, &session.user.id, payload).await?;
+    Ok(Json(result))
+}
+
 #[derive(Deserialize)]
 pub struct UpdateTransactionRequest {
     pub amount: Option<rust_decimal::Decimal>,
