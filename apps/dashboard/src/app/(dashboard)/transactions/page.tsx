@@ -1,13 +1,5 @@
 "use client";
 import * as React from "react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@expent/ui/components/breadcrumb";
 import { Badge } from "@expent/ui/components/badge";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
@@ -35,8 +27,6 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import type { ColumnDef, ColumnFiltersState, SortingState, VisibilityState } from "@tanstack/react-table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -52,78 +42,18 @@ import {
   ChevronsRightIcon,
   Share2Icon,
 } from "lucide-react";
-import { useSession } from "@/lib/auth-client";
-import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
 import type { Transaction } from "@/components/transactions/transaction-viewer";
-import { toast } from "@expent/ui/components/goey-toaster";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+import { useTransactions } from "@/hooks/use-transactions";
 
 // Route Component
 export default function TransactionsPage() {
-  const router = useRouter();
-  const session = useSession();
-  const queryClient = useQueryClient();
+  const { transactions: rawTransactions, updateMutation, deleteMutation } = useTransactions();
 
   // Selected Txn for Split Action
   const [splitDialogOpen, setSplitDialogOpen] = React.useState(false);
   const [selectedTxn, setSelectedTxn] = React.useState<{ id: string; amount: string } | null>(null);
-
-  const { data: rawTransactions } = useQuery({
-    queryKey: ["transactions"],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/transactions`, {
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch transactions");
-      return response.json();
-    },
-    enabled: !!session.data,
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Transaction> }) => {
-      const response = await fetch(`${API_BASE_URL}/api/transactions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: data.amount,
-          date: data.date,
-          purpose_tag: data.category || data.source,
-          status: data.status,
-        }),
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to update transaction");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Transaction updated successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`${API_BASE_URL}/api/transactions/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to delete transaction");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Transaction deleted");
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
 
   // Table State
   const [rowSelection, setRowSelection] = React.useState({});

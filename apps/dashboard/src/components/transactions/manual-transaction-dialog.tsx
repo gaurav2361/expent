@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@expent/ui/components/goey-toaster";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+import { apiClient } from "@/lib/api-client";
 
 interface ManualTransactionDialogProps {
   open: boolean;
@@ -31,21 +31,16 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
   const [date, setDate] = React.useState(new Date().toISOString().split("T")[0]);
 
   const createMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/transactions/manual`, {
+    mutationFn: () =>
+      apiClient("/api/transactions/manual", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
           purpose_tag: description,
           direction,
           date: new Date(date).toISOString(),
         }),
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to create transaction");
-      return response.json();
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       onOpenChange(false);

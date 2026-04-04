@@ -1,54 +1,12 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "@/lib/auth-client";
+import { useP2P } from "@/hooks/use-p2p";
+import type { P2PRequest } from "@/hooks/use-p2p";
 import { ApprovalCard } from "@/components/tool-ui/approval-card";
-import { toast } from "@expent/ui/components/goey-toaster";
 import { Skeleton } from "@expent/ui/components/skeleton";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
-
-interface P2PRequest {
-  id: string;
-  status: string;
-  sender_user_id: string;
-  transaction_data: any;
-  sender_name?: string;
-}
-
 export default function PendingPage() {
-  const session = useSession();
-  const queryClient = useQueryClient();
-
-  const { data: p2pRequests, isLoading } = useQuery({
-    queryKey: ["p2p-pending"],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/p2p/pending`, {
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch P2P requests");
-      return response.json();
-    },
-    enabled: !!session.data,
-  });
-
-  const acceptMutation = useMutation({
-    mutationFn: async (requestId: string) => {
-      const response = await fetch(`${API_BASE_URL}/api/p2p/accept`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ request_id: requestId }),
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to accept request");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });
-      toast.success("Request accepted!");
-    },
-  });
+  const { p2pRequests, isLoading, acceptMutation } = useP2P();
 
   if (isLoading) {
     return (
