@@ -61,6 +61,14 @@ pub struct SplitDetail {
     pub amount: Decimal,
 }
 
+/// P2P request with sender's name.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct P2PRequestWithSender {
+    #[serde(flatten)]
+    pub request: entities::p2p_requests::Model,
+    pub sender_name: Option<String>,
+}
+
 /// Business logic for merging and processing transaction data.
 pub struct SmartMerge;
 
@@ -454,12 +462,21 @@ impl SmartMerge {
     pub async fn list_pending_p2p_requests(
         db: &DatabaseConnection,
         email: &str,
-    ) -> Result<Vec<entities::p2p_requests::Model>, DbErr> {
-        entities::p2p_requests::Entity::find()
+    ) -> Result<Vec<P2PRequestWithSender>, DbErr> {
+        let results = entities::p2p_requests::Entity::find()
             .filter(entities::p2p_requests::Column::ReceiverEmail.eq(email))
             .filter(entities::p2p_requests::Column::Status.is_in(["PENDING", "GROUP_INVITE"]))
+            .find_also_related(entities::users::Entity)
             .all(db)
-            .await
+            .await?;
+
+        Ok(results
+            .into_iter()
+            .map(|(request, user)| P2PRequestWithSender {
+                request,
+                sender_name: user.map(|u| u.name),
+            })
+            .collect())
     }
 
     pub async fn create_group(

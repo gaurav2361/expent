@@ -13,6 +13,7 @@ interface P2PRequest {
   status: string;
   sender_user_id: string;
   transaction_data: any;
+  sender_name?: string;
 }
 
 export default function PendingPage() {
@@ -81,12 +82,12 @@ export default function PendingPage() {
               description={
                 req.status === "GROUP_INVITE"
                   ? `You've been invited to join ${req.transaction_data.group_name}`
-                  : `${req.sender_user_id} shared an expense with you.`
+                  : `${req.sender_name || req.sender_user_id} shared an expense with you.`
               }
               icon={req.status === "GROUP_INVITE" ? "users" : "receipt"}
               metadata={[
                 { key: "Amount", value: `₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}` },
-                { key: "From", value: req.sender_user_id.substring(0, 8) },
+                { key: "From", value: req.sender_name || req.sender_user_id.substring(0, 8) },
               ]}
               confirmLabel={req.status === "GROUP_INVITE" ? "Join Group" : "Accept Split"}
               onConfirm={() => acceptMutation.mutate(req.id)}
