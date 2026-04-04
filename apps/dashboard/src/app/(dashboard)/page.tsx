@@ -2,6 +2,7 @@
 
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { Input } from "@expent/ui/components/input";
 import { Share2Icon, MoreVerticalIcon, Trash2Icon, PlusIcon } from "lucide-react";
 import { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
