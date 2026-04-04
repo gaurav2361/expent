@@ -5,7 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expe
 import { Button } from "@expent/ui/components/button";
 import { Badge } from "@expent/ui/components/badge";
 import { Separator } from "@expent/ui/components/separator";
-import { ShieldIcon, KeyIcon, SmartphoneIcon, LogOutIcon, FingerprintIcon, LaptopIcon, Trash2Icon, PlusIcon } from "lucide-react";
+import {
+  ShieldIcon,
+  KeyIcon,
+  SmartphoneIcon,
+  LogOutIcon,
+  FingerprintIcon,
+  LaptopIcon,
+  Trash2Icon,
+  PlusIcon,
+} from "lucide-react";
 import { useSession, signOut } from "@/lib/auth-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";

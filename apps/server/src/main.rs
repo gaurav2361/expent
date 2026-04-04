@@ -1,18 +1,18 @@
-use auth::adapter::SqliteAdapter;
 pub use auth::AuthSession;
+use auth::adapter::SqliteAdapter;
 use auth::init_auth;
 use axum::{
+    Router,
     extract::FromRef,
     http::{HeaderValue, Method},
     routing::{delete, get, patch, post, put},
-    Router,
 };
 use better_auth::AxumIntegration;
 use ocr::OcrService;
 use sea_orm::{Database, DatabaseConnection};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
+use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};

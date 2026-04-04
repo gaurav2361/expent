@@ -28,7 +28,12 @@ import { useTransactions } from "@/hooks/use-transactions";
 import { useP2P } from "@/hooks/use-p2p";
 import { apiClient } from "@/lib/api-client";
 import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
-import type { Transaction as TransactionType, P2PRequest, P2PRequestWithSender, TransactionWithDetail } from "@expent/types";
+import type {
+  Transaction as TransactionType,
+  P2PRequest,
+  P2PRequestWithSender,
+  TransactionWithDetail,
+} from "@expent/types";
 
 export default function DashboardPage() {
   const router = useRouter();
