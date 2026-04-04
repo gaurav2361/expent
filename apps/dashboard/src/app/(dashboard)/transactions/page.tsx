@@ -41,19 +41,35 @@ import {
   ChevronsLeftIcon,
   ChevronsRightIcon,
   Share2Icon,
+  PencilIcon,
+  Trash2Icon,
+  UploadIcon,
 } from "lucide-react";
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
 import type { Transaction } from "@/components/transactions/transaction-viewer";
 import { useTransactions } from "@/hooks/use-transactions";
+import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
+import { apiClient } from "@/lib/api-client";
+import { toast } from "@expent/ui/components/goey-toaster";
+import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Route Component
 export default function TransactionsPage() {
+  const queryClient = useQueryClient();
   const { transactions: rawTransactions, updateMutation, deleteMutation } = useTransactions();
 
   // Selected Txn for Split Action
   const [splitDialogOpen, setSplitDialogOpen] = React.useState(false);
   const [selectedTxn, setSelectedTxn] = React.useState<{ id: string; amount: string } | null>(null);
+  const [editingTxnId, setEditingTxnId] = React.useState<string | null>(null);
+
+  // Upload State
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [uploadSteps, setUploadSteps] = React.useState<any[]>([]);
+  const [processedOcr, setProcessedOcr] = React.useState<{ doc_type: string; data: any } | null>(null);
+  const [isSavingOcr, setIsSavingOcr] = React.useState(false);
 
   // Table State
   const [rowSelection, setRowSelection] = React.useState({});
@@ -73,7 +89,7 @@ export default function TransactionsPage() {
     return rawTransactions;
   }, [rawTransactions, activeTab]);
 
-  // Derived Metrics (based on raw data so they don't jump around strictly on search, but do jump on tabs)
+  // Derived Metrics
   const { totalIncome, totalExpense, netBalance } = React.useMemo(() => {
     let income = 0;
     let expense = 0;
@@ -91,6 +107,82 @@ export default function TransactionsPage() {
     setSelectedTxn({ id, amount });
     setSplitDialogOpen(true);
   }, []);
+
+  const handleUpload = async (file: File) => {
+    setIsUploading(true);
+    setProcessedOcr(null);
+
+    const steps = [
+      { id: "1", label: "Uploading file...", status: "in-progress" },
+      { id: "2", label: "Classifying...", status: "pending" },
+      { id: "3", label: "Extracting...", status: "pending" },
+    ];
+    setUploadSteps(steps);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+      const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const { key } = await uploadRes.json();
+
+      setUploadSteps((prev) =>
+        prev.map((s) =>
+          s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s
+        )
+      );
+
+      const result = await apiClient<any>("/api/process-image-ocr", {
+        method: "POST",
+        body: JSON.stringify({ key }),
+      });
+
+      setUploadSteps((prev) =>
+        prev.map((s) =>
+          s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s
+        )
+      );
+
+      setUploadSteps((prev) => prev.map((s) => (s.id === "3" ? { ...s, status: "completed" } : s)));
+
+      setProcessedOcr(result);
+      toast.success("Extraction complete!");
+      setTimeout(() => setIsUploading(false), 1000);
+    } catch (error) {
+      console.error(error);
+      setUploadSteps((prev) => prev.map((s) => (s.status === "in-progress" ? { ...s, status: "failed" } : s)));
+      toast.error("Upload or processing failed.");
+      setTimeout(() => setIsUploading(false), 2000);
+    }
+  };
+
+  const handleConfirmOcr = async (finalData: any) => {
+    setIsSavingOcr(true);
+    try {
+      const result = await apiClient<any>("/api/transactions/from-ocr", {
+        method: "POST",
+        body: JSON.stringify(finalData),
+      });
+      setProcessedOcr(null);
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success("Transaction saved!");
+      if (result.contact_created) {
+        toast.success("New contact auto-created!");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save transaction.");
+    } finally {
+      setIsSavingOcr(false);
+    }
+  };
 
   const columns = React.useMemo<ColumnDef<Transaction>[]>(
     () => [
@@ -137,8 +229,24 @@ export default function TransactionsPage() {
         accessorKey: "source",
         header: "Description",
         cell: ({ row }) => {
-          return <TransactionViewer item={row.original} onUpdate={(id, data) => updateMutation.mutate({ id, data })} />;
+          return (
+            <TransactionViewer 
+              item={row.original} 
+              onUpdate={(id, data) => updateMutation.mutate({ id, data })}
+              open={editingTxnId === row.original.id}
+              onOpenChange={(open) => !open && setEditingTxnId(null)}
+            />
+          );
         },
+      },
+      {
+        accessorKey: "purpose_tag",
+        header: "Tag / Note",
+        cell: ({ row }) => (
+          <span className="text-xs text-muted-foreground truncate max-w-[150px] inline-block">
+            {row.original.purpose_tag || "—"}
+          </span>
+        ),
       },
       {
         accessorKey: "direction",
@@ -194,6 +302,9 @@ export default function TransactionsPage() {
               }
             />
             <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={() => setEditingTxnId(row.original.id)}>
+                <PencilIcon className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => triggerSplit(row.original.id, row.original.amount)}>
                 <Share2Icon className="mr-2 h-4 w-4" /> Split
               </DropdownMenuItem>
@@ -213,7 +324,7 @@ export default function TransactionsPage() {
         ),
       },
     ],
-    [triggerSplit, updateMutation, deleteMutation]
+    [triggerSplit, updateMutation, deleteMutation, editingTxnId]
   );
 
   const table = useReactTable({
@@ -260,12 +371,54 @@ export default function TransactionsPage() {
   return (
     <>
       <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-        <div className="flex justify-end">
-          <Button onClick={handleExportCSV} variant="outline" size="sm" disabled={data.length === 0}>
-            <DownloadIcon className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Export CSV</span>
-          </Button>
+        {/* Quick Upload Section */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
+            <Button onClick={handleExportCSV} variant="outline" size="sm" disabled={data.length === 0}>
+              <DownloadIcon className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
+
+          <Card className="border-dashed bg-muted/5 hover:bg-muted/10 transition-colors cursor-pointer relative group">
+            <CardContent className="flex flex-col items-center justify-center py-8 text-center gap-2">
+              <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                <UploadIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Quick Upload</p>
+                <p className="text-xs text-muted-foreground">Drop a receipt, PDF, or CSV here to auto-import</p>
+              </div>
+              <input 
+                type="file" 
+                className="absolute inset-0 opacity-0 cursor-pointer" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUpload(file);
+                }}
+              />
+            </CardContent>
+          </Card>
         </div>
+
+        {isUploading && (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+            <ProgressTracker id="txn-upload-progress" steps={uploadSteps} />
+          </div>
+        )}
+
+        {processedOcr && (
+          <div className="animate-in zoom-in-95 duration-300">
+            <ReviewTransactionForm
+              processedOcr={processedOcr}
+              onConfirm={handleConfirmOcr}
+              onCancel={() => setProcessedOcr(null)}
+              isSubmitting={isSavingOcr}
+            />
+          </div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100/30 dark:from-green-950/20 dark:to-green-900/10 border-green-100 shadow-sm">
@@ -309,23 +462,17 @@ export default function TransactionsPage() {
         <div className="flex flex-col flex-1 shadow-sm border rounded-xl bg-card overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-col justify-start">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b bg-muted/40 gap-4">
-              <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 h-9 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground">
-                <TabsTrigger value="all" className="rounded-md">
-                  All Transactions
-                </TabsTrigger>
-                <TabsTrigger value="income" className="rounded-md">
-                  Income
-                </TabsTrigger>
-                <TabsTrigger value="expense" className="rounded-md">
-                  Expense
-                </TabsTrigger>
+              <TabsList className="h-9 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground">
+                <TabsTrigger value="all" className="rounded-md px-4">All</TabsTrigger>
+                <TabsTrigger value="income" className="rounded-md px-4 text-green-600 dark:text-green-400">Income</TabsTrigger>
+                <TabsTrigger value="expense" className="rounded-md px-4 text-red-600 dark:text-red-400">Expense</TabsTrigger>
               </TabsList>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <div className="relative flex-1 sm:w-64">
                   <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search transactions..."
+                    placeholder="Search descriptions..."
                     value={(table.getColumn("source")?.getFilterValue() as string) ?? ""}
                     onChange={(event) => table.getColumn("source")?.setFilterValue(event.target.value)}
                     className="pl-9 bg-background h-9 border-muted-foreground/20"
@@ -354,7 +501,7 @@ export default function TransactionsPage() {
                             checked={column.getIsVisible()}
                             onCheckedChange={(value) => column.toggleVisibility(!!value)}
                           >
-                            {column.id}
+                            {column.id.replace("_", " ")}
                           </DropdownMenuCheckboxItem>
                         );
                       })}
@@ -372,7 +519,7 @@ export default function TransactionsPage() {
                         <TableHead
                           key={header.id}
                           colSpan={header.colSpan}
-                          className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-10"
+                          className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-10 px-4"
                         >
                           {header.isPlaceholder
                             ? null
@@ -391,7 +538,7 @@ export default function TransactionsPage() {
                         className="hover:bg-muted/50 transition-colors"
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className="py-3">
+                          <TableCell key={cell.id} className="py-3 px-4">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>
                         ))}

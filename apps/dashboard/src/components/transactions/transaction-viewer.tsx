@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import {
   Drawer,
@@ -16,6 +18,8 @@ import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { useIsMobile } from "@expent/ui/hooks/use-mobile";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
 
 export interface Transaction {
   id: string;
@@ -25,19 +29,28 @@ export interface Transaction {
   source: string;
   category?: string;
   status?: string;
+  purpose_tag?: string;
 }
 
 interface TransactionViewerProps {
   item: Transaction;
   onUpdate: (id: string, data: Partial<Transaction>) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function TransactionViewer({ item, onUpdate }: TransactionViewerProps) {
+export function TransactionViewer({ item, onUpdate, open, onOpenChange }: TransactionViewerProps) {
   const isMobile = useIsMobile();
   const [source, setSource] = React.useState(item.source);
   const [category, setCategory] = React.useState(item.category || "Uncategorized");
   const [status, setStatus] = React.useState(item.status || "Completed");
   const [amount, setAmount] = React.useState(item.amount);
+  const [note, setNote] = React.useState(item.purpose_tag || "");
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => apiClient<any[]>("/api/categories"),
+  });
 
   const title = source || "Unknown Source";
   const formattedDate = new Date(item.date).toLocaleDateString("en-IN", {
@@ -47,7 +60,11 @@ export function TransactionViewer({ item, onUpdate }: TransactionViewerProps) {
   });
 
   return (
-    <Drawer direction={isMobile ? "bottom" : "right"}>
+    <Drawer
+      direction={isMobile ? "bottom" : "right"}
+      open={open}
+      onOpenChange={onOpenChange}
+    >
       <DrawerTrigger asChild>
         <Button
           variant="link"
@@ -89,6 +106,7 @@ export function TransactionViewer({ item, onUpdate }: TransactionViewerProps) {
                 category,
                 status,
                 amount,
+                purpose_tag: note,
               });
             }}
           >
@@ -111,17 +129,25 @@ export function TransactionViewer({ item, onUpdate }: TransactionViewerProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Uncategorized">Uncategorized</SelectItem>
-                    <SelectItem value="Food">Food & Alerts</SelectItem>
-                    <SelectItem value="Travel">Travel & Auto</SelectItem>
-                    <SelectItem value="Shopping">Shopping</SelectItem>
-                    <SelectItem value="Entertainment">Entertainment</SelectItem>
-                    <SelectItem value="Salary">Salary</SelectItem>
+                    {categories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                    {!categories && (
+                      <>
+                        <SelectItem value="Food">Food & Drinks</SelectItem>
+                        <SelectItem value="Travel">Travel</SelectItem>
+                        <SelectItem value="Shopping">Shopping</SelectItem>
+                        <SelectItem value="Salary">Salary</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="flex flex-col gap-3">
-                <Label htmlFor="status">Classification Status</Label>
+                <Label htmlFor="status">Status</Label>
                 <Select value={status} onValueChange={(val) => setStatus(val || "Completed")}>
                   <SelectTrigger id="status" className="w-full">
                     <SelectValue placeholder="Select status" />
@@ -136,7 +162,12 @@ export function TransactionViewer({ item, onUpdate }: TransactionViewerProps) {
 
             <div className="flex flex-col gap-3 mt-2">
               <Label htmlFor="note">Personal Note</Label>
-              <Input id="note" placeholder="Add a note about this transaction..." />
+              <Input 
+                id="note" 
+                value={note} 
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Add a note about this transaction..." 
+              />
             </div>
 
             <DrawerFooter className="mt-auto px-0 pt-6 border-t border-border/50">

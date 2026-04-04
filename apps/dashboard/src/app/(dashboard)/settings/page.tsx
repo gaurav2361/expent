@@ -8,6 +8,7 @@ import { UserIcon, BellIcon, ShieldIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { PreferencesPanel } from "@/components/tool-ui/preferences-panel";
 import { useRouter } from "next/navigation";
+import { CategoriesPanel } from "@/components/settings/categories-panel";
 
 export default function SettingsPage() {
   const session = useSession();
@@ -73,6 +74,9 @@ export default function SettingsPage() {
           }
         }}
       />
+
+      {/* Categories */}
+      <CategoriesPanel />
 
       {/* Notifications */}
       <Card>

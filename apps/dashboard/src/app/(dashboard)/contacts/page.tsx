@@ -1,17 +1,237 @@
+"use client";
+
+import * as React from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@expent/ui/components/card";
+import { Button } from "@expent/ui/components/button";
+import { Input } from "@expent/ui/components/input";
+import { Badge } from "@expent/ui/components/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@expent/ui/components/dialog";
+import { Label } from "@expent/ui/components/label";
+import { toast } from "@expent/ui/components/goey-toaster";
+import {
+  SearchIcon,
+  PlusIcon,
+  UserIcon,
+  PinIcon,
+  MoreVerticalIcon,
+  Trash2Icon,
+  PhoneIcon,
+  WalletIcon,
+  ChevronRightIcon,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+
 export default function ContactsPage() {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const [searchQuery, setSearchSearchQuery] = React.useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+  const [newName, setNewName] = React.useState("");
+  const [newPhone, setNewPhone] = React.useState("");
+
+  const { data: contacts, isLoading } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => apiClient<any[]>("/api/contacts"),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      apiClient("/api/contacts", {
+        method: "POST",
+        body: JSON.stringify({ name: newName, phone: newPhone || null }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      setIsAddDialogOpen(false);
+      setNewName("");
+      setNewPhone("");
+      toast.success("Contact added");
+    },
+  });
+
+  const pinMutation = useMutation({
+    mutationFn: ({ id, is_pinned }: { id: string; is_pinned: boolean }) =>
+      apiClient(`/api/contacts/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ is_pinned }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    },
+  });
+
+  const filteredContacts = React.useMemo(() => {
+    if (!contacts) return [];
+    return contacts.filter((c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [contacts, searchQuery]);
+
+  const pinnedContacts = filteredContacts.filter((c) => c.is_pinned);
+  const otherContacts = filteredContacts.filter((c) => !c.is_pinned);
+
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 lg:p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="font-semibold text-lg md:text-2xl">Contacts</h1>
-      </div>
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-xs">
-        <div className="flex flex-col items-center gap-1 text-center">
-          <h3 className="font-bold text-2xl tracking-tight">No Contacts</h3>
-          <p className="text-sm text-muted-foreground">
-            You don't have any contacts added yet. Start by inviting some friends!
-          </p>
+    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
+          <p className="text-muted-foreground text-sm">Manage your frequent counterparties and vendors.</p>
         </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger render={<Button />}>
+            <PlusIcon className="mr-2 h-4 w-4" /> Add Contact
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Contact</DialogTitle>
+              <DialogDescription>Create a new contact to track transactions with them.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. John Doe"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <Input
+                  id="phone"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="+91..."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => createMutation.mutate()} disabled={!newName || createMutation.isPending}>
+                {createMutation.isPending ? "Adding..." : "Add Contact"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      <div className="relative">
+        <SearchIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search contacts by name..."
+          className="pl-10 h-11 bg-card shadow-xs"
+          value={searchQuery}
+          onChange={(e) => setSearchSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="h-32 animate-pulse bg-muted/50" />
+          ))}
+        </div>
+      ) : filteredContacts.length === 0 ? (
+        <Card className="border-dashed py-20">
+          <CardContent className="flex flex-col items-center text-center">
+            <div className="bg-muted p-4 rounded-full mb-4">
+              <UserIcon className="h-10 w-10 text-muted-foreground/40" />
+            </div>
+            <h3 className="text-lg font-medium">No contacts found</h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+              {searchQuery ? `No results for "${searchQuery}"` : "Start by adding your first contact to track splits and payments."}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-8">
+          {pinnedContacts.length > 0 && (
+            <section className="space-y-4">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <PinIcon className="h-3 w-3 rotate-45" /> Pinned
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pinnedContacts.map((contact) => (
+                  <ContactCard 
+                    key={contact.id} 
+                    contact={contact} 
+                    onPin={() => pinMutation.mutate({ id: contact.id, is_pinned: false })}
+                    onClick={() => router.push(`/contacts/${contact.id}`)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="space-y-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {pinnedContacts.length > 0 ? "All Contacts" : "All Contacts"}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {otherContacts.map((contact) => (
+                <ContactCard 
+                  key={contact.id} 
+                  contact={contact} 
+                  onPin={() => pinMutation.mutate({ id: contact.id, is_pinned: true })}
+                  onClick={() => router.push(`/contacts/${contact.id}`)}
+                />
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
+  );
+}
+
+function ContactCard({ contact, onPin, onClick }: { contact: any; onPin: () => void; onClick: () => void }) {
+  return (
+    <Card 
+      className="group hover:border-primary/50 transition-all cursor-pointer relative overflow-hidden"
+      onClick={onClick}
+    >
+      <CardHeader className="p-4 flex flex-row items-center gap-4 space-y-0">
+        <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+          {contact.name.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <CardTitle className="text-base truncate">{contact.name}</CardTitle>
+          <div className="flex items-center text-xs text-muted-foreground gap-2 mt-0.5">
+            {contact.phone && (
+              <span className="flex items-center gap-1">
+                <PhoneIcon className="h-3 w-3" /> {contact.phone}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className={`h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${contact.is_pinned ? "opacity-100 text-primary" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPin();
+            }}
+          >
+            <PinIcon className={`h-3.5 w-3.5 ${contact.is_pinned ? "fill-current rotate-45" : ""}`} />
+          </Button>
+          <ChevronRightIcon className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />
+        </div>
+      </CardHeader>
+    </Card>
   );
 }

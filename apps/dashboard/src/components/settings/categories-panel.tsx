@@ -1,0 +1,102 @@
+"use client";
+
+import * as React from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { Button } from "@expent/ui/components/button";
+import { Input } from "@expent/ui/components/input";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
+import { toast } from "@expent/ui/components/goey-toaster";
+import { TagIcon, PlusIcon, Trash2Icon } from "lucide-react";
+
+export function CategoriesPanel() {
+  const queryClient = useQueryClient();
+  const [newName, setNewName] = React.useState("");
+
+  const { data: categories, isLoading } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => apiClient<any[]>("/api/categories"),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (name: string) =>
+      apiClient("/api/categories", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      setNewName("");
+      toast.success("Category added");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiClient(`/api/categories/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Category deleted");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <TagIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <CardTitle>Categories</CardTitle>
+            <CardDescription>Manage your custom transaction tags</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Input
+            placeholder="New category name..."
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && createMutation.mutate(newName)}
+          />
+          <Button onClick={() => createMutation.mutate(newName)} disabled={!newName || createMutation.isPending}>
+            <PlusIcon className="h-4 w-4 mr-2" /> Add
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-2 pt-2">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading categories...</p>
+          ) : !categories || categories.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">No custom categories yet.</p>
+          ) : (
+            categories.map((cat) => (
+              <div
+                key={cat.id}
+                className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border text-sm group"
+              >
+                <span className="font-medium">{cat.name}</span>
+                <button
+                  onClick={() => {
+                    if (confirm(`Delete category "${cat.name}"?`)) {
+                      deleteMutation.mutate(cat.id);
+                    }
+                  }}
+                  className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2Icon className="h-3 w-3" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
