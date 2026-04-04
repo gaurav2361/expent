@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function P2PPage() {
-  return <div>Hello "/dashboard/p2p/"!</div>;
+  redirect("/p2p/pending");
 }
