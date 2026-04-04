@@ -81,15 +81,29 @@ impl SmartMerge {
                 TransactionDirection::Out
             };
 
+            let date = if let Some(dt_str) = &gpay.datetime_str {
+                match chrono::NaiveDateTime::parse_from_str(dt_str, "%d %b %Y, %I:%M %p") {
+                    Ok(naive) => {
+                        DateTime::<FixedOffset>::from_naive_utc_and_offset(
+                            naive,
+                            FixedOffset::east_opt(0).unwrap(),
+                        )
+                    }
+                    Err(_) => Utc::now().into(),
+                }
+            } else {
+                Utc::now().into()
+            };
+
             let txn = entities::transactions::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 user_id: Set(user_id.to_string()),
                 amount: Set(gpay.amount),
                 direction: Set(direction),
-                date: Set(Utc::now().into()), // Should parse gpay.datetime_str if possible
+                date: Set(date),
                 source: Set(TransactionSource::Ocr),
                 status: Set(TransactionStatus::Completed),
-                purpose_tag: Set(Some(gpay.counterparty_name.clone())),
+                purpose_tag: Set(None),
                 group_id: Set(None),
                 source_wallet_id: Set(None),
                 destination_wallet_id: Set(None),
