@@ -1,8 +1,10 @@
+pub mod categories;
 pub mod contacts;
 pub mod groups;
 pub mod p2p;
 pub mod subscriptions;
 pub mod transactions;
 pub mod uploads;
+pub mod users;
 pub mod wallets;
 pub mod ocr;

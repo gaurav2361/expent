@@ -107,6 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let auth_router = auth.clone().axum_router();
 
     let api_router = Router::new()
+        // Transactions
         .route(
             "/transactions",
             get(routes::transactions::list_transactions_handler),
@@ -127,10 +128,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/transactions/split",
             post(routes::transactions::split_transaction_handler),
         )
+        // P2P
         .route("/p2p/pending", get(routes::p2p::list_pending_p2p_handler))
-        .route("/process-ocr", post(routes::ocr::process_ocr_handler))
         .route("/p2p/create", post(routes::p2p::create_p2p_handler))
         .route("/p2p/accept", post(routes::p2p::accept_p2p_handler))
+        .route("/p2p/reject/{id}", post(routes::p2p::reject_p2p_handler))
+        // Groups
         .route("/groups", get(routes::groups::list_groups_handler))
         .route("/groups/create", post(routes::groups::create_group_handler))
         .route("/groups/invite", post(routes::groups::invite_to_group_handler))
@@ -138,6 +141,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/groups/{id}/transactions",
             get(routes::groups::list_group_transactions_handler),
         )
+        // Contacts
         .route("/contacts", get(routes::contacts::list_contacts_handler))
         .route("/contacts", post(routes::contacts::create_contact_handler))
         .route("/contacts/{id}", put(routes::contacts::update_contact_handler))
@@ -153,18 +157,53 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/contacts/{id}/identifiers",
             post(routes::contacts::add_contact_identifier_handler),
         )
+        // Wallets
         .route("/wallets", get(routes::wallets::list_wallets_handler))
         .route("/wallets", post(routes::wallets::create_wallet_handler))
         .route("/wallets/{id}", put(routes::wallets::update_wallet_handler))
+        // Users / Profile
+        .route("/users/profile", put(routes::users::update_profile_handler))
+        .route("/users/upi", get(routes::users::list_user_upi_handler))
+        .route("/users/upi", post(routes::users::add_user_upi_handler))
+        .route(
+            "/users/upi/{id}/make-primary",
+            put(routes::users::make_primary_upi_handler),
+        )
+        // Categories
+        .route("/categories", get(routes::categories::list_categories_handler))
+        .route("/categories", post(routes::categories::create_category_handler))
+        .route(
+            "/categories/{id}",
+            delete(routes::categories::delete_category_handler),
+        )
+        // Subscriptions
+        .route(
+            "/subscriptions",
+            get(routes::subscriptions::list_confirmed_subscriptions_handler),
+        )
+        .route(
+            "/subscriptions",
+            post(routes::subscriptions::confirm_subscription_handler),
+        )
+        .route(
+            "/subscriptions/{id}",
+            delete(routes::subscriptions::stop_tracking_subscription_handler),
+        )
+        .route(
+            "/subscriptions/{id}/alerts",
+            post(routes::subscriptions::configure_subscription_alert_handler),
+        )
         .route(
             "/subscriptions/detect",
             get(routes::subscriptions::detect_subscriptions_handler),
         )
+        // OCR & Uploads
         .route(
             "/upload/presigned",
             post(routes::uploads::get_presigned_url_handler),
         )
         .route("/upload", post(routes::uploads::direct_upload_handler))
+        .route("/process-ocr", post(routes::ocr::process_ocr_handler))
         .route(
             "/process-image-ocr",
             post(routes::ocr::process_image_ocr_handler),

@@ -5,6 +5,7 @@ pub mod prelude;
 
 pub mod accounts;
 pub mod bank_statement_rows;
+pub mod categories;
 pub mod contact_identifiers;
 pub mod contact_links;
 pub mod contacts;

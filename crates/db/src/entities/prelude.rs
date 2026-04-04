@@ -2,6 +2,7 @@
 
 pub use super::accounts::Entity as Accounts;
 pub use super::bank_statement_rows::Entity as BankStatementRows;
+pub use super::categories::Entity as Categories;
 pub use super::contact_identifiers::Entity as ContactIdentifiers;
 pub use super::contact_links::Entity as ContactLinks;
 pub use super::contacts::Entity as Contacts;
