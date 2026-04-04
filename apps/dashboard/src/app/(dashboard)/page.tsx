@@ -1,24 +1,10 @@
 "use client";
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@expent/ui/components/breadcrumb";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
-import { Separator } from "@expent/ui/components/separator";
-import { SidebarTrigger } from "@expent/ui/components/sidebar";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
-
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import {
   ReceiptTextIcon,
   Share2Icon,
@@ -27,13 +13,14 @@ import {
   Trash2Icon,
   PlusIcon,
   CheckIcon,
-  PencilIcon,
   Wand2Icon,
 } from "lucide-react";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { ManualTransactionDialog } from "@/components/transactions/manual-transaction-dialog";
-import { useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/data-table-types";
@@ -50,8 +37,10 @@ import {
   DropdownMenuTrigger,
 } from "@expent/ui/components/dropdown-menu";
 
-// Replace Vite's import.meta.env with Next.js process.env
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+import { useTransactions } from "@/hooks/use-transactions";
+import { useP2P } from "@/hooks/use-p2p";
+import type { P2PRequest } from "@/hooks/use-p2p";
+import { apiClient } from "@/lib/api-client";
 
 interface OcrItem {
   id: string;
@@ -74,20 +63,12 @@ interface OcrResult {
   data?: any;
 }
 
-interface P2PRequest {
-  id: string;
-  status: string;
-  sender_user_id: string;
-  transaction_data: {
-    group_name?: string;
-    amount?: string;
-  };
-}
-
 export default function DashboardPage() {
   const router = useRouter();
-  const session = useSession();
   const queryClient = useQueryClient();
+
+  const { transactions, isLoading: isTxnsLoading, updateMutation, deleteMutation } = useTransactions();
+  const { p2pRequests, acceptMutation } = useP2P();
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -96,92 +77,6 @@ export default function DashboardPage() {
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
-
-  const { data: transactions, isLoading: isTxnsLoading } = useQuery({
-    queryKey: ["transactions"],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/transactions`, {
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch transactions");
-      return response.json();
-    },
-    enabled: !!session.data,
-  });
-
-  const { data: p2pRequests } = useQuery({
-    queryKey: ["p2p-pending"],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/p2p/pending`, {
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch P2P requests");
-      return response.json();
-    },
-    enabled: !!session.data,
-  });
-
-  const acceptMutation = useMutation({
-    mutationFn: async (requestId: string) => {
-      const response = await fetch(`${API_BASE_URL}/api/p2p/accept`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ request_id: requestId }),
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to accept request");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });
-      toast.success("Request accepted!");
-    },
-    onError: (error) => {
-      console.error(error);
-      toast.error("Failed to accept request.");
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<TransactionType> }) => {
-      const response = await fetch(`${API_BASE_URL}/api/transactions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: data.amount,
-          date: data.date,
-          purpose_tag: data.category || data.source,
-          status: data.status,
-        }),
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to update transaction");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Transaction updated");
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`${API_BASE_URL}/api/transactions/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to delete transaction");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Transaction deleted");
-    },
-    onError: (error) => toast.error(error.message),
-  });
 
   const totalBalance = useMemo(() => {
     if (!transactions) return 0;
@@ -284,6 +179,8 @@ export default function DashboardPage() {
       const formData = new FormData();
       formData.append("file", file);
 
+      // We use raw fetch here for FormData as apiClient is optimized for JSON
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
       const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
         method: "POST",
         body: formData,
@@ -291,8 +188,8 @@ export default function DashboardPage() {
       });
 
       if (!uploadRes.ok) {
-        const errorData = await uploadRes.text().catch(() => "Upload failed");
-        throw new Error(errorData || "Upload failed");
+        const errorBody = await uploadRes.text().catch(() => "Upload failed");
+        throw new Error(errorBody || "Upload failed");
       }
       const { key } = await uploadRes.json();
 
@@ -302,28 +199,16 @@ export default function DashboardPage() {
         )
       );
 
-      const processRes = await fetch(`${API_BASE_URL}/api/process-image-ocr`, {
+      const result = await apiClient<any>("/api/process-image-ocr", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key }),
-        credentials: "include",
       });
-
-      if (!processRes.ok) {
-        if (processRes.status === 429) {
-          throw new Error("Gemini API quota exceeded. Please try again in a few minutes.");
-        }
-        const errorData = await processRes.text().catch(() => "Processing failed");
-        throw new Error(errorData || "Processing failed");
-      }
 
       setUploadSteps((prev) =>
         prev.map((s) =>
           s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s
         )
       );
-
-      const result = await processRes.json();
 
       setUploadSteps((prev) => prev.map((s) => (s.id === "3" ? { ...s, status: "completed" } : s)));
 
@@ -503,13 +388,17 @@ export default function DashboardPage() {
                   description={
                     req.status === "GROUP_INVITE"
                       ? `Join "${req.transaction_data.group_name}"`
-                      : `From ${req.sender_user_id.substring(0, 8)}...`
+                      : `${req.sender_name || req.sender_user_id.substring(0, 8)} shared an expense with you.`
                   }
                   icon={req.status === "GROUP_INVITE" ? "users" : "receipt"}
                   metadata={[
                     {
                       key: "Amount",
                       value: `₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}`,
+                    },
+                    {
+                      key: "From",
+                      value: req.sender_name || req.sender_user_id.substring(0, 8),
                     },
                   ]}
                   confirmLabel={req.status === "GROUP_INVITE" ? "Join Group" : "Accept & Merge"}

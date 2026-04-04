@@ -19,27 +19,21 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@expen
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, UserPlusIcon, UsersIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+import { apiClient } from "@/lib/api-client";
 
 function InviteDialog({ groupId, groupName }: { groupId: string; groupName: string }) {
   const [email, setEmail] = useState("");
   const [open, setOpen] = useState(false);
 
   const inviteMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/groups/invite`, {
+    mutationFn: () =>
+      apiClient("/api/groups/invite", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ group_id: groupId, receiver_email: email }),
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to send invite");
-      return response.json();
-    },
+      }),
     onSuccess: () => {
       setOpen(false);
       setEmail("");
@@ -85,13 +79,7 @@ function InviteDialog({ groupId, groupName }: { groupId: string; groupName: stri
 function GroupDetails({ group }: { group: any }) {
   const { data: transactions, isLoading } = useQuery({
     queryKey: ["group-transactions", group.id],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/groups/${group.id}/transactions`, {
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch group transactions");
-      return response.json();
-    },
+    queryFn: () => apiClient<any[]>(`/api/groups/${group.id}/transactions`),
   });
 
   return (
@@ -198,28 +186,16 @@ export default function SharedLedgersComponent() {
 
   const { data: groups, isLoading } = useQuery({
     queryKey: ["groups"],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/groups`, {
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch groups");
-      return response.json();
-    },
+    queryFn: () => apiClient<any[]>("/api/groups"),
     enabled: !!session.data,
   });
 
   const createMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/groups/create`, {
+    mutationFn: () =>
+      apiClient("/api/groups/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newGroupName, description: newGroupDesc }),
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to create group");
-      return response.json();
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       setIsDialogOpen(false);

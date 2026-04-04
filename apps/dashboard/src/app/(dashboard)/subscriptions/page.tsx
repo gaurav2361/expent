@@ -19,7 +19,7 @@ import { CalendarIcon, CreditCardIcon, SparklesIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useSession } from "@/lib/auth-client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+import { apiClient } from "@/lib/api-client";
 
 export default function SubscriptionsComponent() {
   const router = useRouter();
@@ -31,14 +31,7 @@ export default function SubscriptionsComponent() {
     refetch,
   } = useQuery({
     queryKey: ["subscriptions-detect"],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/subscriptions/detect`, {
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to detect subscriptions");
-      return response.json();
-    },
+    queryFn: () => apiClient<any[]>("/api/subscriptions/detect"),
     enabled: !!session.data,
   });
 

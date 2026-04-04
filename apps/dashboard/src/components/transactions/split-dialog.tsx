@@ -14,14 +14,14 @@ import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@expent/ui/components/goey-toaster";
 
+import { apiClient } from "@/lib/api-client";
+
 interface SplitDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   transactionId: string;
   totalAmount: string;
 }
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 export function SplitDialog({ open, onOpenChange, transactionId, totalAmount }: SplitDialogProps) {
   const queryClient = useQueryClient();
@@ -30,10 +30,9 @@ export function SplitDialog({ open, onOpenChange, transactionId, totalAmount }: 
   ]);
 
   const splitMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/transactions/split`, {
+    mutationFn: () =>
+      apiClient("/api/transactions/split", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transaction_id: transactionId,
           splits: splits.map((s) => ({
@@ -41,11 +40,7 @@ export function SplitDialog({ open, onOpenChange, transactionId, totalAmount }: 
             amount: s.amount,
           })),
         }),
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to split transaction");
-      return response.json();
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });
       onOpenChange(false);
