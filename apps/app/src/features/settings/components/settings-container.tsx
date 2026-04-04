@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { Text, View } from '@/components/ui';
+import * as React from "react";
+import { Text, View } from "@/components/ui";
 
 type Props = {
   children: React.ReactNode;

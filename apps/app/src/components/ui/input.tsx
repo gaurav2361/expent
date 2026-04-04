@@ -1,35 +1,35 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import type { TextInputProps } from 'react-native';
-import * as React from 'react';
-import { TextInput as NTextInput, StyleSheet, View } from 'react-native';
-import { tv } from 'tailwind-variants';
+import type { TextInputProps } from "react-native";
+import * as React from "react";
+import { TextInput as NTextInput, StyleSheet, View } from "react-native";
+import { tv } from "tailwind-variants";
 
-import colors from './colors';
-import { Text } from './text';
+import colors from "./colors";
+import { Text } from "./text";
 
 const inputTv = tv({
   slots: {
-    container: 'mb-2',
-    label: 'text-grey-100 mb-1 text-lg dark:text-neutral-100',
+    container: "mb-2",
+    label: "text-grey-100 mb-1 text-lg dark:text-neutral-100",
     input:
-      'font-inter mt-0 rounded-xl border-[0.5px] border-neutral-300 bg-neutral-100 px-4 py-3 text-base/5 font-medium dark:border-neutral-700 dark:bg-neutral-800 dark:text-white',
+      "font-inter mt-0 rounded-xl border-[0.5px] border-neutral-300 bg-neutral-100 px-4 py-3 text-base/5 font-medium dark:border-neutral-700 dark:bg-neutral-800 dark:text-white",
   },
 
   variants: {
     focused: {
       true: {
-        input: 'border-neutral-400 dark:border-neutral-300',
+        input: "border-neutral-400 dark:border-neutral-300",
       },
     },
     error: {
       true: {
-        input: 'border-danger-600',
-        label: 'text-danger-600 dark:text-danger-600',
+        input: "border-danger-600",
+        label: "text-danger-600 dark:text-danger-600",
       },
     },
     disabled: {
       true: {
-        input: 'bg-neutral-200',
+        input: "bg-neutral-200",
       },
     },
   },
@@ -55,7 +55,7 @@ export function Input({ ref, ...props }: NInputProps & { ref?: React.Ref<NTextIn
       setIsFocussed(false);
       onBlurProp?.(e);
     },
-    [onBlurProp],
+    [onBlurProp]
   );
 
   const onFocus = React.useCallback(
@@ -63,7 +63,7 @@ export function Input({ ref, ...props }: NInputProps & { ref?: React.Ref<NTextIn
       setIsFocussed(true);
       onFocusProp?.(e);
     },
-    [onFocusProp],
+    [onFocusProp]
   );
 
   const styles = inputTv({
@@ -75,10 +75,7 @@ export function Input({ ref, ...props }: NInputProps & { ref?: React.Ref<NTextIn
   return (
     <View className={styles.container()}>
       {label && (
-        <Text
-          testID={testID ? `${testID}-label` : undefined}
-          className={styles.label()}
-        >
+        <Text testID={testID ? `${testID}-label` : undefined} className={styles.label()}>
           {label}
         </Text>
       )}
@@ -90,15 +87,10 @@ export function Input({ ref, ...props }: NInputProps & { ref?: React.Ref<NTextIn
         onBlur={onBlur}
         onFocus={onFocus}
         {...inputProps}
-        style={StyleSheet.flatten([
-          inputProps.style,
-        ])}
+        style={StyleSheet.flatten([inputProps.style])}
       />
       {error && (
-        <Text
-          testID={testID ? `${testID}-error` : undefined}
-          className="text-sm text-danger-400 dark:text-danger-600"
-        >
+        <Text testID={testID ? `${testID}-error` : undefined} className="text-sm text-danger-400 dark:text-danger-600">
           {error}
         </Text>
       )}

@@ -1,6 +1,6 @@
-import { getItem, removeItem, setItem } from '@/lib/storage';
+import { getItem, removeItem, setItem } from "@/lib/storage";
 
-const TOKEN = 'token';
+const TOKEN = "token";
 
 export type TokenType = {
   access: string;

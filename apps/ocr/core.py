@@ -34,10 +34,7 @@ class OCREngine:
         try:
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=[
-                    classification_prompt,
-                    types.Part.from_bytes(data=data, mime_type=media_type)
-                ]
+                contents=[classification_prompt, types.Part.from_bytes(data=data, mime_type=media_type)],
             )
             result = response.text.strip().upper()
             if "GPAY" in result:
@@ -99,7 +96,7 @@ class OCREngine:
                 ),
             )
             result_data = self._parse_json(response.text)
-            
+
             # Ensure raw_text is populated for Generic results if Gemini skipped it
             if doc_type == "GENERIC" and not result_data.get("raw_text") and extracted_text:
                 result_data["raw_text"] = extracted_text

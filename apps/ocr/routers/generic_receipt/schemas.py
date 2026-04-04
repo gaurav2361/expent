@@ -15,7 +15,7 @@ class OCRResponse(BaseModel):
     date: Optional[str] = Field(None, description="The date of the transaction in ISO or readable format")
     upi_id: Optional[str] = Field(None, description="The UPI ID if present")
     items: List[LineItem] = Field(default_factory=list)
-    
+
     # Extra metadata for classification
     document_type: str = Field(description="payment_receipt | invoice | bank_statement | other")
     confidence: str = Field(description="high | medium | low")

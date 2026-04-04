@@ -1,8 +1,8 @@
-import type { SvgProps } from 'react-native-svg';
-import * as React from 'react';
-import Svg, { ClipPath, Defs, G, Path } from 'react-native-svg';
+import type { SvgProps } from "react-native-svg";
+import * as React from "react";
+import Svg, { ClipPath, Defs, G, Path } from "react-native-svg";
 
-import colors from '../colors';
+import colors from "../colors";
 
 export function Rate({ color = colors.neutral[500], ...props }: SvgProps) {
   return (
