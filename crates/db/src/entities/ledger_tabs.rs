@@ -20,6 +20,7 @@ pub struct Model {
     pub counterparty_id: Option<String>,
     pub tab_type: String,
     pub title: String,
+    pub description: Option<String>,
     #[ts(type = "string")]
     pub target_amount: Decimal,
     pub status: String,

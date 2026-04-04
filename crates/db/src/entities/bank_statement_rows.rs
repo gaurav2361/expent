@@ -24,6 +24,8 @@ pub struct Model {
     pub credit: Option<Decimal>,
     #[ts(type = "string")]
     pub balance: Decimal,
+    pub user_id: String,
+    pub is_matched: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

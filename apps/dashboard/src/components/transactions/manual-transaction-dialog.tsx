@@ -93,7 +93,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
               className="text-lg font-mono"
             />
           </div>
-          
+
           <div className="grid gap-2">
             <Label htmlFor="description">Description / Note</Label>
             <Input

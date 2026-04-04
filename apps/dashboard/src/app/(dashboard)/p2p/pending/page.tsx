@@ -4,9 +4,25 @@ import { useP2P } from "@/hooks/use-p2p";
 import type { P2PRequest } from "@/hooks/use-p2p";
 import { ApprovalCard } from "@/components/tool-ui/approval-card";
 import { Skeleton } from "@expent/ui/components/skeleton";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
+import { toast } from "@expent/ui/components/goey-toaster";
 
 export default function PendingPage() {
   const { p2pRequests, isLoading, acceptMutation } = useP2P();
+  const queryClient = useQueryClient();
+
+  const rejectMutation = useMutation({
+    mutationFn: (requestId: string) =>
+      apiClient(`/api/p2p/reject/${requestId}`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });
+      toast.success("Request rejected");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   if (isLoading) {
     return (
@@ -49,6 +65,11 @@ export default function PendingPage() {
               ]}
               confirmLabel={req.status === "GROUP_INVITE" ? "Join Group" : "Accept Split"}
               onConfirm={() => acceptMutation.mutate(req.id)}
+              onCancel={() => {
+                if (confirm("Are you sure you want to reject this request?")) {
+                  rejectMutation.mutate(req.id);
+                }
+              }}
             />
           ))}
         </div>

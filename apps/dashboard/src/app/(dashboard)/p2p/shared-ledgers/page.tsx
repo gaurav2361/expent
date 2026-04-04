@@ -18,7 +18,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@expent/ui/components/tooltip";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  InfoIcon,
+  PlusIcon,
+  ReceiptIcon,
+  UserPlusIcon,
+  UsersIcon,
+  Trash2Icon,
+  ShieldAlertIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
@@ -71,6 +80,120 @@ function InviteDialog({ groupId, groupName }: { groupId: string; groupName: stri
             {inviteMutation.isPending ? "Sending..." : "Send Invite"}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MembersDialog({ groupId, groupName }: { groupId: string; groupName: string }) {
+  const queryClient = useQueryClient();
+  const session = useSession();
+  const { data: members, isLoading } = useQuery({
+    queryKey: ["group-members", groupId],
+    queryFn: () => apiClient<any[]>(`/api/groups/${groupId}/members`),
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: (userId: string) =>
+      apiClient(`/api/groups/${groupId}/members/${userId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
+      toast.success("Member removed");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
+      apiClient(`/api/groups/${groupId}/members/${userId}/role`, {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
+      toast.success("Role updated");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const myMembership = members?.find((m) => m.user_id === session.data?.user?.id);
+  const isAdmin = myMembership?.role === "ADMIN";
+
+  return (
+    <Dialog>
+      <DialogTrigger render={<Button variant="outline" size="sm" className="shadow-none" />}>
+        <UsersIcon className="mr-2 h-4 w-4" /> Members
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle>Members of {groupName}</DialogTitle>
+          <DialogDescription>Manage people who can view and share transactions.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground animate-pulse">Loading members...</p>
+          ) : (
+            members?.map((m) => (
+              <div
+                key={m.user_id}
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                    {m.name?.charAt(0) || "U"}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">{m.name || "Unknown User"}</p>
+                      {m.user_id === session.data?.user?.id && (
+                        <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-muted/50">
+                          You
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">{m.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isAdmin && m.user_id !== session.data?.user?.id ? (
+                    <div className="flex items-center gap-1">
+                      <Select
+                        value={m.role}
+                        onValueChange={(newRole) => updateRoleMutation.mutate({ userId: m.user_id, role: newRole })}
+                      >
+                        <SelectTrigger className="h-7 text-[10px] w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ADMIN">Admin</SelectItem>
+                          <SelectItem value="MEMBER">Member</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-destructive h-7 w-7"
+                        onClick={() => {
+                          if (confirm(`Remove ${m.name || m.email} from group?`)) {
+                            removeMemberMutation.mutate(m.user_id);
+                          }
+                        }}
+                      >
+                        <Trash2Icon className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px] uppercase">
+                      {m.role}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -311,9 +434,7 @@ export default function SharedLedgersComponent() {
                       {selectedGroup.description || "Shared ledger details and activity."}
                     </CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" className="shadow-none">
-                    <UsersIcon className="mr-2 h-4 w-4" /> Members
-                  </Button>
+                  <MembersDialog groupId={selectedGroup.id} groupName={selectedGroup.name} />
                 </div>
               </CardHeader>
               <CardContent className="p-6">

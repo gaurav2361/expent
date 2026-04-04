@@ -20,6 +20,7 @@ pub struct Model {
     pub transaction_id: String,
     #[ts(type = "string")]
     pub confidence: Decimal,
+    pub matched_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

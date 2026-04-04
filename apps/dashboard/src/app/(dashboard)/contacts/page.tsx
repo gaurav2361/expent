@@ -72,9 +72,7 @@ export default function ContactsPage() {
 
   const filteredContacts = React.useMemo(() => {
     if (!contacts) return [];
-    return contacts.filter((c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    return contacts.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [contacts, searchQuery]);
 
   const pinnedContacts = filteredContacts.filter((c) => c.is_pinned);
@@ -108,12 +106,7 @@ export default function ContactsPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="phone">Phone Number (Optional)</Label>
-                <Input
-                  id="phone"
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                  placeholder="+91..."
-                />
+                <Input id="phone" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+91..." />
               </div>
             </div>
             <DialogFooter>
@@ -152,7 +145,9 @@ export default function ContactsPage() {
             </div>
             <h3 className="text-lg font-medium">No contacts found</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-              {searchQuery ? `No results for "${searchQuery}"` : "Start by adding your first contact to track splits and payments."}
+              {searchQuery
+                ? `No results for "${searchQuery}"`
+                : "Start by adding your first contact to track splits and payments."}
             </p>
           </CardContent>
         </Card>
@@ -165,9 +160,9 @@ export default function ContactsPage() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pinnedContacts.map((contact) => (
-                  <ContactCard 
-                    key={contact.id} 
-                    contact={contact} 
+                  <ContactCard
+                    key={contact.id}
+                    contact={contact}
                     onPin={() => pinMutation.mutate({ id: contact.id, is_pinned: false })}
                     onClick={() => router.push(`/contacts/${contact.id}`)}
                   />
@@ -182,9 +177,9 @@ export default function ContactsPage() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {otherContacts.map((contact) => (
-                <ContactCard 
-                  key={contact.id} 
-                  contact={contact} 
+                <ContactCard
+                  key={contact.id}
+                  contact={contact}
                   onPin={() => pinMutation.mutate({ id: contact.id, is_pinned: true })}
                   onClick={() => router.push(`/contacts/${contact.id}`)}
                 />
@@ -199,7 +194,7 @@ export default function ContactsPage() {
 
 function ContactCard({ contact, onPin, onClick }: { contact: any; onPin: () => void; onClick: () => void }) {
   return (
-    <Card 
+    <Card
       className="group hover:border-primary/50 transition-all cursor-pointer relative overflow-hidden"
       onClick={onClick}
     >

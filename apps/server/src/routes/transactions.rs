@@ -1,4 +1,4 @@
-use axum::extract::{Json, Path, State, Query};
+use axum::extract::{Json, Path, Query, State};
 use axum::http::StatusCode;
 use db::{SmartMerge, SplitDetail};
 use serde::Deserialize;
@@ -15,6 +15,7 @@ pub struct CreateManualTransactionRequest {
     pub source_wallet_id: Option<String>,
     pub destination_wallet_id: Option<String>,
     pub contact_id: Option<String>,
+    pub notes: Option<String>,
 }
 
 pub async fn create_manual_transaction_handler(
@@ -33,6 +34,7 @@ pub async fn create_manual_transaction_handler(
         payload.source_wallet_id,
         payload.destination_wallet_id,
         payload.contact_id,
+        payload.notes,
     )
     .await?;
 
@@ -49,14 +51,10 @@ pub async fn list_transactions_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Query(params): Query<PaginationParams>,
-) -> Result<Json<Vec<db::entities::transactions::Model>>, ApiError> {
-    let result = SmartMerge::list_transactions(
-        &state.db,
-        &session.user.id,
-        params.limit,
-        params.offset,
-    )
-    .await?;
+) -> Result<Json<Vec<db::TransactionWithDetail>>, ApiError> {
+    let result =
+        SmartMerge::list_transactions(&state.db, &session.user.id, params.limit, params.offset)
+            .await?;
     Ok(Json(result))
 }
 
@@ -75,6 +73,7 @@ pub struct UpdateTransactionRequest {
     pub date: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub purpose_tag: Option<String>,
     pub status: Option<db::entities::enums::TransactionStatus>,
+    pub notes: Option<String>,
 }
 
 pub async fn update_transaction_handler(
@@ -91,6 +90,7 @@ pub async fn update_transaction_handler(
         payload.date,
         payload.purpose_tag,
         payload.status,
+        payload.notes,
     )
     .await?;
 

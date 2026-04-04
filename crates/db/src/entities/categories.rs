@@ -14,7 +14,9 @@ impl EntityName for Entity {
 
 use ts_rs::TS;
 
-#[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS)]
+#[derive(
+    Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS,
+)]
 #[ts(
     export,
     rename = "Category",

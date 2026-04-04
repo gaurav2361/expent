@@ -7,6 +7,9 @@ pub mod m20260331_185523_add_associated_contact_id;
 pub mod m20260401_000001_add_indexes;
 pub mod m20260403_000001_financial_refactor;
 pub mod m20260404_000001_create_categories_table;
+pub mod m20260404_000002_add_notes_to_transactions;
+pub mod m20260404_000003_add_description_to_ledger_tabs;
+pub mod m20260404_000004_fix_reconciliation_schema;
 
 pub struct Migrator;
 
@@ -21,6 +24,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20260401_000001_add_indexes::Migration),
             Box::new(m20260403_000001_financial_refactor::Migration),
             Box::new(m20260404_000001_create_categories_table::Migration),
+            Box::new(m20260404_000002_add_notes_to_transactions::Migration),
+            Box::new(m20260404_000003_add_description_to_ledger_tabs::Migration),
+            Box::new(m20260404_000004_fix_reconciliation_schema::Migration),
         ]
     }
 }
