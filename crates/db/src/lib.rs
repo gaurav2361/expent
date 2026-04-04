@@ -450,13 +450,22 @@ impl SmartMerge {
     pub async fn list_transactions(
         db: &DatabaseConnection,
         user_id: &str,
+        limit: Option<u64>,
+        offset: Option<u64>,
     ) -> Result<Vec<entities::transactions::Model>, DbErr> {
-        entities::transactions::Entity::find()
+        let mut query = entities::transactions::Entity::find()
             .filter(entities::transactions::Column::UserId.eq(user_id))
             .filter(entities::transactions::Column::DeletedAt.is_null())
-            .order_by_desc(entities::transactions::Column::Date)
-            .all(db)
-            .await
+            .order_by_desc(entities::transactions::Column::Date);
+
+        if let Some(l) = limit {
+            query = query.limit(l);
+        }
+        if let Some(o) = offset {
+            query = query.offset(o);
+        }
+
+        query.all(db).await
     }
 
     pub async fn list_pending_p2p_requests(

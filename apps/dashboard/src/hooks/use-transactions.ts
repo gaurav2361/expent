@@ -4,13 +4,19 @@ import { useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 import type { Transaction as TransactionType } from "@/components/transactions/transaction-viewer";
 
-export function useTransactions() {
+export function useTransactions(params: { limit?: number; offset?: number } = {}) {
   const session = useSession();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["transactions"],
-    queryFn: () => apiClient<TransactionType[]>("/api/transactions"),
+    queryKey: ["transactions", params],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      if (params.limit) searchParams.append("limit", params.limit.toString());
+      if (params.offset) searchParams.append("offset", params.offset.toString());
+      const queryString = searchParams.toString();
+      return apiClient<TransactionType[]>(`/api/transactions${queryString ? `?${queryString}` : ""}`);
+    },
     enabled: !!session.data,
   });
 
