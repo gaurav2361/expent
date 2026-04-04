@@ -123,11 +123,12 @@ function MembersDialog({ groupId, groupName }: { groupId: string; groupName: str
                 <div className="flex items-center gap-2">
                   {isAdmin && m.user_id !== session.data?.user?.id ? (
                     <div className="flex items-center gap-1">
-                      <Select 
-                        value={m.role} 
-                        onValueChange={(newRole) => updateRoleMutation.mutate({ userId: m.user_id, role: newRole || "MEMBER" })}
+                      <Select
+                        value={m.role}
+                        onValueChange={(newRole) =>
+                          updateRoleMutation.mutate({ userId: m.user_id, role: newRole || "MEMBER" })
+                        }
                       >
-
                         <SelectTrigger className="h-7 text-[10px] w-24">
                           <SelectValue />
                         </SelectTrigger>

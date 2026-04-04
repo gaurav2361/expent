@@ -1,10 +1,10 @@
+use crate::middleware::error::ApiError;
 use axum::{
-    extract::{rejection::JsonRejection, FromRequest, Request},
     Json,
+    extract::{FromRequest, Request, rejection::JsonRejection},
 };
 use serde::de::DeserializeOwned;
 use validator::Validate;
-use crate::middleware::error::ApiError;
 
 pub struct ValidatedJson<T>(pub T);
 
@@ -24,7 +24,9 @@ where
                 _ => ApiError::BadRequest("Invalid JSON".to_string()),
             })?;
 
-        value.validate().map_err(|err| ApiError::BadRequest(err.to_string()))?;
+        value
+            .validate()
+            .map_err(|err| ApiError::BadRequest(err.to_string()))?;
 
         Ok(ValidatedJson(value))
     }

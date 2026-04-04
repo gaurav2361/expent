@@ -586,7 +586,6 @@ function DataTableAccordionCard({ row, index, rowKey, isFirst = false }: DataTab
 
   return (
     <Accordion className={cn(!isFirst && "border-t")} role="listitem" aria-label={rowLabel}>
-
       <AccordionItem value={accordionItemId} className="group border-0">
         <AccordionTrigger
           className="group-data-[state=closed]:hover:bg-accent/50 active:bg-accent/50 group-data-[state=open]:bg-muted w-full rounded-none px-4 py-3 hover:no-underline"

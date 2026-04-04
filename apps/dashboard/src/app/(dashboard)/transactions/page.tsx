@@ -460,7 +460,11 @@ export default function TransactionsPage() {
 
         {/* Table Area */}
         <div className="flex flex-col flex-1 shadow-sm border rounded-xl bg-card overflow-hidden">
-          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val || "all")} className="w-full flex-col justify-start">
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val || "all")}
+            className="w-full flex-col justify-start"
+          >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b bg-muted/40 gap-4">
               <TabsList className="h-9 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground">
                 <TabsTrigger value="all" className="rounded-md px-4">
