@@ -1,4 +1,5 @@
 use sea_orm_migration::prelude::*;
+use sea_orm_migration::sea_orm::DbBackend;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -11,16 +12,23 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Transactions::Table)
                     .add_column(ColumnDef::new(Transactions::CategoryId).string().null())
-                    .add_foreign_key(
-                        ForeignKey::create()
-                            .name("fk-transactions-category_id")
-                            .from(Transactions::Table, Transactions::CategoryId)
-                            .to(Categories::Table, Categories::Id)
-                            .on_delete(ForeignKeyAction::SetNull),
-                    )
                     .to_owned(),
             )
             .await?;
+
+        // Sqlite does not support adding foreign keys via ALTER TABLE
+        if manager.get_database_backend() != DbBackend::Sqlite {
+            manager
+                .create_foreign_key(
+                    ForeignKey::create()
+                        .name("fk-transactions-category_id")
+                        .from(Transactions::Table, Transactions::CategoryId)
+                        .to(Categories::Table, Categories::Id)
+                        .on_delete(ForeignKeyAction::SetNull)
+                        .to_owned(),
+                )
+                .await?;
+        }
 
         // Add index on category_id
         manager

@@ -3,4 +3,4 @@ import type { TransactionDirection } from "./TransactionDirection";
 import type { TransactionSource } from "./TransactionSource";
 import type { TransactionStatus } from "./TransactionStatus";
 
-export type Transaction = { id: string, user_id: string, amount: string, direction: TransactionDirection, date: string, source: TransactionSource, status: TransactionStatus, purpose_tag: string | null, group_id: string | null, source_wallet_id: string | null, destination_wallet_id: string | null, ledger_tab_id: string | null, deleted_at: string | null, notes: string | null, };
+export type Transaction = { id: string, user_id: string, amount: string, direction: TransactionDirection, date: string, source: TransactionSource, status: TransactionStatus, purpose_tag: string | null, group_id: string | null, source_wallet_id: string | null, destination_wallet_id: string | null, ledger_tab_id: string | null, category_id: string | null, deleted_at: string | null, notes: string | null, };

@@ -5,14 +5,19 @@ pub async fn list_contacts(
     db: &DatabaseConnection,
     user_id: &str,
 ) -> Result<Vec<entities::contacts::Model>, DbErr> {
-    entities::contacts::Entity::find()
+    let result = entities::contacts::Entity::find()
         .join(
             JoinType::InnerJoin,
             entities::contacts::Relation::ContactLinks.def(),
         )
         .filter(entities::contact_links::Column::UserId.eq(user_id))
         .all(db)
-        .await
+        .await;
+
+    if let Err(ref e) = result {
+        eprintln!("Error in list_contacts: {:?}", e);
+    }
+    result
 }
 
 pub async fn create_contact(
