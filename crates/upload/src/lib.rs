@@ -2,6 +2,7 @@ use aws_sdk_s3::Client as S3Client;
 use aws_sdk_s3::presigning::PresigningConfig;
 use bytes::Bytes;
 use image::ImageFormat;
+use image::imageops::FilterType;
 use std::path::Path;
 use std::time::Duration;
 use thiserror::Error;
@@ -27,6 +28,47 @@ pub enum FileCategory {
     Image,
     Csv,
     Unknown,
+}
+
+/// Configuration for image compression before upload.
+#[derive(Debug, Clone)]
+pub struct CompressOptions {
+    /// WebP quality (1-100). Default: 80
+    pub quality: u8,
+    /// Maximum width in pixels. Images wider than this get resized proportionally.
+    pub max_width: Option<u32>,
+    /// Maximum height in pixels. Images taller than this get resized proportionally.
+    pub max_height: Option<u32>,
+}
+
+impl Default for CompressOptions {
+    fn default() -> Self {
+        Self {
+            quality: 80,
+            max_width: None,
+            max_height: None,
+        }
+    }
+}
+
+impl CompressOptions {
+    /// Preset for avatar images: 512×512 max, 80% quality.
+    pub fn avatar() -> Self {
+        Self {
+            quality: 80,
+            max_width: Some(512),
+            max_height: Some(512),
+        }
+    }
+
+    /// Preset for receipt/document images: 2048px max dimension, 85% quality.
+    pub fn receipt() -> Self {
+        Self {
+            quality: 85,
+            max_width: Some(2048),
+            max_height: Some(2048),
+        }
+    }
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -91,11 +133,18 @@ impl UploadClient {
         content_type: Option<String>,
         normalize_images: bool,
     ) -> Result<ProcessedFile, UploadError> {
+        // If normalizing, use WebP compression instead of old PNG conversion
+        let compress_opts = if normalize_images {
+            Some(CompressOptions::default())
+        } else {
+            None
+        };
+
         let processed = UploadProcessor::process(
             data,
             original_name.clone(),
             content_type.clone(),
-            normalize_images,
+            compress_opts,
         )?;
 
         let sanitized_name = original_name
@@ -104,6 +153,60 @@ impl UploadClient {
             .and_then(|n| n.to_str())
             .unwrap_or("unnamed");
         let key = format!("{}/{}-{}", user_id, processed.id, sanitized_name);
+
+        self.s3_client
+            .put_object()
+            .bucket(&self.bucket_name)
+            .key(&key)
+            .content_type(&processed.content_type)
+            .body(processed.data.clone().into())
+            .send()
+            .await
+            .map_err(|e| UploadError::S3Error(format!("{:#?}", e)))?;
+
+        Ok(ProcessedFile {
+            id: processed.id,
+            original_name: processed.original_name,
+            category: processed.category,
+            content_type: processed.content_type,
+            data: processed.data.to_vec(),
+            key,
+        })
+    }
+
+    /// Upload with explicit image compression. All images are compressed to WebP
+    /// before being sent to R2, regardless of input format.
+    pub async fn upload_compressed(
+        &self,
+        user_id: &str,
+        data: Bytes,
+        original_name: Option<String>,
+        content_type: Option<String>,
+        compress_opts: CompressOptions,
+    ) -> Result<ProcessedFile, UploadError> {
+        let processed = UploadProcessor::process(
+            data,
+            original_name.clone(),
+            content_type.clone(),
+            Some(compress_opts),
+        )?;
+
+        let sanitized_name = original_name
+            .as_deref()
+            .and_then(|name| Path::new(name).file_name())
+            .and_then(|n| n.to_str())
+            .unwrap_or("unnamed");
+        // For compressed images, replace extension with .webp
+        let key_name = if processed.category == FileCategory::Image {
+            let base = Path::new(sanitized_name)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("unnamed");
+            format!("{}.webp", base)
+        } else {
+            sanitized_name.to_string()
+        };
+        let key = format!("{}/{}-{}", user_id, processed.id, key_name);
 
         self.s3_client
             .put_object()
@@ -153,7 +256,7 @@ impl UploadProcessor {
         data: Bytes,
         original_name: Option<String>,
         content_type: Option<String>,
-        normalize_images: bool,
+        compress_opts: Option<CompressOptions>,
     ) -> Result<RawProcessedFile, UploadError> {
         let category =
             Self::determine_category(&data, original_name.as_deref(), content_type.as_deref());
@@ -163,20 +266,18 @@ impl UploadProcessor {
         // Perform category-specific processing
         match category {
             FileCategory::Image => {
-                let (final_data, final_content_type) = if normalize_images {
-                    let png_data = Self::convert_to_png(&data)?;
-                    (png_data, "image/png".to_string())
+                let (final_data, final_content_type) = if let Some(opts) = compress_opts {
+                    // Compress to WebP with the given options
+                    let webp_data = Self::compress_to_webp(&data, &opts)?;
+                    (webp_data, "image/webp".to_string())
                 } else {
+                    // No compression — just validate it's a real image
+                    let _img = image::load_from_memory(&data)?;
                     (
                         data,
                         content_type.unwrap_or_else(|| "image/png".to_string()),
                     )
                 };
-
-                // Validate it's a valid image (already validated if converted, but let's be sure)
-                if !normalize_images {
-                    let _img = image::load_from_memory(&final_data)?;
-                }
 
                 Ok(RawProcessedFile {
                     id,
@@ -257,7 +358,27 @@ impl UploadProcessor {
         FileCategory::Unknown
     }
 
-    /// Convert image to a standard format (e.g. PNG)
+    /// Compress an image to WebP format with optional resizing.
+    /// Supports all input formats that the `image` crate handles (PNG, JPEG, GIF, WebP, etc.).
+    pub fn compress_to_webp(data: &[u8], opts: &CompressOptions) -> Result<Bytes, UploadError> {
+        let mut img = image::load_from_memory(data)?;
+
+        // Resize if max dimensions are specified
+        let needs_resize = opts.max_width.is_some_and(|mw| img.width() > mw)
+            || opts.max_height.is_some_and(|mh| img.height() > mh);
+
+        if needs_resize {
+            let max_w = opts.max_width.unwrap_or(img.width());
+            let max_h = opts.max_height.unwrap_or(img.height());
+            img = img.resize(max_w, max_h, FilterType::Lanczos3);
+        }
+
+        let mut buffer = std::io::Cursor::new(Vec::new());
+        img.write_to(&mut buffer, ImageFormat::WebP)?;
+        Ok(Bytes::from(buffer.into_inner()))
+    }
+
+    /// Legacy: Convert image to PNG (kept for backward compatibility).
     pub fn convert_to_png(data: &[u8]) -> Result<Bytes, UploadError> {
         let img = image::load_from_memory(data)?;
         let mut buffer = std::io::Cursor::new(Vec::new());

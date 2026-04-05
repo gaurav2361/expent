@@ -130,6 +130,8 @@ pub struct TransactionWithDetail {
     pub transaction: entities::transactions::Model,
     pub source_wallet_name: Option<String>,
     pub destination_wallet_name: Option<String>,
+    pub contact_name: Option<String>,
+    pub contact_id: Option<String>,
 }
 
 /// Business logic for merging and processing transaction data.
@@ -454,6 +456,12 @@ impl SmartMerge {
         user_id: &str,
     ) -> Result<Vec<entities::categories::Model>, DbErr> {
         services::categories::list_categories(db, user_id).await
+    }
+
+    pub async fn ensure_system_categories(
+        db: &DatabaseConnection,
+    ) -> Result<(), DbErr> {
+        services::categories::ensure_system_categories(db).await
     }
 
     pub async fn create_category(

@@ -1,12 +1,12 @@
 "use client";
 
 import { Button } from "@expent/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@expent/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Share2Icon, MoreVerticalIcon, Trash2Icon, PlusIcon } from "lucide-react";
 import { useMemo, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { SplitDialog } from "@/components/transactions/split-dialog";
@@ -24,14 +24,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@expent/ui/components/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@expent/ui/components/tabs";
+import { ActivityIcon, CreditCardIcon, FileTextIcon, WalletIcon } from "lucide-react";
+import { Overview } from "@/components/dashboard/overview";
+import { Analytics } from "@/components/dashboard/analytics";
+import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart";
+import { CategoryChart } from "@/components/dashboard/category-chart";
 
 import { useTransactions } from "@/hooks/use-transactions";
 import { useP2P } from "@/hooks/use-p2p";
 import { apiClient } from "@/lib/api-client";
 import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
 import type {
-  Transaction as TransactionType,
-  P2PRequest,
   P2PRequestWithSender,
   TransactionWithDetail,
   TypedProcessedOcr,
@@ -39,26 +43,62 @@ import type {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+
+  const activeTab = searchParams.get("tab") || "overview";
+
+  const handleTabChange = useCallback(
+    (value: string | number | null) => {
+      const tab = String(value);
+      const params = new URLSearchParams(searchParams.toString());
+      if (tab === "overview") {
+        params.delete("tab");
+      } else {
+        params.set("tab", tab);
+      }
+      const qs = params.toString();
+      router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   const { transactions, isLoading: isTxnsLoading, updateMutation, deleteMutation } = useTransactions();
   const { p2pRequests, acceptMutation } = useP2P();
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadSteps, setUploadSteps] = useState<any[]>([]);
+  const [uploadSteps, setUploadSteps] = useState<{ id: string; label: string; status: "pending" | "in-progress" | "completed" | "failed" }[]>([]);
   const [processedOcr, setProcessedOcr] = useState<TypedProcessedOcr | null>(null);
   const [isSavingOcr, setIsSavingOcr] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
 
-  const totalBalance = useMemo(() => {
-    if (!transactions) return 0;
-    return transactions.reduce((acc: number, txn: TransactionWithDetail) => {
+  const { totalBalance, monthlySpend } = useMemo(() => {
+    if (!transactions) return { totalBalance: 0, monthlySpend: 0 };
+    
+    let bal = 0;
+    let spend = 0;
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    transactions.forEach((txn: TransactionWithDetail) => {
       const amount = parseFloat(txn.amount);
-      return txn.direction === "IN" ? acc + amount : acc - amount;
-    }, 0);
+      if (txn.direction === "IN") {
+        bal += amount;
+      } else {
+        bal -= amount;
+        
+        const txnDate = new Date(txn.date);
+        if (txnDate.getMonth() === currentMonth && txnDate.getFullYear() === currentYear) {
+          spend += amount;
+        }
+      }
+    });
+    
+    return { totalBalance: bal, monthlySpend: spend };
   }, [transactions]);
 
   const triggerSplit = useCallback((id: string, amount: string) => {
@@ -91,6 +131,10 @@ export default function DashboardPage() {
         {
           key: "source",
           label: "Description",
+        },
+        {
+          key: "contact_name" as keyof TransactionWithDetail,
+          label: "Contact",
         },
         {
           key: "action" as keyof TransactionWithDetail,
@@ -143,8 +187,8 @@ export default function DashboardPage() {
     setIsUploading(true);
     setProcessedOcr(null);
 
-    const steps = [
-      { id: "1", label: "Uploading file…", status: "in-progress" },
+    const steps: { id: string; label: string; status: "pending" | "in-progress" | "completed" | "failed" }[] = [
+      { id: "1", label: "Uploading file…", status: "in-progress" as const },
       { id: "2", label: "Classifying document…", status: "pending" },
       { id: "3", label: "Extracting transaction data…", status: "pending" },
     ];
@@ -200,7 +244,7 @@ export default function DashboardPage() {
   const handleConfirmOcr = async (finalData: TypedProcessedOcr) => {
     setIsSavingOcr(true);
     try {
-      const result = await apiClient<any>("/api/transactions/from-ocr", {
+      const result = await apiClient<{ contact_created: boolean }>("/api/transactions/from-ocr", {
         method: "POST",
         body: JSON.stringify(finalData),
       });
@@ -221,169 +265,205 @@ export default function DashboardPage() {
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-              <CardAction>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => router.push("/p2p/pending")}
-                  aria-label="View pending approvals"
-                >
-                  <MoreVerticalIcon className="h-4 w-4" />
-                </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{p2pRequests?.length || 0}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Quick Upload (Images, PDF, CSV)</CardTitle>
-              <CardAction>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => setManualDialogOpen(true)}
-                  aria-label="Add manual transaction"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <Label htmlFor="quick-upload" className="sr-only">
-                Quick Upload
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="quick-upload"
-                  type="file"
-                  accept="image/*,application/pdf,text/csv"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="h-8 text-xs"
-                  aria-label="Select file to upload"
-                />
-                <Button
-                  onClick={handleUpload}
-                  disabled={!file || isUploading}
-                  size="sm"
-                  aria-label="Upload and process file"
-                >
-                  {isUploading ? "…" : "Go"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          <Card
-            className={
-              totalBalance < 0
-                ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-lg border-rose-100 dark:border-rose-500/20"
-                : totalBalance > 0
-                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-lg border-emerald-100 dark:border-emerald-500/20"
-                  : "bg-muted/50 text-muted-foreground shadow-lg"
-            }
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {totalBalance < 0 ? "-₹" : "₹"}{" "}
-                {Math.abs(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
+            <p className="text-muted-foreground text-sm">Welcome back! Here is your financial summary.</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button onClick={() => setManualDialogOpen(true)}>
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Transaction
+            </Button>
+          </div>
         </div>
 
-        {isUploading && (
-          <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-            <ProgressTracker id="upload-progress" steps={uploadSteps} />
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+          <div className="w-full overflow-x-auto pb-2">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
           </div>
-        )}
 
-        {/* OCR Review Form Section */}
-        {processedOcr && (
-          <div className="animate-in zoom-in-95 duration-300">
-            <ReviewTransactionForm
-              processedOcr={processedOcr}
-              onConfirm={handleConfirmOcr}
-              onCancel={() => setProcessedOcr(null)}
-              isSubmitting={isSavingOcr}
-            />
-          </div>
-        )}
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+                  <WalletIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {totalBalance < 0 ? "-₹" : "₹"}
+                    {Math.abs(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Based on global transactions</p>
+                </CardContent>
+              </Card>
 
-        {/* Pending P2P Requests Section */}
-        {p2pRequests && p2pRequests.length > 0 && !processedOcr && (
-          <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-            <h2 className="text-base font-semibold flex items-center gap-2 px-1">
-              <Share2Icon className="h-4 w-4 text-primary" /> Pending Approvals
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {(p2pRequests as P2PRequestWithSender[]).map((req) => (
-                <ApprovalCard
-                  key={req.id}
-                  id={req.id}
-                  className="max-w-none"
-                  title={req.status === "GROUP_INVITE" ? "Group Invitation" : "Transaction Split"}
-                  description={
-                    req.status === "GROUP_INVITE"
-                      ? `Join "${req.transaction_data.group_name}"`
-                      : `${req.sender_name || req.sender_user_id.substring(0, 8)} shared an expense with you.`
-                  }
-                  icon={req.status === "GROUP_INVITE" ? "users" : "receipt"}
-                  metadata={[
-                    {
-                      key: "Amount",
-                      value: `₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}`,
-                    },
-                    {
-                      key: "From",
-                      value: req.sender_name || req.sender_user_id.substring(0, 8),
-                    },
-                  ]}
-                  confirmLabel={req.status === "GROUP_INVITE" ? "Join Group" : "Accept & Merge"}
-                  onConfirm={() => acceptMutation.mutate(req.id)}
-                />
-              ))}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Monthly Spend</CardTitle>
+                  <CreditCardIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">₹{monthlySpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Total expenses this month</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+                  <ActivityIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{p2pRequests?.length || 0}</div>
+                  <Button variant="link" size="sm" className="px-0 h-auto text-xs" onClick={() => router.push("/p2p/pending")}>
+                    View Requests &rarr;
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-primary/5 dark:bg-primary/10 border-primary/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-primary">Quick Receive/Upload</CardTitle>
+                  <FileTextIcon className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent className="mt-1">
+                  <Label htmlFor="quick-upload" className="sr-only">Quick Upload</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="quick-upload"
+                      type="file"
+                      accept="image/*,application/pdf,text/csv"
+                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      className="h-8 text-xs bg-background"
+                      aria-label="Select file to upload"
+                    />
+                    <Button onClick={handleUpload} disabled={!file || isUploading} size="sm" aria-label="Upload file">
+                      {isUploading ? "…" : "Go"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </div>
-        )}
 
-        {/* Recent Transactions Table */}
-        <Card className="flex-1 overflow-hidden">
-          <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
-            <CardTitle>Recent Transactions</CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => router.push("/transactions")}>
-                View All
-              </Button>
-              <Button size="sm" onClick={() => setManualDialogOpen(true)}>
-                <PlusIcon className="h-4 w-4 mr-1" /> Add
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {isTxnsLoading ? (
-              <div className="text-center py-10 text-muted-foreground">Loading transactions…</div>
-            ) : (
-              <DataTable<TransactionWithDetail>
-                id="dashboard-recent-transactions"
-                columns={txnColumns}
-                data={(transactions as TransactionWithDetail[]) ?? []}
-                rowIdKey="id"
-                defaultSort={{ by: "date", direction: "desc" }}
-                emptyMessage="No transactions found. Start by uploading a receipt!"
-                cellRenderers={txnCellRenderers}
-                locale="en-IN"
-              />
+            {isUploading && (
+              <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                <ProgressTracker id="upload-progress" steps={uploadSteps} />
+              </div>
             )}
-          </CardContent>
-        </Card>
+
+            {processedOcr && (
+              <div className="animate-in zoom-in-95 duration-300">
+                <ReviewTransactionForm
+                  processedOcr={processedOcr}
+                  onConfirm={handleConfirmOcr}
+                  onCancel={() => setProcessedOcr(null)}
+                  isSubmitting={isSavingOcr}
+                />
+              </div>
+            )}
+
+            {/* Pending P2P Actions */}
+            {p2pRequests && p2pRequests.length > 0 && !processedOcr && (
+              <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <h2 className="text-base font-semibold flex items-center gap-2 px-1">
+                  <Share2Icon className="h-4 w-4 text-primary" /> Pending Approvals
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {(p2pRequests as P2PRequestWithSender[]).map((req) => (
+                    <ApprovalCard
+                      key={req.id}
+                      id={req.id}
+                      className="max-w-none"
+                      title={req.status === "GROUP_INVITE" ? "Group Invitation" : "Transaction Split"}
+                      description={
+                        req.status === "GROUP_INVITE"
+                          ? `Join "${req.transaction_data.group_name}"`
+                          : `${req.sender_name || req.sender_user_id.substring(0, 8)} shared an expense with you.`
+                      }
+                      icon={req.status === "GROUP_INVITE" ? "users" : "receipt"}
+                      metadata={[
+                        {
+                          key: "Amount",
+                          value: `₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}`,
+                        },
+                        {
+                          key: "From",
+                          value: req.sender_name || req.sender_user_id.substring(0, 8),
+                        },
+                      ]}
+                      confirmLabel={req.status === "GROUP_INVITE" ? "Join Group" : "Accept & Merge"}
+                      onConfirm={() => acceptMutation.mutate(req.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-7 xl:grid-cols-7 mt-4">
+              <Card className="col-span-1 lg:col-span-4 max-h-[500px]">
+                <CardHeader>
+                  <CardTitle>Expense Overview</CardTitle>
+                </CardHeader>
+                <CardContent className="ps-2">
+                  <Overview />
+                </CardContent>
+              </Card>
+
+              <Card className="col-span-1 lg:col-span-3 flex flex-col max-h-[500px] overflow-hidden">
+                <CardHeader className="px-6 py-4 flex flex-row items-center justify-between shrink-0">
+                  <CardTitle>Recent Transactions</CardTitle>
+                  <Button variant="link" size="sm" onClick={() => router.push("/transactions")}>
+                    View All
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-0 overflow-auto flex-1">
+                  {isTxnsLoading ? (
+                    <div className="text-center py-10 text-muted-foreground">Loading transactions…</div>
+                  ) : (
+                    <DataTable<TransactionWithDetail>
+                      id="dashboard-recent-transactions"
+                      columns={txnColumns}
+                      data={(transactions as TransactionWithDetail[])?.slice(0, 5) ?? []}
+                      rowIdKey="id"
+                      defaultSort={{ by: "date", direction: "desc" }}
+                      emptyMessage="No transactions found."
+                      cellRenderers={txnCellRenderers}
+                      locale="en-IN"
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Additional Overview Charts */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-7 mt-4">
+              <Card className="col-span-1 lg:col-span-4">
+                <CardHeader>
+                  <CardTitle>Income vs Expense</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <IncomeExpenseChart transactions={transactions} />
+                </CardContent>
+              </Card>
+              <Card className="col-span-1 lg:col-span-3">
+                <CardHeader>
+                  <CardTitle>Spending by Category</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CategoryChart transactions={transactions} />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          <TabsContent value="analytics" className="space-y-4">
+            <Analytics />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {selectedTxn && (

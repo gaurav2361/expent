@@ -173,6 +173,7 @@ export default function TransactionsPage() {
       });
       setProcessedOcr(null);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Transaction saved!");
       if (result.contact_created) {
         toast.success("New contact auto-created!");
@@ -248,6 +249,38 @@ export default function TransactionsPage() {
             {row.original.purpose_tag || "—"}
           </span>
         ),
+      },
+      {
+        accessorKey: "wallet",
+        header: "Wallet",
+        cell: ({ row }) => (
+          <span className="text-xs font-medium">
+            {row.original.direction === "IN" 
+              ? row.original.destination_wallet_name || "—" 
+              : row.original.source_wallet_name || "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "contact",
+        header: "Contact",
+        cell: ({ row }) => (
+          <span className="text-xs">
+            {row.original.contact_name || "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.original.status || "COMPLETED";
+          return (
+            <Badge variant="outline" className="text-[10px] capitalize">
+              {status.toLowerCase()}
+            </Badge>
+          );
+        },
       },
       {
         accessorKey: "direction",

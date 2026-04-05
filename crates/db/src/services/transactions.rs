@@ -99,10 +99,29 @@ pub async fn list_transactions(
             }
         }
 
+        let mut contact_name = None;
+        let mut contact_id = None;
+
+        if let Some(party) = entities::txn_parties::Entity::find()
+            .filter(entities::txn_parties::Column::TransactionId.eq(txn.id.clone()))
+            .filter(entities::txn_parties::Column::Role.eq("COUNTERPARTY"))
+            .one(db)
+            .await?
+        {
+            if let Some(c_id) = party.contact_id {
+                if let Some(c) = entities::contacts::Entity::find_by_id(c_id.clone()).one(db).await? {
+                    contact_name = Some(c.name);
+                    contact_id = Some(c_id);
+                }
+            }
+        }
+
         final_results.push(TransactionWithDetail {
             transaction: txn,
             source_wallet_name: source_name,
             destination_wallet_name: dest_name,
+            contact_name,
+            contact_id,
         });
     }
 

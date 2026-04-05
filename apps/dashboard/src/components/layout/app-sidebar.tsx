@@ -1,11 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-
-import { cn } from "@expent/ui/lib/utils";
-import { LogoIcon } from "@/components/ui-elements/logo";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@expent/ui/components/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -14,31 +9,34 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@expent/ui/components/sidebar";
+
+import { cn } from "@expent/ui/lib/utils";
 import {
-  LayoutDashboardIcon,
-  ReceiptIcon,
-  UsersIcon,
-  RepeatIcon,
-  Settings2Icon,
-  MessageSquareShareIcon,
-  ChevronRightIcon,
   AlarmClockIcon,
-  NotebookTabsIcon,
-  WalletIcon,
+  ChevronRightIcon,
   HistoryIcon,
+  LayoutDashboardIcon,
+  MessageSquareShareIcon,
+  NotebookTabsIcon,
+  ReceiptIcon,
+  RepeatIcon,
   ScaleIcon,
+  Settings2Icon,
+  UsersIcon,
+  WalletIcon,
 } from "lucide-react";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@expent/ui/components/collapsible";
-import {
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
-  SidebarMenuAction,
-} from "@expent/ui/components/sidebar";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { LogoIcon } from "@/components/ui-elements/logo";
 
 export type SidebarNavItem = {
   title: string;

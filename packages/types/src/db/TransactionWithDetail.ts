@@ -6,4 +6,4 @@ import type { TransactionStatus } from "./TransactionStatus";
 /**
  * Transaction with optional wallet and contact info.
  */
-export type TransactionWithDetail = { source_wallet_name: string | null, destination_wallet_name: string | null, id: string, user_id: string, amount: string, direction: TransactionDirection, date: string, source: TransactionSource, status: TransactionStatus, purpose_tag: string | null, group_id: string | null, source_wallet_id: string | null, destination_wallet_id: string | null, ledger_tab_id: string | null, category_id: string | null, deleted_at: string | null, notes: string | null, };
+export type TransactionWithDetail = { source_wallet_name: string | null, destination_wallet_name: string | null, contact_name: string | null, contact_id: string | null, id: string, user_id: string, amount: string, direction: TransactionDirection, date: string, source: TransactionSource, status: TransactionStatus, purpose_tag: string | null, group_id: string | null, source_wallet_id: string | null, destination_wallet_id: string | null, ledger_tab_id: string | null, category_id: string | null, deleted_at: string | null, notes: string | null, };

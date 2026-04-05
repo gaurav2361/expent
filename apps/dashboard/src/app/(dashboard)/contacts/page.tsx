@@ -14,10 +14,10 @@ import {
   DialogTrigger,
 } from "@expent/ui/components/dialog";
 import { Label } from "@expent/ui/components/label";
-import { toast } from "@expent/ui/components/goey-toaster";
 import { SearchIcon, PlusIcon, UserIcon, PinIcon, PhoneIcon, ChevronRightIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useContacts } from "@/hooks/use-contacts";
+import type { Contact } from "@expent/types";
 
 export default function ContactsPage() {
   const router = useRouter();
@@ -50,11 +50,11 @@ export default function ContactsPage() {
   const otherContacts = filteredContacts.filter((c) => !c.is_pinned);
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="flex flex-1 flex-col gap-4 sm:gap-6 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+      <div className="flex flex-wrap items-end justify-between gap-2 mb-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
-          <p className="text-muted-foreground text-sm">Manage your frequent counterparties and vendors.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Contact List</h2>
+          <p className="text-muted-foreground">Manage your frequent counterparties, friends, and vendors.</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger render={<Button />}>
@@ -170,7 +170,7 @@ export default function ContactsPage() {
   );
 }
 
-function ContactCard({ contact, onPin, onClick }: { contact: any; onPin: () => void; onClick: () => void }) {
+function ContactCard({ contact, onPin, onClick }: { contact: Contact; onPin: () => void; onClick: () => void }) {
   return (
     <Card
       className="group hover:border-primary/50 transition-all cursor-pointer relative overflow-hidden"
