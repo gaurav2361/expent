@@ -1,6 +1,7 @@
 "use client";
 
-import { CreditCardIcon, MoreVerticalIcon, LogOutIcon, BellIcon, UserIcon } from "lucide-react";
+import { MoreVerticalIcon, LogOutIcon, SettingsIcon, BellIcon, UserCogIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@expent/ui/components/avatar";
 import {
@@ -18,6 +19,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 export function NavUser() {
   const { isMobile } = useSidebar();
   const session = useSession();
+  const router = useRouter();
 
   const user = session.data?.user ?? {
     name: "User",
@@ -74,15 +76,15 @@ export function NavUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <UserIcon />
+              <DropdownMenuItem onClick={() => router.push("/settings/profile")} className="cursor-pointer">
+                <UserCogIcon />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/settings/account")} className="cursor-pointer">
+                <SettingsIcon />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCardIcon />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/settings/notifications")} className="cursor-pointer">
                 <BellIcon />
                 Notifications
               </DropdownMenuItem>
