@@ -44,25 +44,30 @@ impl FromRef<AppState> for DatabaseConnection {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenvy::dotenv().ok();
+
+    let rust_log = std::env::var("RUST_LOG")
+        .unwrap_or_else(|_| "info,server=debug,better_auth=info".into());
+
+    let filter_string = if rust_log.contains("sqlx=") {
+        rust_log
+    } else {
+        format!("{},sqlx=error,sea_orm=warn,tower_http=debug", rust_log)
+    };
+
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG")
-                .unwrap_or_else(|_| "info,server=debug,better_auth=debug,sqlx=warn".into()),
-        ))
+        .with(tracing_subscriber::EnvFilter::new(filter_string))
         .with(
             tracing_subscriber::fmt::layer()
                 .pretty()
                 .with_target(false)
-                // Disable thread IDs in logs for cleaner output, especially in highly concurrent environments where thread IDs might churn frequently.
+                // Disable thread IDs in logs for cleaner output
                 .with_thread_ids(false)
-                // Disable file and line numbers in logs to reduce log verbosity and improve performance in production,
-                // as this information can be costly to capture and is often not needed in aggregated logs.
+                // Disable file and line numbers in logs to reduce log verbosity
                 .with_file(false)
                 .with_line_number(false),
         )
         .init();
-
-    dotenvy::dotenv().ok();
 
     // Custom error type for environment variable issues
     #[derive(Debug)]
@@ -186,7 +191,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("🚀 Server starting on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }
