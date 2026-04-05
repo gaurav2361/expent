@@ -1,50 +1,113 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { client } from '@/lib/api';
+import { create } from 'zustand';
+import { getItem, setItem, removeItem } from '@/lib/storage';
+
+const AUTH_KEY = 'auth_session';
+
+interface AuthState {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  user: any | null;
+  setAuth: (user: any) => void;
+  clearAuth: () => void;
+  setLoading: (loading: boolean) => void;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  isAuthenticated: false,
+  isLoading: true, // Start loading to check storage
+  user: null,
+  setAuth: (user) => {
+    setItem(AUTH_KEY, user);
+    set({ isAuthenticated: true, user, isLoading: false });
+  },
+  clearAuth: () => {
+    removeItem(AUTH_KEY);
+    set({ isAuthenticated: false, user: null, isLoading: false });
+  },
+  setLoading: (loading) => set({ isLoading: loading }),
+}));
 
 export function useAuth() {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated, isLoading, user, setAuth, clearAuth, setLoading } = useAuthStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check storage on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const storedUser = await getItem(AUTH_KEY);
+        if (storedUser) {
+          setAuth(storedUser);
+        } else {
+          clearAuth();
+        }
+      } catch (error) {
+        clearAuth();
+      }
+    };
+    checkSession();
+  }, []);
 
   const signIn = async (email?: string, password?: string) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
-      // Dummy check, replace with actual Better Auth call later
+      // Temporary stub for Better Auth integration
       console.log('Signing in with:', email);
-      // Example call to backend
       const response = await client.post('/auth/sign-in/email', {
         email,
         password,
       });
+      setAuth(response.data.user || { email });
       return response.data;
     } catch (error) {
       console.error(error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const signUp = async (email?: string, password?: string, name?: string) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       console.log('Signing up with:', email, name);
-      // Example call to backend
+      // Temporary stub for Better Auth integration
       const response = await client.post('/auth/sign-up/email', {
         email,
         password,
         name,
       });
+      setAuth(response.data.user || { email, name });
       return response.data;
     } catch (error) {
       console.error(error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  const signOut = async () => {
+    setIsSubmitting(true);
+    try {
+      await client.post('/auth/sign-out');
+    } catch (error) {
+      console.error(error);
+    } finally {
+      clearAuth();
+      setIsSubmitting(false);
     }
   };
 
   return {
+    isAuthenticated,
+    user,
     signIn,
     signUp,
-    isLoading,
+    signOut,
+    isLoading: isLoading || isSubmitting,
+    isInitialized: !isLoading,
   };
 }

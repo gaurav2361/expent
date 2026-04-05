@@ -1,9 +1,19 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Home, Repeat, CreditCard, PieChart, MoreHorizontal } from 'lucide-react-native';
 import { useTheme } from '@react-navigation/native';
+import { useAuth } from '@/lib/auth/use-auth';
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const { isAuthenticated, isInitialized } = useAuth();
+
+  if (!isInitialized) {
+    return null; // Or a splash screen
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/sign-in" />;
+  }
 
   return (
     <Tabs screenOptions={{ 
