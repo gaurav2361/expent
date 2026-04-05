@@ -99,13 +99,17 @@ pub async fn init_auth(
 
     let base_url = env::var("BETTER_AUTH_BASE_URL")
         .or_else(|_| env::var("BASE_URL"))
-        .unwrap_or_else(|_| "http://localhost:8080".into());
+        .unwrap_or_else(|_| "http://localhost:7878".into());
 
     let cors_origin = env::var("CORS_ORIGIN").unwrap_or_default();
 
     let mut trusted_origins = vec![
         "http://localhost:3000".to_string(),
         "http://127.0.0.1:3000".to_string(),
+        "http://localhost:8080".to_string(),
+        "http://127.0.0.1:8080".to_string(),
+        "http://localhost:8081".to_string(),
+        "http://127.0.0.1:8081".to_string(),
         base_url.clone(),
     ];
 

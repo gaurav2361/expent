@@ -36,7 +36,7 @@ export const Route = createFileRoute("/dashboard/p2p/shared")({
   component: SharedLedgersComponent,
 });
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:";
 
 function InviteDialog({ groupId, groupName }: { groupId: string; groupName: string }) {
   const [email, setEmail] = useState("");

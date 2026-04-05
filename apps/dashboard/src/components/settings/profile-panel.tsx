@@ -40,7 +40,7 @@ export function ProfilePanel({ user }: { user: any }) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:";
       const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
         method: "POST",
         body: formData,

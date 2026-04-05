@@ -53,7 +53,7 @@ The initialization reads strict environment variables to shape security behavior
 | Environment Variable | Impact / Default | Purpose |
 |----------------------|------------------|---------|
 | `BETTER_AUTH_SECRET` (or `BETTERAUTH_SECRET`) | Required | Cryptographic secret for signing/hashing JWTs. Either env var name is accepted. |
-| `BETTER_AUTH_BASE_URL` (or `BASE_URL`) | Defaults `http://localhost:8080` | Essential binding URL aligning the plugin's cookie scoping logic. |
+| `BETTER_AUTH_BASE_URL` (or `BASE_URL`) | Defaults `http://localhost:7878` | Essential binding URL aligning the plugin's cookie scoping logic. |
 | `CORS_ORIGIN` | Appended to Trust list | Comma-separated external UI domains added to the trusted origin pool. |
 | `ENABLE_SIGNUP` | Boolean (Default: `true`) | Toggles new registration logic on/off dynamically to control staging environments. |
 | `REQUIRE_EMAIL_VERIFICATION`| Boolean (Default: `false`) | Toggles firm email verification handshakes. |
