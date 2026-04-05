@@ -15,11 +15,24 @@ import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@expent/ui/components/goey-toaster";
-import { PlusIcon, UserIcon, WalletIcon } from "lucide-react";
+import { PlusIcon, UserIcon, WalletIcon, TagIcon } from "lucide-react";
 
 import { apiClient } from "@/lib/api-client";
 import { useWallets } from "@/hooks/use-wallets";
 import { useContacts } from "@/hooks/use-contacts";
+import { useCategories } from "@/hooks/use-categories";
+import { CreateCategoryDialog, ICON_MAP } from "@/components/categories/create-category-dialog";
+import { CreateContactDialog } from "@/components/contacts/create-contact-dialog";
+import { CreateWalletDialog } from "@/components/wallets/create-wallet-dialog";
+
+const getCategoryIcon = (iconName: string | null | undefined) => {
+  if (!iconName) return TagIcon;
+  return ICON_MAP[iconName as keyof typeof ICON_MAP] || TagIcon;
+};
+
+const getCategoryColor = (colorHex: string | null | undefined) => {
+  return colorHex || "#64748b";
+};
 
 interface ManualTransactionDialogProps {
   open: boolean;
@@ -34,9 +47,15 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
   const [date, setDate] = React.useState(new Date().toISOString().split("T")[0]);
   const [walletId, setWalletId] = React.useState<string>("none");
   const [contactId, setContactId] = React.useState<string>("none");
+  const [categoryId, setCategoryId] = React.useState<string>("none");
+
+  const [createCategoryOpen, setCreateCategoryOpen] = React.useState(false);
+  const [createContactOpen, setCreateContactOpen] = React.useState(false);
+  const [createWalletOpen, setCreateWalletOpen] = React.useState(false);
 
   const { wallets } = useWallets();
   const { contacts } = useContacts();
+  const { categories } = useCategories();
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -50,6 +69,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
           source_wallet_id: direction === "OUT" && walletId !== "none" ? walletId : null,
           destination_wallet_id: direction === "IN" && walletId !== "none" ? walletId : null,
           contact_id: contactId !== "none" ? contactId : null,
+          category_id: categoryId !== "none" ? categoryId : null,
         }),
       }),
     onSuccess: () => {
@@ -59,6 +79,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
       setDescription("");
       setWalletId("none");
       setContactId("none");
+      setCategoryId("none");
       toast.success("Transaction added!");
     },
     onError: (error: Error) => {
@@ -104,7 +125,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="direction">Type</Label>
-              <Select value={direction} onValueChange={(v: any) => setDirection(v || "OUT")}>
+              <Select value={direction} onValueChange={(v: "IN" | "OUT" | null) => setDirection(v || "OUT")}>
                 <SelectTrigger id="direction">
                   <SelectValue />
                 </SelectTrigger>
@@ -127,7 +148,13 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                 <WalletIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Select value={walletId} onValueChange={(val) => setWalletId(val || "none")}>
                   <SelectTrigger className="pl-9">
-                    <SelectValue placeholder="Select wallet" />
+                    {walletId === "none" ? (
+                      <span className="text-muted-foreground">Select wallet</span>
+                    ) : (
+                      <span className="truncate">
+                        {wallets?.find((w) => w.id === walletId)?.name || "Unknown Wallet"}
+                      </span>
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No Wallet</SelectItem>
@@ -139,7 +166,13 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" size="icon" title="Add Wallet" aria-label="Add new wallet">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                title="Add Wallet" 
+                aria-label="Add new wallet"
+                onClick={() => setCreateWalletOpen(true)}
+              >
                 <PlusIcon className="h-4 w-4" />
               </Button>
             </div>
@@ -152,7 +185,13 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                 <UserIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Select value={contactId} onValueChange={(val) => setContactId(val || "none")}>
                   <SelectTrigger className="pl-9">
-                    <SelectValue placeholder="Select contact" />
+                    {contactId === "none" ? (
+                      <span className="text-muted-foreground">Select contact</span>
+                    ) : (
+                      <span className="truncate">
+                        {contacts?.find((c) => c.id === contactId)?.name || "Unknown Contact"}
+                      </span>
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No Contact</SelectItem>
@@ -164,7 +203,83 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" size="icon" title="Add Contact" aria-label="Add new contact">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                title="Add Contact" 
+                aria-label="Add new contact"
+                onClick={() => setCreateContactOpen(true)}
+              >
+                <PlusIcon className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="category">Category</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "none")}>
+                  <SelectTrigger>
+                    {categoryId === "none" ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <TagIcon className="h-4 w-4" />
+                        <span>Select category</span>
+                      </div>
+                    ) : (
+                      (() => {
+                        const cat = categories?.find((c) => c.id === categoryId);
+                        if (!cat) return <span className="truncate">Unknown Category</span>;
+                        const Icon = getCategoryIcon(cat.icon);
+                        const color = getCategoryColor(cat.color);
+                        return (
+                          <div className="flex items-center gap-2 truncate">
+                            <div
+                              className="flex size-5 items-center justify-center rounded shrink-0"
+                              style={{ backgroundColor: color + "20", color }}
+                            >
+                              <Icon className="size-3" />
+                            </div>
+                            <span className="truncate">{cat.name}</span>
+                          </div>
+                        );
+                      })()
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      <div className="flex items-center gap-2">
+                        <TagIcon className="h-4 w-4 text-muted-foreground" />
+                        <span>Uncategorized</span>
+                      </div>
+                    </SelectItem>
+                    {categories?.map((c) => {
+                      const Icon = getCategoryIcon(c.icon);
+                      const color = getCategoryColor(c.color);
+                      return (
+                        <SelectItem key={c.id} value={c.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="flex size-6 items-center justify-center rounded shrink-0"
+                              style={{ backgroundColor: color + "20", color }}
+                            >
+                              <Icon className="size-3.5" />
+                            </div>
+                            <span>{c.name}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                title="Add Category" 
+                aria-label="Add new category"
+                onClick={() => setCreateCategoryOpen(true)}
+              >
                 <PlusIcon className="h-4 w-4" />
               </Button>
             </div>
@@ -182,6 +297,21 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
           </Button>
         </DialogFooter>
       </DialogContent>
+      <CreateCategoryDialog 
+        open={createCategoryOpen} 
+        onOpenChange={setCreateCategoryOpen} 
+        onCreated={(id) => setCategoryId(id)} 
+      />
+      <CreateContactDialog
+        open={createContactOpen}
+        onOpenChange={setCreateContactOpen}
+        onCreated={(id) => setContactId(id)}
+      />
+      <CreateWalletDialog
+        open={createWalletOpen}
+        onOpenChange={setCreateWalletOpen}
+        onCreated={(id) => setWalletId(id)}
+      />
     </Dialog>
   );
 }
