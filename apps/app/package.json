@@ -1,11 +1,11 @@
 {
-  "name": "app",
+  "name": "@expent/app",
   "version": "0.0.1",
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/user/repo-name.git"
+    "url": "git+https://github.com/gaurav2361/expent.git"
   },
   "main": "expo-router/entry",
   "scripts": {

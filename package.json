@@ -9,7 +9,11 @@
     "lint": "biome lint --write --no-errors-on-unmatched",
     "format": "biome format --write --no-errors-on-unmatched",
     "typecheck": "dotenv -- turbo typecheck",
-    "format-all": "cargo fmt && uv format && pnpm format"
+    "format-all": "cargo fmt && uv format && pnpm format",
+    "app": "pnpm --filter @expent/app",
+    "app:dev": "pnpm --filter @expent/app dev",
+    "app:ios": "pnpm --filter @expent/app ios",
+    "app:android": "pnpm --filter @expent/app android"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.10",
