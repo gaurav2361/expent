@@ -9,12 +9,12 @@ module.exports = function (api) {
           root: ["./"],
           alias: {
             "@": "./src",
-            "@env": "./src/lib/env.js",
+            "@env": "./env",
           },
           extensions: [".ios.ts", ".android.ts", ".ts", ".ios.tsx", ".android.tsx", ".tsx", ".jsx", ".js", ".json"],
         },
       ],
-      "react-native-reanimated/plugin",
+      "react-native-worklets/plugin",
     ],
   };
 };
