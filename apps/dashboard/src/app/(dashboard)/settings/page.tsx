@@ -1,101 +1,134 @@
 "use client";
 
-import { useSession, signOut } from "@/lib/auth-client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
-import { Button } from "@expent/ui/components/button";
-import { Separator } from "@expent/ui/components/separator";
-import { BellIcon } from "lucide-react";
-import { useTheme } from "next-themes";
-import { PreferencesPanel } from "@/components/tool-ui/preferences-panel";
-import { useRouter } from "next/navigation";
-import { CategoriesPanel } from "@/components/settings/categories-panel";
-import { ProfilePanel } from "@/components/settings/profile-panel";
-import { SecurityPanel } from "@/components/settings/security-panel";
+import Link from "next/link";
+import { UserCogIcon, WrenchIcon, PaletteIcon, BellIcon, MonitorIcon, TagIcon, ChevronRightIcon } from "lucide-react";
+import { motion, type Variants } from "motion/react";
 
-export default function SettingsPage() {
-  const session = useSession();
-  const { theme, setTheme } = useTheme();
-  const router = useRouter();
+const sidebarNavItems = [
+  {
+    title: "Profile",
+    description: "Manage your public profile, username, and avatar.",
+    href: "/settings/profile",
+    icon: <UserCogIcon className="w-5 h-5" />,
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+  },
+  {
+    title: "Account",
+    description: "Update your email, password, and core security settings.",
+    href: "/settings/account",
+    icon: <WrenchIcon className="w-5 h-5" />,
+    color: "text-indigo-500",
+    bg: "bg-indigo-500/10",
+  },
+  {
+    title: "Categories",
+    description: "Manage custom categories for tagging your transactions.",
+    href: "/settings/categories",
+    icon: <TagIcon className="w-5 h-5" />,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+  },
+  {
+    title: "Appearance",
+    description: "Customize the theme, layout, and colors of the dashboard.",
+    href: "/settings/appearance",
+    icon: <PaletteIcon className="w-5 h-5" />,
+    color: "text-pink-500",
+    bg: "bg-pink-500/10",
+  },
+  {
+    title: "Notifications",
+    description: "Configure how and when you receive alerts and updates.",
+    href: "/settings/notifications",
+    icon: <BellIcon className="w-5 h-5" />,
+    color: "text-amber-500",
+    bg: "bg-amber-500/10",
+  },
+  {
+    title: "Display",
+    description: "Change data formatting, currency formatting, and date styles.",
+    href: "/settings/display",
+    icon: <MonitorIcon className="w-5 h-5" />,
+    color: "text-cyan-500",
+    bg: "bg-cyan-500/10",
+  },
+];
 
-  const user = session.data?.user;
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
 
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 15, scale: 0.95 },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1, 
+    transition: { 
+      type: "spring", 
+      stiffness: 300, 
+      damping: 24 
+    } 
+  },
+};
+
+export default function SettingsIndexPage() {
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto w-full">
-      {/* Profile */}
-      <ProfilePanel user={user} />
-
-      {/* Appearance using PreferencesPanel */}
-      <PreferencesPanel
-        id="appearance-settings"
-        title="Appearance"
-        sections={[
-          {
-            items: [
-              {
-                id: "theme",
-                type: "toggle",
-                label: "Theme",
-                description: "Select your preferred color theme.",
-                options: [
-                  { value: "light", label: "Light" },
-                  { value: "dark", label: "Dark" },
-                  { value: "system", label: "System" },
-                ],
-                defaultValue: theme,
-              },
-            ],
-          },
-        ]}
-        onAction={(actionId, values) => {
-          if (actionId === "save") {
-            setTheme(values.theme as string);
-          }
-        }}
-      />
-
-      {/* Categories */}
-      <CategoriesPanel />
-
-      {/* Security */}
-      <SecurityPanel />
-
-      {/* Notifications */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <BellIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>Configure how you receive alerts</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">Notification preferences coming soon.</p>
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      <div className="flex justify-end pb-8">
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={async () => {
-            await signOut({
-              fetchOptions: {
-                onSuccess: () => {
-                  router.push("/sign-in");
-                },
-              },
-            });
-          }}
-        >
-          Sign Out
-        </Button>
+    <div className="w-full max-w-4xl pb-10 mx-auto">
+      <div className="mb-8 space-y-2 text-center">
+        <h2 className="text-3xl font-semibold tracking-tight">Overview</h2>
+        <p className="text-muted-foreground text-base">Select a category to view and manage your workspace settings.</p>
       </div>
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid gap-4 sm:grid-cols-2 md:gap-6"
+      >
+        {sidebarNavItems.map((item) => (
+          <motion.div
+            key={item.href}
+            variants={itemVariants}
+            whileHover={{ y: -4 }}
+            whileTap={{ scale: 0.97 }}
+            className="h-full"
+          >
+            <Link
+              href={item.href}
+              className="group flex flex-col justify-between h-full p-6 rounded-2xl border bg-card/60 backdrop-blur-md text-card-foreground shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden ring-1 ring-inset ring-foreground/5 hover:ring-primary/20"
+            >
+              {/* Subtle background glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-5">
+                  <div className={`p-3 rounded-xl ${item.bg} ${item.color} group-hover:scale-110 group-hover:shadow-sm transition-all duration-300`}>
+                    {item.icon}
+                  </div>
+                  <div className="h-8 w-8 rounded-full bg-muted/40 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground text-muted-foreground transition-colors duration-300">
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-semibold mb-2 tracking-tight group-hover:text-primary transition-colors">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {item.description}
+                </p>
+              </div>
+            </Link>
+          </motion.div>
+        ))}
+      </motion.div>
     </div>
   );
 }
