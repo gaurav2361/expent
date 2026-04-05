@@ -178,6 +178,7 @@ export function AppSidebar() {
       )}
       collapsible="icon"
       variant="sidebar"
+      style={{ viewTransitionName: "persistent-sidebar" }}
     >
       <SidebarHeader className="h-14 justify-center border-b px-2">
         <SidebarMenuButton render={<Link href="/" />}>

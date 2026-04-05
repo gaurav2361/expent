@@ -103,6 +103,7 @@ export default function SettingsIndexPage() {
           >
             <Link
               href={item.href}
+              transitionTypes={["nav-forward"]}
               className="group flex flex-col justify-between h-full p-6 rounded-2xl border bg-card/60 backdrop-blur-md text-card-foreground shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden ring-1 ring-inset ring-foreground/5 hover:ring-primary/20"
             >
               {/* Subtle background glow effect */}

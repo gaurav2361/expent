@@ -46,7 +46,10 @@ export function AppNavbar() {
   const breadcrumbs = generateBreadcrumbs(pathname);
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 shadow-sm border-b z-10 sticky top-0 bg-background/95 backdrop-blur-sm">
+    <header 
+      className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 shadow-sm border-b z-10 sticky top-0 bg-background/95 backdrop-blur-sm"
+      style={{ viewTransitionName: "persistent-nav" }}
+    >
       <div className="flex items-center gap-2">
         <CustomSidebarTrigger />
         <Separator className="mr-2 h-4 data-[orientation=vertical]:self-center" orientation="vertical" />
