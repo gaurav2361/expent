@@ -54,7 +54,7 @@ import { apiClient } from "@/lib/api-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Transaction, TransactionWithDetail } from "@expent/types";
+import type { Transaction, TransactionWithDetail, TypedProcessedOcr } from "@expent/types";
 
 // Route Component
 export default function TransactionsPage() {
@@ -69,7 +69,7 @@ export default function TransactionsPage() {
   // Upload State
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadSteps, setUploadSteps] = React.useState<any[]>([]);
-  const [processedOcr, setProcessedOcr] = React.useState<{ doc_type: string; data: any } | null>(null);
+  const [processedOcr, setProcessedOcr] = React.useState<TypedProcessedOcr | null>(null);
   const [isSavingOcr, setIsSavingOcr] = React.useState(false);
 
   // Table State

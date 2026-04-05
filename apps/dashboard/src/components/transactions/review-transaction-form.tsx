@@ -82,8 +82,8 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
     e.preventDefault();
 
     // We send back the modified ProcessedOcr structure but updated
-    const updatedData = { ...processedOcr.data };
-    updatedData.amount = parseFloat(amount);
+    const updatedData: any = { ...processedOcr.data };
+    updatedData.amount = amount;
     updatedData.direction = direction;
 
     if (processedOcr.doc_type === "GPAY") {
@@ -94,8 +94,9 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
     }
 
     onConfirm({
-      doc_type: processedOcr.doc_type,
+      doc_type: processedOcr.doc_type as any,
       data: updatedData,
+      r2_key: (processedOcr as any).r2_key,
     });
   };
 
