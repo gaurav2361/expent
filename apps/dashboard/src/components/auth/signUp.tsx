@@ -9,8 +9,8 @@ import { AuthDivider } from "@/components/auth/auth-divider";
 import { AuthShades } from "@/components/auth/auth-shades";
 import { SocialLogins } from "@/components/auth/auth-social";
 import { Logo } from "@/components/ui-elements/logo";
-import { useState } from "react";
-import { signUp } from "@/lib/auth-client";
+import { useEffect, useState } from "react";
+import { signUp, useSession } from "@/lib/auth-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 
 export function SignUp() {
@@ -20,6 +20,13 @@ export function SignUp() {
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  useEffect(() => {
+    if (!isPending && session) {
+      router.push("/");
+    }
+  }, [session, isPending, router]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
