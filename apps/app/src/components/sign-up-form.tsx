@@ -16,6 +16,7 @@ import { Pressable, type TextInput, View } from 'react-native';
 import { useAuth } from '@/lib/auth/use-auth';
 import { router } from 'expo-router';
 import { showErrorMessage } from '@/components/ui/utils';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 export function SignUpForm() {
   const [name, setName] = React.useState('');
@@ -43,18 +44,26 @@ export function SignUpForm() {
   }
 
   return (
-    <View className="gap-6">
-      <Card className="border-border/0 sm:border-border shadow-none sm:shadow-sm sm:shadow-black/5">
-        <CardHeader>
-          <CardTitle className="text-center text-xl sm:text-left">Create your account</CardTitle>
-          <CardDescription className="text-center sm:text-left">
-            Welcome! Please fill in the details to get started.
+    <Animated.View entering={FadeIn.duration(500)} className="gap-8">
+      {/* Header Branding */}
+      <View className="items-center gap-2 mb-2">
+        <View className="bg-primary w-14 h-14 rounded-2xl items-center justify-center shadow-md shadow-primary/20">
+          <Text className="text-primary-foreground text-3xl font-bold tracking-tighter">E</Text>
+        </View>
+        <Text className="text-3xl font-bold text-foreground tracking-tight">Expent</Text>
+      </View>
+
+      <Card className="border-border/50 shadow-none bg-card/50 rounded-[32px] border">
+        <CardHeader className="pb-2 items-center">
+          <CardTitle className="text-2xl font-bold">Create account</CardTitle>
+          <CardDescription className="text-muted-foreground text-center">
+            Join Expent to start managing your finances
           </CardDescription>
         </CardHeader>
-        <CardContent className="gap-6">
-          <View className="gap-6">
-            <View className="gap-1.5">
-              <Label nativeID="name-label">Full Name</Label>
+        <CardContent className="gap-6 pt-4">
+          <View className="gap-5">
+            <View className="gap-2">
+              <Label nativeID="name-label" className="ml-1 font-semibold">Full Name</Label>
               <Input
                 id="name"
                 placeholder="John Doe"
@@ -62,14 +71,15 @@ export function SignUpForm() {
                 value={name}
                 onChangeText={setName}
                 returnKeyType="next"
+                className="h-14 rounded-2xl px-4 bg-background border-border/60"
                 aria-labelledby="name-label"
               />
             </View>
-            <View className="gap-1.5">
-              <Label nativeID="email-label">Email</Label>
+            <View className="gap-2">
+              <Label nativeID="email-label" className="ml-1 font-semibold">Email</Label>
               <Input
                 id="email"
-                placeholder="m@example.com"
+                placeholder="name@example.com"
                 keyboardType="email-address"
                 autoComplete="email"
                 autoCapitalize="none"
@@ -77,46 +87,51 @@ export function SignUpForm() {
                 onChangeText={setEmail}
                 onSubmitEditing={onEmailSubmitEditing}
                 returnKeyType="next"
-                submitBehavior="submit"
+                className="h-14 rounded-2xl px-4 bg-background border-border/60"
                 aria-labelledby="email-label"
               />
             </View>
-            <View className="gap-1.5">
-              <View className="flex-row items-center">
-                <Label nativeID="password-label">Password</Label>
-              </View>
+            <View className="gap-2">
+              <Label nativeID="password-label" className="ml-1 font-semibold">Password</Label>
               <Input
                 ref={passwordInputRef}
                 id="password"
+                placeholder="••••••••"
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
                 returnKeyType="send"
                 onSubmitEditing={onSubmit}
+                className="h-14 rounded-2xl px-4 bg-background border-border/60"
                 aria-labelledby="password-label"
               />
             </View>
-            <Button className="w-full" onPress={onSubmit} disabled={isLoading}>
-              <Text>{isLoading ? 'Creating...' : 'Continue'}</Text>
+            <Button className="w-full h-14 rounded-2xl bg-primary mt-2 shadow-lg shadow-primary/20" onPress={onSubmit} disabled={isLoading}>
+              <Text className="text-primary-foreground font-bold text-lg">
+                {isLoading ? 'Creating...' : 'Create Account'}
+              </Text>
             </Button>
           </View>
-          <Text className="text-center text-sm">
-            Already have an account?{' '}
+
+          <View className="flex-row items-center py-2">
+            <Separator className="flex-1 opacity-50" />
+            <Text className="text-muted-foreground px-4 text-xs font-medium uppercase tracking-widest">or sign up with</Text>
+            <Separator className="flex-1 opacity-50" />
+          </View>
+
+          <SocialConnections />
+
+          <View className="flex-row justify-center gap-1.5 mt-4">
+            <Text className="text-muted-foreground">Already have an account?</Text>
             <Pressable
               onPress={() => {
                 router.push('/(auth)/sign-in');
               }}>
-              <Text className="text-sm underline underline-offset-4 text-primary">Sign in</Text>
+              <Text className="font-bold text-primary">Sign in</Text>
             </Pressable>
-          </Text>
-          <View className="flex-row items-center">
-            <Separator className="flex-1" />
-            <Text className="text-muted-foreground px-4 text-sm">or</Text>
-            <Separator className="flex-1" />
           </View>
-          <SocialConnections />
         </CardContent>
       </Card>
-    </View>
+    </Animated.View>
   );
 }

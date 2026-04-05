@@ -9,7 +9,7 @@ module.exports = function (api) {
           root: ["./"],
           alias: {
             "@": "./src",
-            "@env": "./env",
+            "@env": "./env.ts",
           },
           extensions: [".ios.ts", ".android.ts", ".ts", ".ios.tsx", ".android.tsx", ".tsx", ".jsx", ".js", ".json"],
         },
