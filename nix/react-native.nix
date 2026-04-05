@@ -54,12 +54,27 @@ let
         --device "pixel"
     fi
 
-    echo "Starting Emulator on macOS ($ARCH)..."
-    EMULATOR_BIN="${androidSdk}/share/android-sdk/emulator/emulator"
-    $EMULATOR_BIN -avd macos_emulator -dns-server 8.8.8.8 -gpu host &
+    echo "Checking for running emulators..."
+    ADB_BIN="${androidSdk}/share/android-sdk/platform-tools/adb"
     
-    # Give the emulator a moment to start before returning control
-    sleep 2
+    if $ADB_BIN devices | grep -q "emulator-"; then
+      echo "Emulator already running. Waiting for it to be fully ready..."
+    else
+      echo "Starting Emulator on macOS ($ARCH)..."
+      EMULATOR_BIN="${androidSdk}/share/android-sdk/emulator/emulator"
+      $EMULATOR_BIN -avd macos_emulator -dns-server 8.8.8.8 -gpu host &
+    fi
+    
+    # Wait for the emulator to be online
+    echo "Waiting for emulator to be ready..."
+    $ADB_BIN wait-for-device
+    
+    # Also wait for the boot to complete
+    while [ "$($ADB_BIN shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; do
+      sleep 1
+    done
+
+    echo "Emulator is ready!"
   '';
 
 in
