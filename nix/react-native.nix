@@ -42,18 +42,24 @@ let
     export ANDROID_AVD_HOME="$HOME/.android/avd"
     mkdir -p "$ANDROID_AVD_HOME"
 
+    # Define architecture based on Nix evaluation
+    ARCH="${arch}"
+    
     if ! avdmanager list avd | grep -q "macos_emulator"; then
-      echo "Creating Android 34 Emulator for ''${arch}..."
+      echo "Creating Android 34 Emulator for $ARCH..."
       echo "no" | avdmanager create avd \
         --force \
         --name macos_emulator \
-        --package "system-images;android-34;google_apis;''${arch}" \
+        --package "system-images;android-34;google_apis;$ARCH" \
         --device "pixel"
     fi
 
-    echo "Starting Emulator on macOS..."
+    echo "Starting Emulator on macOS ($ARCH)..."
     EMULATOR_BIN="${androidSdk}/share/android-sdk/emulator/emulator"
     $EMULATOR_BIN -avd macos_emulator -dns-server 8.8.8.8 -gpu host &
+    
+    # Give the emulator a moment to start before returning control
+    sleep 2
   '';
 
 in

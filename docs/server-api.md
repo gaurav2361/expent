@@ -8,7 +8,7 @@ This document covers the structure and available endpoints of the Expent backend
 *   **Database ORM**: `sea_orm` (targeting SQLite).
 *   **Authentication**: [`better-auth`](https://github.com/better-auth/better-auth) managed seamlessly by the router. 
 *   **Base URL**: `/api` (business logic) and `/api/auth` (authentication endpoints).
-*   **Default Port**: `0.0.0.0:8080` (overridable via `API_PORT` env var).
+*   **Default Port**: `0.0.0.0:7878` (overridable via `API_PORT` env var).
 *   **Body Limit**: `10MB` globally enforced via `axum::extract::DefaultBodyLimit`.
 *   **Content-Type**: Requests and Responses default to `application/json` unless otherwise specified (e.g. multipart uploads).
 *   **Security Protocol**: Endpoints are strictly guarded via the `AuthSession` extractor. Requests must include authentication cookies managed by `better-auth`.

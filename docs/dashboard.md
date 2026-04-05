@@ -94,7 +94,7 @@ The secure boundary. It is wrapped in a dedicated `layout.tsx` which enforces Au
 Expent frontend strictly follows explicit standardization to bridge reliably to the Rust `apps/server`:
 
 1. **Edge Middleware (`src/proxy.ts`)**: Acts as next.js middleware intercepting every non-static request. Checks for Better Auth session cookies (`better-auth.session_token`, `better-auth.session-token`, `__Secure-better-auth.session_token`, `__Secure-better-auth.session-token`) and redirects unauthenticated users to `/sign-in`. Public routes (`/sign-in`, `/sign-up`) bypass this check.
-2. **API Routing**: Pages fetch directly from `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8080`) with `credentials: "include"` to pass session cookies through to the Rust server.
+2. **API Routing**: Pages fetch directly from `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:7878`) with `credentials: "include"` to pass session cookies through to the Rust server.
 3. **Aggressive Optimistic Updating (React Query)**:
    - Deeply interactive pages (Transactions, P2P Accept flow) avoid blocking standard HTTP loading cycles. 
    - They use `useMutation` with `onSuccess` cache invalidation via `queryClient.invalidateQueries`. When a user deletes a row or hits "Accept Request", the UI reflects this after server confirmation using toast notifications (`goey-toaster`).

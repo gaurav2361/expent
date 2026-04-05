@@ -144,7 +144,7 @@
               echo "  pnpm:   $(pnpm --version)"
 
               # Uncomment the line below to show the React Native startup message
-              ''${reactNativeEnv.shellHook}
+              ${reactNativeEnv.shellHook}
             '';
           };
         }

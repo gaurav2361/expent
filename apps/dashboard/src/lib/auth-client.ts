@@ -7,7 +7,7 @@ import { usernameClient } from "better-auth/client/plugins";
  * Pointing to the Rust server's /api/auth endpoints.
  */
 export const authClient = createAuthClient({
-  baseURL: (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080") + "/api/auth",
+  baseURL: (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:7878") + "/api/auth",
   plugins: [passkeyClient(), usernameClient()],
   fetchOptions: {
     onError: async (context) => {
