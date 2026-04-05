@@ -1,207 +1,238 @@
-/* eslint-disable better-tailwindcss/no-unknown-classes */
-import type { BottomSheetModal } from "@gorhom/bottom-sheet";
-import type { PressableProps } from "react-native";
-import type { SvgProps } from "react-native-svg";
-import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
-import { FlashList } from "@shopify/flash-list";
-import * as React from "react";
-import { Platform, Pressable, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
-import { tv } from "tailwind-variants";
+import { Icon } from '@/components/ui/icon';
+import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view';
+import { TextClassContext } from '@/components/ui/text';
+import { cn } from '@/lib/utils';
+import * as SelectPrimitive from '@rn-primitives/select';
+import { Check, ChevronDown, ChevronDownIcon, ChevronUpIcon } from 'lucide-react-native';
+import * as React from 'react';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { FadeIn, FadeOut } from 'react-native-reanimated';
+import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 
-import { useUniwind } from "uniwind";
-import colors from "@/components/ui/colors";
+type Option = SelectPrimitive.Option;
 
-import { CaretDown } from "@/components/ui/icons";
-import { Modal, useModal } from "./modal";
-import { Text } from "./text";
+const Select = SelectPrimitive.Root;
 
-const selectTv = tv({
-  slots: {
-    container: "mb-4",
-    label: "text-grey-100 mb-1 text-lg dark:text-neutral-100",
-    input:
-      "border-grey-50 mt-0 flex-row items-center justify-center rounded-xl border-[0.5px] p-3 dark:border-neutral-500 dark:bg-neutral-800",
-    inputValue: "dark:text-neutral-100",
-  },
+const SelectGroup = SelectPrimitive.Group;
 
-  variants: {
-    focused: {
-      true: {
-        input: "border-neutral-600",
-      },
-    },
-    error: {
-      true: {
-        input: "border-danger-600",
-        label: "text-danger-600 dark:text-danger-600",
-        inputValue: "text-danger-600",
-      },
-    },
-    disabled: {
-      true: {
-        input: "bg-neutral-200",
-      },
-    },
-  },
-  defaultVariants: {
-    error: false,
-    disabled: false,
-  },
-});
-
-const List = Platform.OS === "web" ? FlashList : BottomSheetFlatList;
-
-export type OptionType = { label: string; value: string | number };
-
-type OptionsProps = {
-  options: OptionType[];
-  onSelect: (option: OptionType) => void;
-  value?: string | number;
-  testID?: string;
-};
-
-function keyExtractor(item: OptionType) {
-  return `select-item-${item.value}`;
-}
-
-export function Options({
+function SelectValue({
   ref,
-  options,
-  onSelect,
-  value,
-  testID,
-}: OptionsProps & { ref?: React.RefObject<BottomSheetModal | null> }) {
-  const height = options.length * 70 + 100;
-  const snapPoints = React.useMemo(() => [height], [height]);
-  const { theme } = useUniwind();
-  const isDark = theme === "dark";
-
-  const renderSelectItem = React.useCallback(
-    ({ item }: { item: OptionType }) => (
-      <Option
-        key={`select-item-${item.value}`}
-        label={item.label}
-        selected={value === item.value}
-        onPress={() => onSelect(item)}
-        testID={testID ? `${testID}-item-${item.value}` : undefined}
-      />
-    ),
-    [onSelect, value, testID]
-  );
-
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Value> & {
+    className?: string;
+  }) {
+  const { value } = SelectPrimitive.useRootContext();
   return (
-    <Modal
+    <SelectPrimitive.Value
       ref={ref}
-      index={0}
-      snapPoints={snapPoints}
-      backgroundStyle={{
-        backgroundColor: isDark ? colors.neutral[800] : colors.white,
-      }}
-    >
-      <List
-        data={options}
-        keyExtractor={keyExtractor}
-        renderItem={renderSelectItem}
-        testID={testID ? `${testID}-modal` : undefined}
-        estimatedItemSize={52}
-      />
-    </Modal>
+      className={cn(
+        'text-foreground line-clamp-1 flex flex-row items-center gap-2 text-sm',
+        !value && 'text-muted-foreground',
+        className
+      )}
+      {...props}
+    />
   );
 }
 
-const Option = React.memo(
-  ({
-    label,
-    selected = false,
-    ...props
-  }: PressableProps & {
-    selected?: boolean;
-    label: string;
-  }) => {
-    return (
-      <Pressable
-        className="flex-row items-center border-b border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
-        {...props}
-      >
-        <Text className="flex-1 dark:text-neutral-100">{label}</Text>
-        {selected && <Check />}
-      </Pressable>
-    );
-  }
-);
-
-export type SelectProps = {
-  value?: string | number;
-  label?: string;
-  disabled?: boolean;
-  error?: string;
-  options?: OptionType[];
-  onSelect?: (value: string | number) => void;
-  placeholder?: string;
-  testID?: string;
-};
-
-export function Select(props: SelectProps) {
-  const { label, value, error, options = [], placeholder = "select...", disabled = false, onSelect, testID } = props;
-  const modal = useModal();
-
-  const onSelectOption = React.useCallback(
-    (option: OptionType) => {
-      onSelect?.(option.value);
-      modal.dismiss();
-    },
-    [modal, onSelect]
-  );
-
-  const styles = React.useMemo(
-    () =>
-      selectTv({
-        error: Boolean(error),
-        disabled,
-      }),
-    [error, disabled]
-  );
-
-  const textValue = React.useMemo(
-    () => (value !== undefined ? (options?.filter((t) => t.value === value)?.[0]?.label ?? placeholder) : placeholder),
-    [value, options, placeholder]
-  );
-
+function SelectTrigger({
+  ref,
+  className,
+  children,
+  size = 'default',
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+    children?: React.ReactNode;
+    size?: 'default' | 'sm';
+  }) {
   return (
-    <>
-      <View className={styles.container()}>
-        {label && (
-          <Text testID={testID ? `${testID}-label` : undefined} className={styles.label()}>
-            {label}
-          </Text>
-        )}
-        <Pressable
-          className={styles.input()}
-          disabled={disabled}
-          onPress={modal.present}
-          testID={testID ? `${testID}-trigger` : undefined}
-        >
-          <View className="flex-1">
-            <Text className={styles.inputValue()}>{textValue}</Text>
-          </View>
-          <CaretDown />
-        </Pressable>
-        {error && (
-          <Text testID={`${testID}-error`} className="text-sm text-danger-300 dark:text-danger-600">
-            {error}
-          </Text>
-        )}
+    <SelectPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        'border-input dark:bg-input/30 dark:active:bg-input/50 bg-background flex h-10 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5 sm:h-9',
+        Platform.select({
+          web: 'focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:hover:bg-input/50 w-fit whitespace-nowrap text-sm outline-none transition-[color,box-shadow] focus-visible:ring-[3px] disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0',
+        }),
+        props.disabled && 'opacity-50',
+        size === 'sm' && 'h-8 py-2 sm:py-1.5',
+        className
+      )}
+      {...props}>
+      <>{children}</>
+      <Icon as={ChevronDown} aria-hidden={true} className="text-muted-foreground size-4" />
+    </SelectPrimitive.Trigger>
+  );
+}
+
+const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment;
+
+function SelectContent({
+  className,
+  children,
+  position = 'popper',
+  portalHost,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Content> & {
+    className?: string;
+    portalHost?: string;
+  }) {
+  return (
+    <SelectPrimitive.Portal hostName={portalHost}>
+      <FullWindowOverlay>
+        <SelectPrimitive.Overlay style={Platform.select({ native: StyleSheet.absoluteFill })}>
+          <TextClassContext.Provider value="text-popover-foreground">
+            <NativeOnlyAnimatedView className="z-50" entering={FadeIn} exiting={FadeOut}>
+              <SelectPrimitive.Content
+                className={cn(
+                  'bg-popover border-border relative z-50 min-w-[8rem] rounded-md border shadow-md shadow-black/5',
+                  Platform.select({
+                    web: cn(
+                      'animate-in fade-in-0 zoom-in-95 origin-(--radix-select-content-transform-origin) max-h-52 overflow-y-auto overflow-x-hidden',
+                      props.side === 'bottom' && 'slide-in-from-top-2',
+                      props.side === 'top' && 'slide-in-from-bottom-2'
+                    ),
+                    native: 'p-1',
+                  }),
+                  position === 'popper' &&
+                  Platform.select({
+                    web: cn(
+                      props.side === 'bottom' && 'translate-y-1',
+                      props.side === 'top' && '-translate-y-1'
+                    ),
+                  }),
+                  className
+                )}
+                position={position}
+                {...props}>
+                <SelectScrollUpButton />
+                <SelectPrimitive.Viewport
+                  className={cn(
+                    'p-1',
+                    position === 'popper' &&
+                    cn(
+                      'w-full',
+                      Platform.select({
+                        web: 'h-[var(--radix-select-trigger-height)] min-w-[var(--radix-select-trigger-width)]',
+                      })
+                    )
+                  )}>
+                  {children}
+                </SelectPrimitive.Viewport>
+                <SelectScrollDownButton />
+              </SelectPrimitive.Content>
+            </NativeOnlyAnimatedView>
+          </TextClassContext.Provider>
+        </SelectPrimitive.Overlay>
+      </FullWindowOverlay>
+    </SelectPrimitive.Portal>
+  );
+}
+
+function SelectLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Label>) {
+  return (
+    <SelectPrimitive.Label
+      className={cn('text-muted-foreground px-2 py-2 text-xs sm:py-1.5', className)}
+      {...props}
+    />
+  );
+}
+
+function SelectItem({
+  className,
+  ...props
+}: Omit<React.ComponentProps<typeof SelectPrimitive.Item>, 'children'>) {
+  return (
+    <SelectPrimitive.Item
+      className={cn(
+        'active:bg-accent group relative flex w-full flex-row items-center gap-2 rounded-sm py-2 pl-2 pr-8 sm:py-1.5',
+        Platform.select({
+          web: 'focus:bg-accent focus:text-accent-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2 cursor-default outline-none data-[disabled]:pointer-events-none [&_svg]:pointer-events-none',
+        }),
+        props.disabled && 'opacity-50',
+        className
+      )}
+      {...props}>
+      <View className="absolute right-2 flex size-3.5 items-center justify-center">
+        <SelectPrimitive.ItemIndicator>
+          <Icon as={Check} className="text-muted-foreground size-4 shrink-0" />
+        </SelectPrimitive.ItemIndicator>
       </View>
-      <Options testID={testID} ref={modal.ref} options={options} onSelect={onSelectOption} />
-    </>
+      <SelectPrimitive.ItemText className="text-foreground group-active:text-accent-foreground select-none text-sm" />
+    </SelectPrimitive.Item>
   );
 }
 
-function Check({ ...props }: SvgProps) {
+function SelectSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Separator>) {
   return (
-    <Svg width={25} height={24} fill="none" viewBox="0 0 25 24" {...props} className="stroke-black dark:stroke-white">
-      <Path d="m20.256 6.75-10.5 10.5L4.506 12" strokeWidth={2.438} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
+    <SelectPrimitive.Separator
+      className={cn(
+        'bg-border -mx-1 my-1 h-px',
+        Platform.select({ web: 'pointer-events-none' }),
+        className
+      )}
+      {...props}
+    />
   );
 }
+
+/**
+ * @platform Web only
+ * Returns null on native platforms
+ */
+function SelectScrollUpButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
+  if (Platform.OS !== 'web') {
+    return null;
+  }
+  return (
+    <SelectPrimitive.ScrollUpButton
+      className={cn('flex cursor-default items-center justify-center py-1', className)}
+      {...props}>
+      <Icon as={ChevronUpIcon} className="size-4" />
+    </SelectPrimitive.ScrollUpButton>
+  );
+}
+
+/**
+ * @platform Web only
+ * Returns null on native platforms
+ */
+function SelectScrollDownButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+  if (Platform.OS !== 'web') {
+    return null;
+  }
+  return (
+    <SelectPrimitive.ScrollDownButton
+      className={cn('flex cursor-default items-center justify-center py-1', className)}
+      {...props}>
+      <Icon as={ChevronDownIcon} className="size-4" />
+    </SelectPrimitive.ScrollDownButton>
+  );
+}
+
+
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+  type Option,
+};
