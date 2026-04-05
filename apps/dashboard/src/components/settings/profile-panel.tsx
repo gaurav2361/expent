@@ -137,7 +137,7 @@ export function ProfilePanel({ user }: { user: any }) {
             onClick={() => updateMutation.mutate({ name, username })}
             disabled={!isDirty || updateMutation.isPending}
           >
-            {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            {updateMutation.isPending ? "Saving…" : "Save Changes"}
           </Button>
         </div>
       </CardContent>

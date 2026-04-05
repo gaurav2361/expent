@@ -1,9 +1,15 @@
+use axum::Router;
 use axum::extract::{Json, State};
 use axum::http::StatusCode;
+use axum::routing::post;
 use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
+
+pub fn router() -> Router<AppState> {
+    Router::new().route("/process", post(process_image_ocr_handler))
+}
 
 #[derive(Deserialize)]
 pub struct ProcessImageOcrRequest {

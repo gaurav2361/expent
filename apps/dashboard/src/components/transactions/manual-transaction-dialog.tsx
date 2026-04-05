@@ -78,12 +78,14 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
             <Label htmlFor="amount">Amount (₹)</Label>
             <Input
               id="amount"
+              name="amount"
               type="number"
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
               className="text-lg font-mono"
+              autoComplete="off"
             />
           </div>
 
@@ -91,9 +93,11 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
             <Label htmlFor="description">Description / Note</Label>
             <Input
               id="description"
+              name="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What was this for?"
+              autoComplete="off"
             />
           </div>
 
@@ -135,7 +139,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" size="icon" title="Add Wallet">
+              <Button variant="outline" size="icon" title="Add Wallet" aria-label="Add new wallet">
                 <PlusIcon className="h-4 w-4" />
               </Button>
             </div>
@@ -160,7 +164,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" size="icon" title="Add Contact">
+              <Button variant="outline" size="icon" title="Add Contact" aria-label="Add new contact">
                 <PlusIcon className="h-4 w-4" />
               </Button>
             </div>
@@ -174,7 +178,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
             onClick={() => createMutation.mutate()}
             disabled={!amount || !description || createMutation.isPending}
           >
-            {createMutation.isPending ? "Adding..." : "Add Transaction"}
+            {createMutation.isPending ? "Adding…" : "Add Transaction"}
           </Button>
         </DialogFooter>
       </DialogContent>

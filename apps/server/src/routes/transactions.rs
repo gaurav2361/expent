@@ -1,5 +1,7 @@
+use axum::Router;
 use axum::extract::{Json, Path, Query, State};
 use axum::http::StatusCode;
+use axum::routing::{delete, get, patch, post};
 use db::{SmartMerge, SplitDetail};
 use serde::Deserialize;
 
@@ -9,6 +11,16 @@ use crate::{AppState, AuthSession};
 use crate::extractors::ValidatedJson;
 use validator::Validate;
 
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route("/", get(list_transactions_handler))
+        .route("/manual", post(create_manual_transaction_handler))
+        .route("/from-ocr", post(create_from_ocr_handler))
+        .route("/{id}", patch(update_transaction_handler))
+        .route("/{id}", delete(delete_transaction_handler))
+        .route("/split", post(split_transaction_handler))
+}
+
 #[derive(Deserialize, Validate)]
 pub struct CreateManualTransactionRequest {
     #[validate(custom(function = "validate_amount"))]
@@ -16,6 +28,7 @@ pub struct CreateManualTransactionRequest {
     pub date: chrono::DateTime<chrono::FixedOffset>,
     #[validate(length(min = 1, max = 255))]
     pub purpose_tag: String,
+    pub category_id: Option<String>,
     pub direction: db::entities::enums::TransactionDirection,
     pub source_wallet_id: Option<String>,
     pub destination_wallet_id: Option<String>,
@@ -43,6 +56,7 @@ pub async fn create_manual_transaction_handler(
         payload.date,
         db::entities::enums::TransactionSource::Manual,
         Some(payload.purpose_tag),
+        payload.category_id,
         payload.source_wallet_id,
         payload.destination_wallet_id,
         payload.contact_id,
@@ -84,6 +98,7 @@ pub struct UpdateTransactionRequest {
     pub amount: Option<rust_decimal::Decimal>,
     pub date: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub purpose_tag: Option<String>,
+    pub category_id: Option<String>,
     pub status: Option<db::entities::enums::TransactionStatus>,
     pub notes: Option<String>,
 }
@@ -101,6 +116,7 @@ pub async fn update_transaction_handler(
         payload.amount,
         payload.date,
         payload.purpose_tag,
+        payload.category_id,
         payload.status,
         payload.notes,
     )

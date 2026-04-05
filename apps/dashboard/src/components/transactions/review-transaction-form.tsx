@@ -8,12 +8,11 @@ import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { CheckIcon, Trash2Icon, ReceiptIcon, WalletIcon, UserIcon } from "lucide-react";
 
+import type { TypedProcessedOcr, GPayExtraction, OcrResult } from "@expent/types";
+
 interface ReviewTransactionFormProps {
-  processedOcr: {
-    doc_type: string;
-    data: any;
-  };
-  onConfirm: (finalData: any) => void;
+  processedOcr: TypedProcessedOcr;
+  onConfirm: (finalData: TypedProcessedOcr) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -122,17 +121,26 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
               <Label htmlFor="amount">Amount (₹)</Label>
               <Input
                 id="amount"
+                name="amount"
                 type="number"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="font-mono text-lg font-bold"
                 required
+                autoComplete="off"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <Input
+                id="date"
+                name="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
             </div>
           </div>
 
@@ -142,11 +150,13 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
               <UserIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 id="counterparty"
+                name="counterparty"
                 value={counterparty}
                 onChange={(e) => setCounterparty(e.target.value)}
                 className="pl-9"
                 placeholder="Name"
                 required
+                autoComplete="name"
               />
             </div>
           </div>
@@ -158,10 +168,11 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
                 <WalletIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="upiId"
+                  name="upiId"
                   value={upiId}
                   onChange={(e) => setUpiId(e.target.value)}
                   className="pl-9 font-mono text-xs"
-                  placeholder="e.g. name@upi or +91..."
+                  placeholder="e.g. name@upi or +91…"
                 />
               </div>
             </div>
@@ -184,9 +195,11 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
               <Label htmlFor="description">Personal Note</Label>
               <Input
                 id="description"
+                name="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional tag or note"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -201,7 +214,7 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
-                "Saving..."
+                "Saving…"
               ) : (
                 <>
                   <CheckIcon className="h-4 w-4 mr-2" /> Confirm & Save

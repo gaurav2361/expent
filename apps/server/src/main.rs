@@ -5,7 +5,7 @@ use axum::{
     Router,
     extract::FromRef,
     http::{HeaderValue, Method},
-    routing::{delete, get, patch, post, put},
+    routing::get,
 };
 use better_auth::AxumIntegration;
 use ocr::OcrService;
@@ -53,7 +53,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tracing_subscriber::fmt::layer()
                 .pretty()
                 .with_target(false)
+                // Disable thread IDs in logs for cleaner output, especially in highly concurrent environments where thread IDs might churn frequently.
                 .with_thread_ids(false)
+                // Disable file and line numbers in logs to reduce log verbosity and improve performance in production,
+                // as this information can be costly to capture and is often not needed in aggregated logs.
                 .with_file(false)
                 .with_line_number(false),
         )
@@ -61,37 +64,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     dotenvy::dotenv().ok();
 
-    // Validate required environment variables
-    let required_vars = [
-        "DATABASE_URL",
-        "S3_ENDPOINT",
-        "S3_ACCESS_KEY_ID",
-        "S3_SECRET_ACCESS_KEY",
-        "S3_BUCKET_NAME",
-    ];
+    // Custom error type for environment variable issues
+    #[derive(Debug)]
+    struct EnvVarError(String);
 
-    for var in required_vars {
-        if std::env::var(var).is_err() {
-            panic!("❌ Environment variable {} must be set", var);
+    impl std::fmt::Display for EnvVarError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "Environment variable error: {}", self.0)
         }
     }
 
-    let database_url = std::env::var("DATABASE_URL").unwrap();
+    impl std::error::Error for EnvVarError {}
+
+    let get_env_var = |name: &str| -> Result<String, EnvVarError> {
+        std::env::var(name).map_err(|_| EnvVarError(format!("{} must be set", name)))
+    };
+
+    let database_url = get_env_var("DATABASE_URL")?;
+    let s3_endpoint = get_env_var("S3_ENDPOINT")?;
+    let access_key_id = get_env_var("S3_ACCESS_KEY_ID")?;
+    let secret_access_key = get_env_var("S3_SECRET_ACCESS_KEY")?;
+    let bucket_name = get_env_var("S3_BUCKET_NAME")?;
 
     let db = Database::connect(&database_url).await?;
     let auth = init_auth(db.clone()).await?;
     let ocr_service = Arc::new(OcrService::new().await?);
 
     // S3/R2 Setup
-    let mut endpoint = std::env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set");
+    let mut endpoint = s3_endpoint;
     // Strip bucket suffix if present (e.g. /bucket-name)
     if let Some(pos) = endpoint.rfind(".com/") {
         endpoint.truncate(pos + 4);
     }
-
-    let access_key_id = std::env::var("S3_ACCESS_KEY_ID").expect("S3_ACCESS_KEY_ID must be set");
-    let secret_access_key =
-        std::env::var("S3_SECRET_ACCESS_KEY").expect("S3_SECRET_ACCESS_KEY must be set");
 
     let s3_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
         .endpoint_url(endpoint)
@@ -111,7 +115,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build();
 
     let s3_client = aws_sdk_s3::Client::from_conf(s3_client_config);
-    let bucket_name = std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
     let upload_client = UploadClient::new(s3_client, bucket_name);
 
     let state = AppState {
@@ -129,168 +132,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .per_second(1)
             .burst_size(10)
             .finish()
+            // This unwrap is safe because the default configuration with positive per_second and burst_size values is always valid.
             .unwrap(),
     );
 
     let api_router = Router::new()
         .route("/health", get(|| async { "OK" }))
-        // Transactions
-        .route(
-            "/transactions",
-            get(routes::transactions::list_transactions_handler),
-        )
-        .route(
-            "/transactions/manual",
-            post(routes::transactions::create_manual_transaction_handler),
-        )
-        .route(
-            "/transactions/from-ocr",
-            post(routes::transactions::create_from_ocr_handler),
-        )
-        .route(
-            "/transactions/{id}",
-            patch(routes::transactions::update_transaction_handler),
-        )
-        .route(
-            "/transactions/{id}",
-            delete(routes::transactions::delete_transaction_handler),
-        )
-        .route(
-            "/transactions/split",
-            post(routes::transactions::split_transaction_handler),
-        )
-        // P2P
-        .route("/p2p/pending", get(routes::p2p::list_pending_p2p_handler))
-        .route("/p2p/create", post(routes::p2p::create_p2p_handler))
-        .route("/p2p/accept", post(routes::p2p::accept_p2p_handler))
-        .route("/p2p/reject/{id}", post(routes::p2p::reject_p2p_handler))
-        .route(
-            "/p2p/ledger-tabs",
-            get(routes::p2p::list_ledger_tabs_handler),
-        )
-        .route(
-            "/p2p/ledger-tabs",
-            post(routes::p2p::create_ledger_tab_handler),
-        )
-        .route(
-            "/p2p/ledger-tabs/{id}/repayment",
-            post(routes::p2p::register_repayment_handler),
-        )
-        // Groups
-        .route("/groups", get(routes::groups::list_groups_handler))
-        .route("/groups/create", post(routes::groups::create_group_handler))
-        .route(
-            "/groups/invite",
-            post(routes::groups::invite_to_group_handler),
-        )
-        .route(
-            "/groups/{id}/transactions",
-            get(routes::groups::list_group_transactions_handler),
-        )
-        .route(
-            "/groups/{id}/members",
-            get(routes::groups::list_group_members_handler),
-        )
-        .route(
-            "/groups/{group_id}/members/{user_id}",
-            delete(routes::groups::remove_group_member_handler),
-        )
-        .route(
-            "/groups/{group_id}/members/{user_id}/role",
-            patch(routes::groups::update_member_role_handler),
-        )
-        // Contacts
-        .route("/contacts", get(routes::contacts::list_contacts_handler))
-        .route("/contacts", post(routes::contacts::create_contact_handler))
-        .route(
-            "/contacts/{id}",
-            put(routes::contacts::update_contact_handler),
-        )
-        .route(
-            "/contacts/{id}",
-            delete(routes::contacts::delete_contact_handler),
-        )
-        .route(
-            "/contacts/{id}",
-            get(routes::contacts::get_contact_detail_handler),
-        )
-        .route(
-            "/contacts/{id}/identifiers",
-            post(routes::contacts::add_contact_identifier_handler),
-        )
-        // Wallets
-        .route("/wallets", get(routes::wallets::list_wallets_handler))
-        .route("/wallets", post(routes::wallets::create_wallet_handler))
-        .route("/wallets/{id}", put(routes::wallets::update_wallet_handler))
-        // Users / Profile
-        .route("/users/profile", put(routes::users::update_profile_handler))
-        .route("/users/upi", get(routes::users::list_user_upi_handler))
-        .route("/users/upi", post(routes::users::add_user_upi_handler))
-        .route(
-            "/users/upi/{id}/make-primary",
-            put(routes::users::make_primary_upi_handler),
-        )
-        // Categories
-        .route(
-            "/categories",
-            get(routes::categories::list_categories_handler),
-        )
-        .route(
-            "/categories",
-            post(routes::categories::create_category_handler),
-        )
-        .route(
-            "/categories/{id}",
-            delete(routes::categories::delete_category_handler),
-        )
-        // Subscriptions
-        .route(
-            "/subscriptions",
-            get(routes::subscriptions::list_confirmed_subscriptions_handler),
-        )
-        .route(
-            "/subscriptions",
-            post(routes::subscriptions::confirm_subscription_handler),
-        )
-        .route(
-            "/subscriptions/{id}",
-            delete(routes::subscriptions::stop_tracking_subscription_handler),
-        )
-        .route(
-            "/subscriptions/{id}/alerts",
-            post(routes::subscriptions::configure_subscription_alert_handler),
-        )
-        .route(
-            "/subscriptions/detect",
-            get(routes::subscriptions::detect_subscriptions_handler),
-        )
-        // Reconciliation
-        .route(
-            "/reconciliation/rows",
-            get(routes::reconciliation::list_unmatched_rows_handler),
-        )
-        .route(
-            "/reconciliation/rows/{id}/matches",
-            get(routes::reconciliation::get_row_matches_handler),
-        )
-        .route(
-            "/reconciliation/rows/{id}/confirm",
-            post(routes::reconciliation::confirm_match_handler),
-        )
-        .route(
-            "/reconciliation/upload",
-            post(routes::reconciliation::upload_statement_handler),
-        )
-        // OCR & Uploads
-        .route(
-            "/upload/presigned",
-            post(routes::uploads::get_presigned_url_handler),
-        )
-        .route("/upload", post(routes::uploads::direct_upload_handler))
-        .route(
-            "/process-image-ocr",
-            post(routes::ocr::process_image_ocr_handler),
-        )
+        .nest("/transactions", routes::transactions::router())
+        .nest("/p2p", routes::p2p::router())
+        .nest("/groups", routes::groups::router())
+        .nest("/contacts", routes::contacts::router())
+        .nest("/wallets", routes::wallets::router())
+        .nest("/users", routes::users::router())
+        .nest("/categories", routes::categories::router())
+        .nest("/subscriptions", routes::subscriptions::router())
+        .nest("/reconciliation", routes::reconciliation::router())
+        .nest("/upload", routes::uploads::router())
+        .nest("/ocr", routes::ocr::router())
         .layer(GovernorLayer::new(governor_conf));
 
     let allowed_origins = std::env::var("ALLOWED_ORIGINS")

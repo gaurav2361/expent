@@ -2,7 +2,7 @@
 
 import { Badge } from "@expent/ui/components/badge";
 import { Button } from "@expent/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction } from "@expent/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -45,7 +45,7 @@ function InviteDialog({ groupId, groupName }: { groupId: string; groupName: stri
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm" variant="ghost" className="h-8 w-8 p-0" />}>
+      <DialogTrigger render={<Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label="Invite member" />}>
         <UserPlusIcon className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent>
@@ -58,10 +58,12 @@ function InviteDialog({ groupId, groupName }: { groupId: string; groupName: stri
             <Label htmlFor="email">Email Address</Label>
             <Input
               id="email"
+              name="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="friend@example.com"
+              autoComplete="email"
             />
           </div>
         </div>
@@ -70,7 +72,7 @@ function InviteDialog({ groupId, groupName }: { groupId: string; groupName: stri
             Cancel
           </Button>
           <Button onClick={handleInvite} disabled={!email || inviteMutation.isPending}>
-            {inviteMutation.isPending ? "Sending..." : "Send Invite"}
+            {inviteMutation.isPending ? "Sending…" : "Send Invite"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -87,7 +89,7 @@ function MembersDialog({ groupId, groupName }: { groupId: string; groupName: str
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button variant="outline" size="sm" className="shadow-none" />}>
+      <DialogTrigger render={<Button variant="outline" size="sm" className="shadow-none" aria-label="View members" />}>
         <UsersIcon className="mr-2 h-4 w-4" /> Members
       </DialogTrigger>
       <DialogContent className="sm:max-w-[450px]">
@@ -97,7 +99,7 @@ function MembersDialog({ groupId, groupName }: { groupId: string; groupName: str
         </DialogHeader>
         <div className="space-y-4 py-4">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground animate-pulse">Loading members...</p>
+            <p className="text-sm text-muted-foreground animate-pulse">Loading members…</p>
           ) : (
             members?.map((m) => (
               <div
@@ -141,6 +143,7 @@ function MembersDialog({ groupId, groupName }: { groupId: string; groupName: str
                         variant="ghost"
                         size="icon-xs"
                         className="text-destructive h-7 w-7"
+                        aria-label={`Remove ${m.name || m.email} from group`}
                         onClick={() => {
                           if (confirm(`Remove ${m.name || m.email} from group?`)) {
                             removeMemberMutation.mutate(m.user_id);
@@ -180,7 +183,9 @@ function GroupDetails({ group }: { group: any }) {
         <div className="flex gap-2">
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
+              <TooltipTrigger
+                render={<Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Information" />}
+              >
                 <InfoIcon className="h-4 w-4 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
@@ -306,14 +311,22 @@ export default function SharedLedgersComponent() {
                 <Label htmlFor="name">Ledger Name</Label>
                 <Input
                   id="name"
+                  name="name"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
                   placeholder="e.g. Trip to Goa, Apartment Expenses"
+                  autoComplete="organization"
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="desc">Description (Optional)</Label>
-                <Input id="desc" value={newGroupDesc} onChange={(e) => setNewGroupDesc(e.target.value)} />
+                <Input
+                  id="desc"
+                  name="description"
+                  value={newGroupDesc}
+                  onChange={(e) => setNewGroupDesc(e.target.value)}
+                  autoComplete="off"
+                />
               </div>
             </div>
             <DialogFooter>
@@ -321,7 +334,7 @@ export default function SharedLedgersComponent() {
                 Cancel
               </Button>
               <Button onClick={handleCreate} disabled={!newGroupName || createMutation.isPending}>
-                {createMutation.isPending ? "Creating..." : "Create"}
+                {createMutation.isPending ? "Creating…" : "Create"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -350,15 +363,15 @@ export default function SharedLedgersComponent() {
                 onClick={() => setSelectedGroup(group)}
               >
                 <CardHeader className="p-4 space-y-0">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-base">{group.name}</CardTitle>
-                      <CardDescription className="text-xs line-clamp-1 italic">
-                        {group.description || "Active Shared Ledger"}
-                      </CardDescription>
-                    </div>
-                    <InviteDialog groupId={group.id} groupName={group.name} />
+                  <div className="space-y-1">
+                    <CardTitle className="text-base">{group.name}</CardTitle>
+                    <CardDescription className="text-xs line-clamp-1 italic">
+                      {group.description || "Active Shared Ledger"}
+                    </CardDescription>
                   </div>
+                  <CardAction>
+                    <InviteDialog groupId={group.id} groupName={group.name} />
+                  </CardAction>
                 </CardHeader>
                 <CardContent className="px-4 pb-4 pt-0">
                   <div className="flex items-center justify-between mt-2">
@@ -368,6 +381,7 @@ export default function SharedLedgersComponent() {
                     </div>
                     <ChevronRightIcon
                       className={`h-4 w-4 text-muted-foreground transition-transform ${selectedGroup?.id === group.id ? "translate-x-1 text-primary" : "group-hover:translate-x-1"}`}
+                      aria-label="View ledger details"
                     />
                   </div>
                 </CardContent>

@@ -138,7 +138,7 @@ export default function SubscriptionsComponent() {
 
         <TabsContent value="detected" className="mt-6">
           {isDetecting ? (
-            <div className="text-center py-20 text-muted-foreground">Scanning transactions for patterns...</div>
+            <div className="text-center py-20 text-muted-foreground">Scanning transactions for patterns…</div>
           ) : !potentialSubs || potentialSubs.length === 0 ? (
             <Card className="border-dashed py-20">
               <CardContent className="flex flex-col items-center text-center">

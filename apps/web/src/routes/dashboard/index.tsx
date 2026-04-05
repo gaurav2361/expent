@@ -7,7 +7,7 @@ import {
   BreadcrumbSeparator,
 } from "@expent/ui/components/breadcrumb";
 import { Button } from "@expent/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction } from "@expent/ui/components/card";
 import { Input } from "@expent/ui/components/input";
 import { Separator } from "@expent/ui/components/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@expent/ui/components/sidebar";
@@ -220,10 +220,10 @@ function RouteComponent() {
       ),
       action: (row: TransactionType) => (
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreVerticalIcon className="h-4 w-4" />
-            </Button>
+          <DropdownMenuTrigger
+            render={<Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Open menu" />}
+          >
+            <MoreVerticalIcon className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem onClick={() => triggerSplit(row.id, row.amount)}>
@@ -254,7 +254,7 @@ function RouteComponent() {
   }, [session.data, session.isPending, navigate]);
 
   if (session.isPending) {
-    return <div className="flex h-screen items-center justify-center">Loading session...</div>;
+    return <div className="flex h-screen items-center justify-center">Loading session…</div>;
   }
 
   if (!session.data) {
@@ -264,7 +264,7 @@ function RouteComponent() {
   const handleUpload = async () => {
     if (!file) return;
     setIsUploading(true);
-    const toastId = toast("Uploading and processing file...");
+    const toastId = toast("Uploading and processing file…");
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -278,7 +278,7 @@ function RouteComponent() {
       if (!uploadRes.ok) throw new Error("Upload failed");
       const { key } = await uploadRes.json();
 
-      const processRes = await fetch(`${API_BASE_URL}/api/process-image-ocr`, {
+      const processRes = await fetch(`${API_BASE_URL}/api/ocr/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key }),
@@ -478,15 +478,17 @@ function RouteComponent() {
 
           {/* Recent Transactions Table */}
           <Card className="flex-1 overflow-hidden">
-            <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
+            <CardHeader className="px-6 py-4">
               <CardTitle>Recent Transactions</CardTitle>
-              <Button variant="outline" size="sm">
-                View All
-              </Button>
+              <CardAction>
+                <Button variant="outline" size="sm">
+                  View All
+                </Button>
+              </CardAction>
             </CardHeader>
             <CardContent className="p-0">
               {isTxnsLoading ? (
-                <div className="text-center py-10 text-muted-foreground">Loading transactions...</div>
+                <div className="text-center py-10 text-muted-foreground">Loading transactions…</div>
               ) : (
                 <DataTable<TransactionType>
                   id="dashboard-recent-transactions"

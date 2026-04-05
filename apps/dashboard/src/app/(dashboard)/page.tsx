@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@expent/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@expent/ui/components/card";
 import { Input } from "@expent/ui/components/input";
+import { Label } from "@expent/ui/components/label";
 import { Share2Icon, MoreVerticalIcon, Trash2Icon, PlusIcon } from "lucide-react";
 import { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -33,6 +34,7 @@ import type {
   P2PRequest,
   P2PRequestWithSender,
   TransactionWithDetail,
+  TypedProcessedOcr,
 } from "@expent/types";
 
 export default function DashboardPage() {
@@ -45,7 +47,7 @@ export default function DashboardPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSteps, setUploadSteps] = useState<any[]>([]);
-  const [processedOcr, setProcessedOcr] = useState<{ doc_type: string; data: any } | null>(null);
+  const [processedOcr, setProcessedOcr] = useState<TypedProcessedOcr | null>(null);
   const [isSavingOcr, setIsSavingOcr] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
@@ -109,7 +111,7 @@ export default function DashboardPage() {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Open transaction menu">
                 <MoreVerticalIcon className="h-4 w-4" />
               </Button>
             }
@@ -142,9 +144,9 @@ export default function DashboardPage() {
     setProcessedOcr(null);
 
     const steps = [
-      { id: "1", label: "Uploading file...", status: "in-progress" },
-      { id: "2", label: "Classifying document...", status: "pending" },
-      { id: "3", label: "Extracting transaction data...", status: "pending" },
+      { id: "1", label: "Uploading file…", status: "in-progress" },
+      { id: "2", label: "Classifying document…", status: "pending" },
+      { id: "3", label: "Extracting transaction data…", status: "pending" },
     ];
     setUploadSteps(steps);
 
@@ -171,7 +173,7 @@ export default function DashboardPage() {
         )
       );
 
-      const result = await apiClient<any>("/api/process-image-ocr", {
+      const result = await apiClient<TypedProcessedOcr>("/api/ocr/process", {
         method: "POST",
         body: JSON.stringify({ key }),
       });
@@ -195,7 +197,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleConfirmOcr = async (finalData: any) => {
+  const handleConfirmOcr = async (finalData: TypedProcessedOcr) => {
     setIsSavingOcr(true);
     try {
       const result = await apiClient<any>("/api/transactions/from-ocr", {
@@ -221,33 +223,59 @@ export default function DashboardPage() {
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         <div className="grid auto-rows-min gap-4 md:grid-cols-3">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader>
               <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-              <Button variant="ghost" size="icon-sm" onClick={() => router.push("/p2p/pending")}>
-                <MoreVerticalIcon className="h-4 w-4" />
-              </Button>
+              <CardAction>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => router.push("/p2p/pending")}
+                  aria-label="View pending approvals"
+                >
+                  <MoreVerticalIcon className="h-4 w-4" />
+                </Button>
+              </CardAction>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{p2pRequests?.length || 0}</div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader>
               <CardTitle className="text-sm font-medium">Quick Upload (Images, PDF, CSV)</CardTitle>
-              <Button variant="ghost" size="icon-sm" onClick={() => setManualDialogOpen(true)}>
-                <PlusIcon className="h-4 w-4" />
-              </Button>
+              <CardAction>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setManualDialogOpen(true)}
+                  aria-label="Add manual transaction"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                </Button>
+              </CardAction>
             </CardHeader>
-            <CardContent className="flex gap-2">
-              <Input
-                type="file"
-                accept="image/*,application/pdf,text/csv"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="h-8 text-xs"
-              />
-              <Button onClick={handleUpload} disabled={!file || isUploading} size="sm">
-                {isUploading ? "..." : "Go"}
-              </Button>
+            <CardContent className="flex flex-col gap-2">
+              <Label htmlFor="quick-upload" className="sr-only">
+                Quick Upload
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="quick-upload"
+                  type="file"
+                  accept="image/*,application/pdf,text/csv"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="h-8 text-xs"
+                  aria-label="Select file to upload"
+                />
+                <Button
+                  onClick={handleUpload}
+                  disabled={!file || isUploading}
+                  size="sm"
+                  aria-label="Upload and process file"
+                >
+                  {isUploading ? "…" : "Go"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
           <Card
@@ -341,7 +369,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="p-0">
             {isTxnsLoading ? (
-              <div className="text-center py-10 text-muted-foreground">Loading transactions...</div>
+              <div className="text-center py-10 text-muted-foreground">Loading transactions…</div>
             ) : (
               <DataTable<TransactionWithDetail>
                 id="dashboard-recent-transactions"

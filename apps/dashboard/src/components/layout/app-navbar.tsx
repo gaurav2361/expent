@@ -52,7 +52,7 @@ export function AppNavbar() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Button size="icon-sm" variant="outline">
+        <Button size="icon-sm" variant="outline" aria-label="Quick send">
           <SendIcon data-icon="inline-start" />
         </Button>
         <Button aria-label="Notifications" size="icon-sm" variant="outline">

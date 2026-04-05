@@ -51,9 +51,11 @@ export function SplitDialog({ open, onOpenChange, transactionId, totalAmount }: 
   const addSplit = () => setSplits([...splits, { receiver_email: "", amount: "" }]);
   const removeSplit = (index: number) => setSplits(splits.filter((_, i) => i !== index));
   const updateSplit = (index: number, field: "receiver_email" | "amount", value: string) => {
-    const newSplits = [...splits];
-    newSplits[index][field] = value;
-    setSplits(newSplits);
+    setSplits((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
   };
 
   return (
@@ -90,6 +92,7 @@ export function SplitDialog({ open, onOpenChange, transactionId, totalAmount }: 
                 className="text-destructive"
                 onClick={() => removeSplit(index)}
                 disabled={splits.length === 1}
+                aria-label="Remove person"
               >
                 <Trash2Icon className="h-4 w-4" />
               </Button>
@@ -107,7 +110,7 @@ export function SplitDialog({ open, onOpenChange, transactionId, totalAmount }: 
             onClick={() => splitMutation.mutate()}
             disabled={splitMutation.isPending || splits.some((s) => !s.receiver_email || !s.amount)}
           >
-            {splitMutation.isPending ? "Splitting..." : "Send Split Requests"}
+            {splitMutation.isPending ? "Splitting…" : "Send Split Requests"}
           </Button>
         </DialogFooter>
       </DialogContent>

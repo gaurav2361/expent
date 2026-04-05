@@ -1,5 +1,7 @@
+use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
+use axum::routing::{get, post};
 use db::SmartMerge;
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
@@ -7,11 +9,19 @@ use serde::{Deserialize, Serialize};
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
 
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route("/rows", get(list_unmatched_rows_handler))
+        .route("/rows/{id}/matches", get(get_row_matches_handler))
+        .route("/rows/{id}/confirm", post(confirm_match_handler))
+        .route("/upload", post(upload_statement_handler))
+}
+
 pub async fn list_unmatched_rows_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::bank_statement_rows::Model>>, ApiError> {
-    let result = SmartMerge::list_unmatched_statement_rows(&state.db, &session.user.id).await?;
+    let result = SmartMerge::list_unmatched_rows(&state.db, &session.user.id).await?;
     Ok(Json(result))
 }
 
@@ -31,7 +41,7 @@ pub async fn get_row_matches_handler(
         .await?
         .ok_or(ApiError::NotFound("Row not found".to_string()))?;
 
-    let matches = SmartMerge::find_matches_for_row(&state.db, &session.user.id, &id).await?;
+    let matches = SmartMerge::get_row_matches(&state.db, &session.user.id, &id).await?;
 
     Ok(Json(RowMatchesResponse { row, matches }))
 }
@@ -77,7 +87,7 @@ pub async fn upload_statement_handler(
     Json(payload): Json<StatementUploadRequest>,
 ) -> Result<StatusCode, ApiError> {
     for row in payload.rows {
-        SmartMerge::create_bank_statement_row(
+        SmartMerge::upload_statement(
             &state.db,
             &session.user.id,
             row.date,

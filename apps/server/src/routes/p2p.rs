@@ -1,10 +1,26 @@
+use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
+use axum::routing::{get, post};
 use db::SmartMerge;
 use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
+
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route("/pending", get(list_pending_p2p_handler))
+        .route("/create", post(create_p2p_handler))
+        .route("/accept", post(accept_p2p_handler))
+        .route("/reject/{id}", post(reject_p2p_handler))
+        .route("/ledger-tabs", get(list_ledger_tabs_handler))
+        .route("/ledger-tabs", post(create_ledger_tab_handler))
+        .route(
+            "/ledger-tabs/{id}/repayment",
+            post(register_repayment_handler),
+        )
+}
 
 pub async fn list_pending_p2p_handler(
     State(state): State<AppState>,

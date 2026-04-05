@@ -1,7 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@expent/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+  CardAction,
+} from "@expent/ui/components/card";
 import { Button } from "@expent/ui/components/button";
 import { Input } from "@expent/ui/components/input";
 import { Badge } from "@expent/ui/components/badge";
@@ -112,7 +120,7 @@ export default function WalletsPage() {
                 Cancel
               </Button>
               <Button onClick={handleCreate} disabled={!newName || createMutation.isPending}>
-                {createMutation.isPending ? "Creating..." : "Create Wallet"}
+                {createMutation.isPending ? "Creating…" : "Create Wallet"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -174,9 +182,16 @@ function WalletCard({ wallet }: { wallet: any }) {
             </CardDescription>
           </div>
         </div>
-        <Button variant="ghost" size="icon-xs" className="opacity-0 group-hover:opacity-100 transition-opacity">
-          <MoreVerticalIcon className="h-4 w-4 text-muted-foreground" />
-        </Button>
+        <CardAction>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label="More options"
+          >
+            <MoreVerticalIcon className="h-4 w-4" />
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent className="p-4 pt-0">
         <div className="mt-2">
