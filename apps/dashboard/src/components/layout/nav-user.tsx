@@ -1,5 +1,5 @@
 "use client";
-
+import * as React from "react";
 import { MoreVerticalIcon, LogOutIcon, SettingsIcon, BellIcon, UserCogIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -76,15 +76,33 @@ export function NavUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/settings/profile")} className="cursor-pointer">
+              <DropdownMenuItem onClick={() => {
+                React.startTransition(() => {
+                  /* @ts-ignore -- react experimental */
+                  if (typeof React.addTransitionType === 'function') React.addTransitionType('nav-forward');
+                  router.push("/settings/profile");
+                });
+              }} className="cursor-pointer">
                 <UserCogIcon />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/settings/account")} className="cursor-pointer">
+              <DropdownMenuItem onClick={() => {
+                React.startTransition(() => {
+                  /* @ts-ignore -- react experimental */
+                  if (typeof React.addTransitionType === 'function') React.addTransitionType('nav-forward');
+                  router.push("/settings/account");
+                });
+              }} className="cursor-pointer">
                 <SettingsIcon />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/settings/notifications")} className="cursor-pointer">
+              <DropdownMenuItem onClick={() => {
+                React.startTransition(() => {
+                  /* @ts-ignore -- react experimental */
+                  if (typeof React.addTransitionType === 'function') React.addTransitionType('nav-forward');
+                  router.push("/settings/notifications");
+                });
+              }} className="cursor-pointer">
                 <BellIcon />
                 Notifications
               </DropdownMenuItem>

@@ -23,6 +23,7 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
         <Link
           key={item.href}
           href={item.href}
+          transitionTypes={["fade-in"]}
           className={cn(
             buttonVariants({ variant: "ghost" }),
             pathname === item.href
