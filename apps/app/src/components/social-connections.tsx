@@ -2,6 +2,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useColorScheme } from 'nativewind';
 import { Image, Platform, View } from 'react-native';
+import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 const SOCIAL_CONNECTION_STRATEGIES = [
   {
@@ -24,6 +26,14 @@ const SOCIAL_CONNECTION_STRATEGIES = [
 export function SocialConnections() {
   const { colorScheme } = useColorScheme();
 
+  const handleSocialAuth = async (strategy: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    console.log('Authenticating with social strategy:', strategy);
+    // TODO: Implement actual social auth with Better Auth
+    // For now, just navigate to tabs as a placeholder
+    router.replace('/(tabs)');
+  };
+
   return (
     <View className="gap-2 sm:flex-row sm:gap-3">
       {SOCIAL_CONNECTION_STRATEGIES.map((strategy) => {
@@ -33,9 +43,7 @@ export function SocialConnections() {
             variant="outline"
             size="sm"
             className="sm:flex-1"
-            onPress={() => {
-              // TODO: Authenticate with social provider and navigate to protected screen if successful
-            }}>
+            onPress={() => handleSocialAuth(strategy.type)}>
             <Image
               className={cn('size-4', strategy.useTint && Platform.select({ web: 'dark:invert' }))}
               tintColor={Platform.select({

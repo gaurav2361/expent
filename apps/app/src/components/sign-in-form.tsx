@@ -13,16 +13,32 @@ import { Separator } from '@/components/ui/separator';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
 import { Pressable, type TextInput, View } from 'react-native';
+import { useAuth } from '@/lib/auth/use-auth';
+import { router } from 'expo-router';
+import { showErrorMessage } from '@/components/ui/utils';
 
 export function SignInForm() {
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const { signIn, isLoading } = useAuth();
   const passwordInputRef = React.useRef<TextInput>(null);
 
   function onEmailSubmitEditing() {
     passwordInputRef.current?.focus();
   }
 
-  function onSubmit() {
-    // TODO: Submit form and navigate to protected screen if successful
+  async function onSubmit() {
+    if (!email || !password) {
+      showErrorMessage('Please enter both email and password');
+      return;
+    }
+
+    try {
+      await signIn(email, password);
+      router.replace('/(tabs)');
+    } catch (error) {
+      showErrorMessage(error instanceof Error ? error.message : 'Failed to sign in');
+    }
   }
 
   return (
@@ -37,27 +53,30 @@ export function SignInForm() {
         <CardContent className="gap-6">
           <View className="gap-6">
             <View className="gap-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label nativeID="email-label">Email</Label>
               <Input
                 id="email"
                 placeholder="m@example.com"
                 keyboardType="email-address"
                 autoComplete="email"
                 autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
                 onSubmitEditing={onEmailSubmitEditing}
                 returnKeyType="next"
                 submitBehavior="submit"
+                aria-labelledby="email-label"
               />
             </View>
             <View className="gap-1.5">
               <View className="flex-row items-center">
-                <Label htmlFor="password">Password</Label>
+                <Label nativeID="password-label">Password</Label>
                 <Button
                   variant="link"
                   size="sm"
                   className="web:h-fit ml-auto h-4 px-1 py-0 sm:h-4"
                   onPress={() => {
-                    // TODO: Navigate to forgot password screen
+                    router.push('/(auth)/forgot-password');
                   }}>
                   <Text className="font-normal leading-4">Forgot your password?</Text>
                 </Button>
@@ -66,21 +85,24 @@ export function SignInForm() {
                 ref={passwordInputRef}
                 id="password"
                 secureTextEntry
+                value={password}
+                onChangeText={setPassword}
                 returnKeyType="send"
                 onSubmitEditing={onSubmit}
+                aria-labelledby="password-label"
               />
             </View>
-            <Button className="w-full" onPress={onSubmit}>
-              <Text>Continue</Text>
+            <Button className="w-full" onPress={onSubmit} disabled={isLoading}>
+              <Text>{isLoading ? 'Continuing...' : 'Continue'}</Text>
             </Button>
           </View>
           <Text className="text-center text-sm">
             Don&apos;t have an account?{' '}
             <Pressable
               onPress={() => {
-                // TODO: Navigate to sign up screen
+                router.push('/(auth)/sign-up');
               }}>
-              <Text className="text-sm underline underline-offset-4">Sign up</Text>
+              <Text className="text-sm underline underline-offset-4 text-primary">Sign up</Text>
             </Pressable>
           </Text>
           <View className="flex-row items-center">

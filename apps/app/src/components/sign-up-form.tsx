@@ -12,17 +12,34 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, type TextInput, View } from 'react-native';
+import { useAuth } from '@/lib/auth/use-auth';
+import { router } from 'expo-router';
+import { showErrorMessage } from '@/components/ui/utils';
 
 export function SignUpForm() {
+  const [name, setName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const { signUp, isLoading } = useAuth();
   const passwordInputRef = React.useRef<TextInput>(null);
 
   function onEmailSubmitEditing() {
     passwordInputRef.current?.focus();
   }
 
-  function onSubmit() {
-    // TODO: Submit form and navigate to protected screen if successful
+  async function onSubmit() {
+    if (!name || !email || !password) {
+      showErrorMessage('Please fill in all fields');
+      return;
+    }
+
+    try {
+      await signUp(email, password, name);
+      router.replace('/(tabs)');
+    } catch (error) {
+      showErrorMessage(error instanceof Error ? error.message : 'Failed to create account');
+    }
   }
 
   return (
@@ -37,41 +54,59 @@ export function SignUpForm() {
         <CardContent className="gap-6">
           <View className="gap-6">
             <View className="gap-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label nativeID="name-label">Full Name</Label>
+              <Input
+                id="name"
+                placeholder="John Doe"
+                autoCapitalize="words"
+                value={name}
+                onChangeText={setName}
+                returnKeyType="next"
+                aria-labelledby="name-label"
+              />
+            </View>
+            <View className="gap-1.5">
+              <Label nativeID="email-label">Email</Label>
               <Input
                 id="email"
                 placeholder="m@example.com"
                 keyboardType="email-address"
                 autoComplete="email"
                 autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
                 onSubmitEditing={onEmailSubmitEditing}
                 returnKeyType="next"
                 submitBehavior="submit"
+                aria-labelledby="email-label"
               />
             </View>
             <View className="gap-1.5">
               <View className="flex-row items-center">
-                <Label htmlFor="password">Password</Label>
+                <Label nativeID="password-label">Password</Label>
               </View>
               <Input
                 ref={passwordInputRef}
                 id="password"
                 secureTextEntry
+                value={password}
+                onChangeText={setPassword}
                 returnKeyType="send"
                 onSubmitEditing={onSubmit}
+                aria-labelledby="password-label"
               />
             </View>
-            <Button className="w-full" onPress={onSubmit}>
-              <Text>Continue</Text>
+            <Button className="w-full" onPress={onSubmit} disabled={isLoading}>
+              <Text>{isLoading ? 'Creating...' : 'Continue'}</Text>
             </Button>
           </View>
           <Text className="text-center text-sm">
             Already have an account?{' '}
             <Pressable
               onPress={() => {
-                // TODO: Navigate to sign in screen
+                router.push('/(auth)/sign-in');
               }}>
-              <Text className="text-sm underline underline-offset-4">Sign in</Text>
+              <Text className="text-sm underline underline-offset-4 text-primary">Sign in</Text>
             </Pressable>
           </Text>
           <View className="flex-row items-center">

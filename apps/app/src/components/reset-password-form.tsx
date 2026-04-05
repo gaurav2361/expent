@@ -11,16 +11,36 @@ import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
 import { TextInput, View } from 'react-native';
+import { router } from 'expo-router';
+import { showErrorMessage } from '@/components/ui/utils';
 
 export function ResetPasswordForm() {
+  const [password, setPassword] = React.useState('');
+  const [code, setCode] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
   const codeInputRef = React.useRef<TextInput>(null);
 
   function onPasswordSubmitEditing() {
     codeInputRef.current?.focus();
   }
 
-  function onSubmit() {
-    // TODO: Submit form and navigate to protected screen if successful
+  async function onSubmit() {
+    if (!password || !code) {
+      showErrorMessage('Please fill in all fields');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // TODO: Call your reset password API here
+      console.log('Resetting password with code:', code);
+      // Simulate success and navigate
+      router.replace('/(auth)/sign-in');
+    } catch (error) {
+      showErrorMessage(error instanceof Error ? error.message : 'Something went wrong');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -36,30 +56,37 @@ export function ResetPasswordForm() {
           <View className="gap-6">
             <View className="gap-1.5">
               <View className="flex-row items-center">
-                <Label htmlFor="password">New password</Label>
+                <Label nativeID="password-label">New password</Label>
               </View>
               <Input
                 id="password"
                 secureTextEntry
+                value={password}
+                onChangeText={setPassword}
                 returnKeyType="next"
                 submitBehavior="submit"
                 onSubmitEditing={onPasswordSubmitEditing}
+                aria-labelledby="password-label"
               />
             </View>
             <View className="gap-1.5">
-              <Label htmlFor="code">Verification code</Label>
+              <Label nativeID="code-label">Verification code</Label>
               <Input
+                ref={codeInputRef}
                 id="code"
                 autoCapitalize="none"
                 returnKeyType="send"
                 keyboardType="numeric"
                 autoComplete="sms-otp"
                 textContentType="oneTimeCode"
+                value={code}
+                onChangeText={setCode}
                 onSubmitEditing={onSubmit}
+                aria-labelledby="code-label"
               />
             </View>
-            <Button className="w-full" onPress={onSubmit}>
-              <Text>Reset Password</Text>
+            <Button className="w-full" onPress={onSubmit} disabled={isLoading}>
+              <Text>{isLoading ? 'Resetting...' : 'Reset Password'}</Text>
             </Button>
           </View>
         </CardContent>
