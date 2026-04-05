@@ -130,7 +130,7 @@ export default function SubscriptionsScreen() {
               )}
             </View>
           )}
-        </FlashList>
+        />
       </View>
     </SafeAreaView>
   );
