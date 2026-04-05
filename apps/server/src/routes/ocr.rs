@@ -68,15 +68,10 @@ pub async fn process_image_ocr_handler(
             ApiError::Internal(e.to_string())
         })?;
 
-    let processed_ocr = db::ProcessedOcr {
-        doc_type: if mime_type == "image/png" {
-            "GPAY".to_string()
-        } else {
-            "GENERIC".to_string()
-        },
-        data: ocr_json,
-        r2_key: Some(payload.key),
-    };
+    let mut processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json)
+        .map_err(|e| ApiError::Internal(format!("Failed to parse OCR response: {}", e)))?;
+    
+    processed_ocr.r2_key = Some(payload.key);
 
     Ok(Json(processed_ocr))
 }

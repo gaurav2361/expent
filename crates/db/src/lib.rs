@@ -56,7 +56,7 @@ pub struct GPayExtraction {
     pub amount: Decimal,
     pub direction: String, // "IN" | "OUT"
     pub datetime_str: Option<String>,
-    pub status: String,
+    pub status: Option<String>,
     pub counterparty_name: String,
     pub counterparty_phone: Option<String>,
     pub counterparty_upi_id: Option<String>,
@@ -613,6 +613,10 @@ mod tests {
 
         db.execute(db_backend.build(&schema.create_table_from_entity(entities::users::Entity)))
             .await?;
+        db.execute(
+            db_backend.build(&schema.create_table_from_entity(entities::categories::Entity)),
+        )
+        .await?;
         db.execute(
             db_backend.build(&schema.create_table_from_entity(entities::transactions::Entity)),
         )
