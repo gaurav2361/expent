@@ -1,4 +1,6 @@
 "use client";
+
+import * as React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -15,19 +17,33 @@ import { Separator } from "@expent/ui/components/separator";
 import { CustomSidebarTrigger } from "@/components/layout/custom-sidebar-trigger";
 import { SendIcon, BellIcon } from "lucide-react";
 
-const PATHTITLE: Record<string, string> = {
-  "/": "Overview",
-  "/transactions": "All Transactions",
-  "/p2p/shared-ledgers": "Shared Ledgers",
-  "/p2p/pending": "Pending Requests",
-  "/subscriptions": "Subscriptions",
-  "/contacts": "Contacts",
-  "/settings": "Settings",
+const generateBreadcrumbs = (path: string) => {
+  if (path === "/") return [{ label: "Overview", href: "/" }];
+
+  const segments = path.split("/").filter(Boolean);
+  const crumbs = [];
+
+  let currentPath = "";
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    currentPath += `/${seg}`;
+
+    let label = seg;
+    if (seg === "p2p") {
+      label = "P2P";
+    } else {
+      // Capitalize 'shared-ledgers' to 'Shared Ledgers'
+      label = seg.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    }
+
+    crumbs.push({ label, href: currentPath });
+  }
+  return crumbs;
 };
 
 export function AppNavbar() {
   const pathname = usePathname();
-  const title = PATHTITLE[pathname] || "Overview";
+  const breadcrumbs = generateBreadcrumbs(pathname);
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 shadow-sm border-b z-10 sticky top-0 bg-background/95 backdrop-blur-sm">
@@ -39,14 +55,20 @@ export function AppNavbar() {
             <BreadcrumbItem className="hidden md:block">
               <BreadcrumbLink render={<Link href="/" />}>Dashboard</BreadcrumbLink>
             </BreadcrumbItem>
-            {pathname !== "/" && (
-              <>
+            {breadcrumbs.map((bc, idx) => (
+              <React.Fragment key={bc.href}>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{title}</BreadcrumbPage>
+                  {idx === breadcrumbs.length - 1 ? (
+                    <BreadcrumbPage>{bc.label}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink className="hidden md:block" render={<Link href={bc.href} />}>
+                      {bc.label}
+                    </BreadcrumbLink>
+                  )}
                 </BreadcrumbItem>
-              </>
-            )}
+              </React.Fragment>
+            ))}
           </BreadcrumbList>
         </Breadcrumb>
       </div>
