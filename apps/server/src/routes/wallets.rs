@@ -1,9 +1,17 @@
+use axum::Router;
 use axum::extract::{Json, Path, State};
+use axum::routing::{get, post, put};
 use db::SmartMerge;
 use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
+
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route("/", get(list_wallets_handler).post(create_wallet_handler))
+        .route("/{id}", put(update_wallet_handler))
+}
 
 pub async fn list_wallets_handler(
     State(state): State<AppState>,

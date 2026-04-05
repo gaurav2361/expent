@@ -72,7 +72,7 @@ export default function ReconciliationPage() {
               </Label>
               {file && (
                 <Button onClick={handleUpload} disabled={isUploading} className="w-full">
-                  {isUploading ? "Processing..." : "Start Matching"}
+                  {isUploading ? "Processing…" : "Start Matching"}
                 </Button>
               )}
             </div>
@@ -80,7 +80,7 @@ export default function ReconciliationPage() {
               <div className="w-full max-w-xs mt-4">
                 <Progress value={66} className="h-2" />
                 <p className="text-[10px] text-muted-foreground mt-2 italic">
-                  Scanning rows & computing confidence scores...
+                  Scanning rows & computing confidence scores…
                 </p>
               </div>
             )}
@@ -208,10 +208,14 @@ function ReconciliationRow({ bankRow, match, isMissing }: { bankRow: any; match?
         {/* Actions */}
         {!isMissing && (
           <div className="flex md:flex-col border-t md:border-t-0 md:border-l p-2 gap-2 bg-muted/5">
-            <Button size="icon-sm" className="flex-1 rounded-full h-9 w-9 bg-green-600 hover:bg-green-700">
+            <Button
+              size="icon-sm"
+              className="flex-1 rounded-full h-9 w-9 bg-green-600 hover:bg-green-700"
+              aria-label="Confirm match"
+            >
               <CheckIcon className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon-sm" className="flex-1 rounded-full h-9 w-9">
+            <Button variant="outline" size="icon-sm" className="flex-1 rounded-full h-9 w-9" aria-label="Reject match">
               <XIcon className="h-4 w-4" />
             </Button>
           </div>

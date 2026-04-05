@@ -1,5 +1,7 @@
+use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
+use axum::routing::{delete, get, post, put};
 use db::SmartMerge;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
@@ -7,6 +9,18 @@ use validator::Validate;
 use crate::extractors::ValidatedJson;
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
+
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route("/", get(list_contacts_handler).post(create_contact_handler))
+        .route(
+            "/{id}",
+            get(get_contact_detail_handler)
+                .put(update_contact_handler)
+                .delete(delete_contact_handler),
+        )
+        .route("/{id}/identifiers", post(add_contact_identifier_handler))
+}
 
 pub async fn list_contacts_handler(
     State(state): State<AppState>,

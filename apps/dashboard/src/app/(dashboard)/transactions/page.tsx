@@ -4,6 +4,7 @@ import { Badge } from "@expent/ui/components/badge";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Checkbox } from "@expent/ui/components/checkbox";
+import { Label } from "@expent/ui/components/label";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -113,9 +114,9 @@ export default function TransactionsPage() {
     setProcessedOcr(null);
 
     const steps = [
-      { id: "1", label: "Uploading file...", status: "in-progress" },
-      { id: "2", label: "Classifying...", status: "pending" },
-      { id: "3", label: "Extracting...", status: "pending" },
+      { id: "1", label: "Uploading file…", status: "in-progress" },
+      { id: "2", label: "Classifying…", status: "pending" },
+      { id: "3", label: "Extracting…", status: "pending" },
     ];
     setUploadSteps(steps);
 
@@ -139,7 +140,7 @@ export default function TransactionsPage() {
         )
       );
 
-      const result = await apiClient<any>("/api/process-image-ocr", {
+      const result = await apiClient<any>("/api/ocr/process", {
         method: "POST",
         body: JSON.stringify({ key }),
       });
@@ -375,7 +376,13 @@ export default function TransactionsPage() {
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
-            <Button onClick={handleExportCSV} variant="outline" size="sm" disabled={data.length === 0}>
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              size="sm"
+              disabled={data.length === 0}
+              aria-label="Export transactions as CSV"
+            >
               <DownloadIcon className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
@@ -393,6 +400,7 @@ export default function TransactionsPage() {
               <input
                 type="file"
                 className="absolute inset-0 opacity-0 cursor-pointer"
+                aria-label="Quick upload receipt"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleUpload(file);
@@ -480,12 +488,18 @@ export default function TransactionsPage() {
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <div className="relative flex-1 sm:w-64">
+                  <Label htmlFor="search-transactions" className="sr-only">
+                    Search Transactions
+                  </Label>
                   <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search descriptions..."
+                    id="search-transactions"
+                    name="search"
+                    placeholder="Search descriptions…"
                     value={(table.getColumn("source")?.getFilterValue() as string) ?? ""}
                     onChange={(event) => table.getColumn("source")?.setFilterValue(event.target.value)}
                     className="pl-9 bg-background h-9 border-muted-foreground/20"
+                    autoComplete="off"
                   />
                 </div>
 
@@ -557,7 +571,7 @@ export default function TransactionsPage() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={columns.length} className="h-48 text-center text-muted-foreground">
-                        {rawTransactions ? "No transactions found." : "Loading..."}
+                        {rawTransactions ? "No transactions found." : "Loading…"}
                       </TableCell>
                     </TableRow>
                   )}

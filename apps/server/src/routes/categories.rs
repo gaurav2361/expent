@@ -1,10 +1,21 @@
+use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
+use axum::routing::{delete, get, post};
 use db::SmartMerge;
 use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
+
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route(
+            "/",
+            get(list_categories_handler).post(create_category_handler),
+        )
+        .route("/{id}", delete(delete_category_handler))
+}
 
 pub async fn list_categories_handler(
     State(state): State<AppState>,

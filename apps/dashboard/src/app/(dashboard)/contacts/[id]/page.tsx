@@ -46,7 +46,7 @@ export default function ContactDetailPage() {
   const { deleteMutation } = useContacts();
 
   if (isLoading) {
-    return <div className="p-8 text-center">Loading contact details...</div>;
+    return <div className="p-8 text-center">Loading contact details…</div>;
   }
 
   if (!contactData) {
@@ -69,7 +69,7 @@ export default function ContactDetailPage() {
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto w-full">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Go back">
           <ArrowLeftIcon className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -107,7 +107,7 @@ export default function ContactDetailPage() {
               <CardTitle className="text-sm font-medium flex items-center justify-between">
                 Identifiers
                 <Dialog open={isAddIdDialogOpen} onOpenChange={setIsAddIdDialogOpen}>
-                  <DialogTrigger render={<Button variant="ghost" size="icon-xs" />}>
+                  <DialogTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Add identifier" />}>
                     <PlusIcon className="h-3.5 w-3.5" />
                   </DialogTrigger>
                   <DialogContent>
@@ -252,7 +252,13 @@ function IdentifierChip({ identifier }: { identifier: any }) {
           <p className="text-[10px] text-muted-foreground uppercase">{identifier.type}</p>
         </div>
       </div>
-      <Button variant="ghost" size="icon-xs" onClick={copy} className="opacity-0 group-hover:opacity-100">
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        onClick={copy}
+        className="opacity-0 group-hover:opacity-100"
+        aria-label="Copy identifier"
+      >
         {copied ? <CheckIcon className="h-3 w-3 text-green-600" /> : <CopyIcon className="h-3 w-3" />}
       </Button>
     </div>

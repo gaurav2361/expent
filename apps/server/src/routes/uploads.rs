@@ -1,10 +1,17 @@
-use axum::Json;
 use axum::extract::{Multipart, State};
+use axum::routing::post;
+use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
+
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route("/presigned", post(get_presigned_url_handler))
+        .route("/", post(direct_upload_handler))
+}
 
 #[derive(Deserialize)]
 pub struct PresignedUrlRequest {

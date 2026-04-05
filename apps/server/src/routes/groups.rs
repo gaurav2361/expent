@@ -1,5 +1,7 @@
+use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
+use axum::routing::{delete, get, patch, post};
 use db::SmartMerge;
 use serde::Deserialize;
 use validator::Validate;
@@ -7,6 +9,23 @@ use validator::Validate;
 use crate::extractors::ValidatedJson;
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
+
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route("/", get(list_groups_handler))
+        .route("/create", post(create_group_handler))
+        .route("/invite", post(invite_to_group_handler))
+        .route("/{id}/transactions", get(list_group_transactions_handler))
+        .route("/{id}/members", get(list_group_members_handler))
+        .route(
+            "/{group_id}/members/{user_id}",
+            delete(remove_group_member_handler),
+        )
+        .route(
+            "/{group_id}/members/{user_id}/role",
+            patch(update_member_role_handler),
+        )
+}
 
 pub async fn list_groups_handler(
     State(state): State<AppState>,

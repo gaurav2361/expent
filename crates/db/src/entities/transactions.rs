@@ -29,12 +29,21 @@ pub struct Model {
     pub source_wallet_id: Option<String>,
     pub destination_wallet_id: Option<String>,
     pub ledger_tab_id: Option<String>,
+    pub category_id: Option<String>,
     pub deleted_at: Option<DateTimeWithTimeZone>,
     pub notes: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::categories::Entity",
+        from = "Column::CategoryId",
+        to = "super::categories::Column::Id",
+        on_update = "NoAction",
+        on_delete = "SetNull"
+    )]
+    Categories,
     #[sea_orm(has_many = "super::p2p_transfers::Entity")]
     P2pTransfers,
     #[sea_orm(has_many = "super::purchases::Entity")]
@@ -104,6 +113,12 @@ impl Related<super::txn_parties::Entity> for Entity {
 impl Related<super::users::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Users.def()
+    }
+}
+
+impl Related<super::categories::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Categories.def()
     }
 }
 

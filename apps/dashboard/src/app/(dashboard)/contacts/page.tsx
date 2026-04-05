@@ -77,7 +77,14 @@ export default function ContactsPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="phone">Phone Number (Optional)</Label>
-                <Input id="phone" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+91..." />
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="+91…"
+                  autoComplete="tel"
+                />
               </div>
             </div>
             <DialogFooter>
@@ -85,7 +92,7 @@ export default function ContactsPage() {
                 Cancel
               </Button>
               <Button onClick={handleCreate} disabled={!newName || createMutation.isPending}>
-                {createMutation.isPending ? "Adding..." : "Add Contact"}
+                {createMutation.isPending ? "Adding…" : "Add Contact"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -95,7 +102,7 @@ export default function ContactsPage() {
       <div className="relative">
         <SearchIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search contacts by name..."
+          placeholder="Search contacts by name…"
           className="pl-10 h-11 bg-card shadow-xs"
           value={searchQuery}
           onChange={(e) => setSearchSearchQuery(e.target.value)}
@@ -192,6 +199,7 @@ function ContactCard({ contact, onPin, onClick }: { contact: any; onPin: () => v
               e.stopPropagation();
               onPin();
             }}
+            aria-label={contact.is_pinned ? "Unpin contact" : "Pin contact"}
           >
             <PinIcon className={`h-3.5 w-3.5 ${contact.is_pinned ? "fill-current rotate-45" : ""}`} />
           </Button>

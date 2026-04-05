@@ -39,6 +39,12 @@ use sea_orm::DbErr;
 
 impl From<DbErr> for ApiError {
     fn from(err: DbErr) -> Self {
-        ApiError::Internal(err.to_string())
+        match err {
+            DbErr::RecordNotFound(msg) => ApiError::NotFound(msg),
+            _ => {
+                tracing::error!("Database error: {:?}", err);
+                ApiError::Internal("A database error occurred. Please try again later.".into())
+            }
+        }
     }
 }
