@@ -1,230 +1,47 @@
-import type { PressableProps } from "react-native";
-import { MotiView } from "moti";
-import * as React from "react";
-import { useCallback } from "react";
-import { Pressable, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { Icon } from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
+import * as CheckboxPrimitive from '@rn-primitives/checkbox';
+import { Check } from 'lucide-react-native';
+import { Platform } from 'react-native';
 
-import colors from "@/components/ui/colors";
+const DEFAULT_HIT_SLOP = 24;
 
-import { Text } from "./text";
-
-const SIZE = 20;
-const WIDTH = 50;
-const HEIGHT = 28;
-const THUMB_HEIGHT = 22;
-const THUMB_WIDTH = 22;
-const THUMB_OFFSET = 4;
-
-export type RootProps = {
-  onChange: (checked: boolean) => void;
-  checked?: boolean;
-  className?: string;
-  accessibilityLabel: string;
-} & Omit<PressableProps, "onPress">;
-
-export type IconProps = {
-  checked: boolean;
-};
-
-export function Root({ checked = false, children, onChange, disabled, className = "", ...props }: RootProps) {
-  const handleChange = useCallback(() => {
-    onChange(!checked);
-  }, [onChange, checked]);
-
-  return (
-    <Pressable
-      onPress={handleChange}
-      className={`flex-row items-center ${className} ${disabled ? "opacity-50" : ""}`}
-      accessibilityState={{ checked }}
-      disabled={disabled}
-      {...props}
-    >
-      {children}
-    </Pressable>
-  );
-}
-
-type LabelProps = {
-  text: string;
-  className?: string;
-  testID?: string;
-};
-
-function Label({ text, testID, className = "" }: LabelProps) {
-  return (
-    <Text testID={testID} className={`${className} pl-2`}>
-      {text}
-    </Text>
-  );
-}
-
-export function CheckboxIcon({ checked = false }: IconProps) {
-  const color = checked ? colors.primary[300] : colors.charcoal[400];
-  return (
-    <MotiView
-      style={{
-        height: SIZE,
-        width: SIZE,
-        borderColor: color,
-      }}
-      className="items-center justify-center rounded-[5px] border-2"
-      from={{ backgroundColor: "transparent", borderColor: "#CCCFD6" }}
-      animate={{
-        backgroundColor: checked ? color : "transparent",
-        borderColor: color,
-      }}
-      transition={{
-        backgroundColor: { type: "timing", duration: 100 },
-        borderColor: { type: "timing", duration: 100 },
-      }}
-    >
-      <MotiView
-        from={{ opacity: 0 }}
-        animate={{ opacity: checked ? 1 : 0 }}
-        transition={{ opacity: { type: "timing", duration: 100 } }}
-      >
-        <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <Path
-            d="m16.726 7-.64.633c-2.207 2.212-3.878 4.047-5.955 6.158l-2.28-1.928-.69-.584L6 12.66l.683.577 2.928 2.477.633.535.591-.584c2.421-2.426 4.148-4.367 6.532-6.756l.633-.64L16.726 7Z"
-            fill="#fff"
-          />
-        </Svg>
-      </MotiView>
-    </MotiView>
-  );
-}
-
-function CheckboxRoot({ checked = false, children, ...props }: RootProps) {
-  return (
-    <Root checked={checked} accessibilityRole="checkbox" {...props}>
-      {children}
-    </Root>
-  );
-}
-
-function CheckboxBase({
-  checked = false,
-  testID,
-  label,
-
+function Checkbox({
+  className,
+  checkedClassName,
+  indicatorClassName,
+  iconClassName,
   ...props
-}: RootProps & { label?: string }) {
+}: React.ComponentProps<typeof CheckboxPrimitive.Root> & {
+    checkedClassName?: string;
+    indicatorClassName?: string;
+    iconClassName?: string;
+  }) {
   return (
-    <CheckboxRoot checked={checked} testID={testID} {...props}>
-      <CheckboxIcon checked={checked} />
-      {label ? <Label text={label} testID={testID ? `${testID}-label` : undefined} className="pr-2" /> : null}
-    </CheckboxRoot>
-  );
-}
-
-export const Checkbox = Object.assign(CheckboxBase, {
-  Icon: CheckboxIcon,
-  Root: CheckboxRoot,
-  Label,
-});
-
-export function RadioIcon({ checked = false }: IconProps) {
-  const color = checked ? colors.primary[300] : colors.charcoal[400];
-  return (
-    <MotiView
-      style={{
-        height: SIZE,
-        width: SIZE,
-        borderColor: color,
-      }}
-      className="items-center justify-center rounded-[20px] border-2 bg-transparent"
-      from={{ borderColor: "#CCCFD6" }}
-      animate={{
-        borderColor: color,
-      }}
-      transition={{ borderColor: { duration: 100, type: "timing" } }}
-    >
-      <MotiView
-        className={`size-[10px] rounded-[10px] ${checked && "bg-primary-300"}`}
-        from={{ opacity: 0 }}
-        animate={{ opacity: checked ? 1 : 0 }}
-        transition={{ opacity: { duration: 50, type: "timing" } }}
-      />
-    </MotiView>
-  );
-}
-
-function RadioRoot({ checked = false, children, ...props }: RootProps) {
-  return (
-    <Root checked={checked} accessibilityRole="radio" {...props}>
-      {children}
-    </Root>
-  );
-}
-
-function RadioBase({ checked = false, testID, label, ...props }: RootProps & { label?: string }) {
-  return (
-    <RadioRoot checked={checked} testID={testID} {...props}>
-      <RadioIcon checked={checked} />
-      {label ? <Label text={label} testID={testID ? `${testID}-label` : undefined} /> : null}
-    </RadioRoot>
-  );
-}
-
-export const Radio = Object.assign(RadioBase, {
-  Icon: RadioIcon,
-  Root: RadioRoot,
-  Label,
-});
-
-export function SwitchIcon({ checked = false }: IconProps) {
-  const translateX = checked ? THUMB_OFFSET : WIDTH - THUMB_WIDTH - THUMB_OFFSET;
-
-  const backgroundColor = checked ? colors.primary[300] : colors.charcoal[400];
-
-  return (
-    <View className="w-[50px] justify-center">
-      <View className="overflow-hidden rounded-full">
-        <View
-          style={{
-            width: WIDTH,
-            height: HEIGHT,
-            backgroundColor,
-          }}
+    <CheckboxPrimitive.Root
+      className={cn(
+        'border-input dark:bg-input/30 size-4 shrink-0 rounded-[4px] border shadow-sm shadow-black/5',
+        Platform.select({
+          web: 'focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive peer cursor-default outline-none transition-shadow focus-visible:ring-[3px] disabled:cursor-not-allowed',
+          native: 'overflow-hidden',
+        }),
+        props.checked && cn('border-primary', checkedClassName),
+        props.disabled && 'opacity-50',
+        className
+      )}
+      hitSlop={DEFAULT_HIT_SLOP}
+      {...props}>
+      <CheckboxPrimitive.Indicator
+        className={cn('bg-primary h-full w-full items-center justify-center', indicatorClassName)}>
+        <Icon
+          as={Check}
+          size={12}
+          strokeWidth={Platform.OS === 'web' ? 2.5 : 3.5}
+          className={cn('text-primary-foreground', iconClassName)}
         />
-      </View>
-      <MotiView
-        style={{
-          height: THUMB_HEIGHT,
-          width: THUMB_WIDTH,
-          position: "absolute",
-          backgroundColor: "white",
-          borderRadius: 13,
-          right: 0,
-        }}
-        animate={{
-          translateX: -translateX,
-        }}
-        transition={{ translateX: { overshootClamping: true } }}
-      />
-    </View>
-  );
-}
-function SwitchRoot({ checked = false, children, ...props }: RootProps) {
-  return (
-    <Root checked={checked} accessibilityRole="switch" {...props}>
-      {children}
-    </Root>
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
   );
 }
 
-function SwitchBase({ checked = false, testID, label, ...props }: RootProps & { label?: string }) {
-  return (
-    <SwitchRoot checked={checked} testID={testID} {...props}>
-      <SwitchIcon checked={checked} />
-      {label ? <Label text={label} testID={testID ? `${testID}-label` : undefined} /> : null}
-    </SwitchRoot>
-  );
-}
-
-export const Switch = Object.assign(SwitchBase, {
-  Icon: SwitchIcon,
-  Root: SwitchRoot,
-  Label,
-});
+export { Checkbox };
