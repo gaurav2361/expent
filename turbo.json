@@ -48,6 +48,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
+      "interactive": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "env": [
         "DATABASE_URL",
