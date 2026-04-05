@@ -41,27 +41,43 @@ where
             HashMap::new(),
         );
 
-        let response = auth
-            .handle_request(auth_req)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        let response = auth.handle_request(auth_req).await.map_err(|e| {
+            tracing::error!("Better-Auth handle_request error: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+        })?;
 
         if response.status != 200 {
+            tracing::debug!(
+                "Better-Auth session check failed with status: {}",
+                response.status
+            );
             return Err((StatusCode::UNAUTHORIZED, "Unauthorized".to_string()));
         }
+
+        let full_body: serde_json::Value = serde_json::from_slice(&response.body).map_err(|e| {
+            tracing::error!(
+                "Failed to parse body as Value: {}. Body: {:?}",
+                e,
+                String::from_utf8_lossy(&response.body)
+            );
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Invalid JSON from auth".to_string(),
+            )
+        })?;
 
         #[derive(serde::Deserialize)]
         struct SessionResponse {
             user: better_auth::types_mod::User,
         }
 
-        let session_data: SessionResponse =
-            serde_json::from_slice(&response.body).map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to parse session: {}", e),
-                )
-            })?;
+        let session_data: SessionResponse = serde_json::from_value(full_body).map_err(|e| {
+            tracing::error!("Failed to parse session from Value: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to parse session: {}", e),
+            )
+        })?;
 
         tracing::info!(
             "🔑 Auth Session extracted for user: {}",
