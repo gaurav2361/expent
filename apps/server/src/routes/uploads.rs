@@ -3,6 +3,7 @@ use axum::routing::post;
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use upload::CompressOptions;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
@@ -91,30 +92,29 @@ pub async fn direct_upload_handler(
         file_name,
         data.len()
     );
+
+    // All image uploads are compressed to WebP before going to R2
     let processed = state
         .upload_client
-        .upload_direct(
+        .upload_compressed(
             &session.user.id,
             data,
             Some(file_name),
             Some(content_type),
-            true,
+            CompressOptions::receipt(),
         )
         .await
         .map_err(|e| {
-            tracing::error!("❌ UploadClient upload_direct failed: {:?}", e);
+            tracing::error!("❌ UploadClient upload failed: {:?}", e);
             ApiError::Internal(e.to_string())
         })?;
 
     tracing::info!("✅ Upload successful, key: {}", processed.key);
-    let bucket_name =
-        std::env::var("S3_BUCKET_NAME").unwrap_or_else(|_| "expent-uploads".to_string());
+    let r2_public_url = std::env::var("R2_PUBLIC_URL")
+        .unwrap_or_else(|_| "https://pub-3e637dff099d43faa282edc2702dbf2c.r2.dev".to_string());
 
     Ok(Json(PresignedUrlResponse {
-        url: format!(
-            "https://{}.r2.cloudflarestorage.com/{}",
-            bucket_name, processed.key
-        ),
+        url: format!("{}/{}", r2_public_url, processed.key),
         key: processed.key,
     }))
 }

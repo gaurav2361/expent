@@ -6,9 +6,10 @@ import { Button } from "@expent/ui/components/button";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
-import { CheckIcon, Trash2Icon, ReceiptIcon, WalletIcon, UserIcon } from "lucide-react";
+import { CheckIcon, Trash2Icon, ReceiptIcon, WalletIcon, UserIcon, TagIcon } from "lucide-react";
 
 import type { TypedProcessedOcr, GPayExtraction, OcrResult } from "@expent/types";
+import { useCategories } from "@/hooks/use-categories";
 
 interface ReviewTransactionFormProps {
   processedOcr: TypedProcessedOcr;
@@ -24,6 +25,9 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
   const [direction, setDirection] = React.useState<"IN" | "OUT">("OUT");
   const [counterparty, setCounterparty] = React.useState("");
   const [upiId, setUpiId] = React.useState("");
+  const [categoryId, setCategoryId] = React.useState<string>("none");
+
+  const { categories } = useCategories();
 
   React.useEffect(() => {
     if (processedOcr.doc_type === "GPAY") {
@@ -91,6 +95,10 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
       updatedData.counterparty_upi_id = upiId;
     } else {
       updatedData.vendor = counterparty;
+    }
+
+    if (categoryId !== "none") {
+      updatedData.category_id = categoryId;
     }
 
     onConfirm({
@@ -193,6 +201,31 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
               </Select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <div className="relative">
+                <TagIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "none")}>
+                  <SelectTrigger className="pl-9">
+                    {categoryId === "none" ? (
+                      <span className="text-muted-foreground">Select category</span>
+                    ) : (
+                      <span className="truncate">
+                        {categories?.find((c) => c.id === categoryId)?.name || "Unknown Category"}
+                      </span>
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Uncategorized</SelectItem>
+                    {categories?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2 lg:col-span-2">
               <Label htmlFor="description">Personal Note</Label>
               <Input
                 id="description"

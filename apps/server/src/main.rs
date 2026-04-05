@@ -123,11 +123,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let upload_client = UploadClient::new(s3_client, bucket_name);
 
     let state = AppState {
-        db,
+        db: db.clone(),
         auth: auth.clone(),
         upload_client,
         ocr_service,
     };
+
+    if let Err(e) = db::SmartMerge::ensure_system_categories(&state.db).await {
+        tracing::error!("Failed to ensure system categories: {:?}", e);
+    }
 
     let auth_router = auth.clone().axum_router();
 
