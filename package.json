@@ -14,7 +14,8 @@
     "app:dev": "pnpm --filter @expent/app dev",
     "app:ios": "pnpm --filter @expent/app ios",
     "app:android": "pnpm --filter @expent/app android",
-    "app:emulator": "pnpm --filter @expent/app emulator"
+    "app:emulator": "pnpm --filter @expent/app emulator",
+    "db:seed": "uv run --with requests python scripts/seed.py"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.10",

@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useColorScheme } from 'nativewind';
+import { useUniwind } from 'uniwind';
 import { Image, Platform, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -24,7 +24,7 @@ const SOCIAL_CONNECTION_STRATEGIES = [
 ];
 
 export function SocialConnections() {
-  const { colorScheme } = useColorScheme();
+  const { theme: colorScheme } = useUniwind();
 
   const handleSocialAuth = async (strategy: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
