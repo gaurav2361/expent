@@ -1,7 +1,7 @@
-import { Tabs, Redirect } from 'expo-router';
-import { Home, Repeat, CreditCard, PieChart, MoreHorizontal } from 'lucide-react-native';
-import { useTheme } from '@react-navigation/native';
-import { useAuth } from '@/lib/auth/use-auth';
+import { useTheme } from "@react-navigation/native";
+import { Redirect, Tabs } from "expo-router";
+import { CreditCard, Home, MoreHorizontal, PieChart, Repeat } from "lucide-react-native";
+import { useAuth } from "@/lib/auth/use-auth";
 
 export default function TabsLayout() {
   const { colors } = useTheme();
@@ -16,46 +16,48 @@ export default function TabsLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ 
-      tabBarActiveTintColor: colors.primary,
-      headerShown: false,
-      tabBarStyle: {
-        backgroundColor: colors.card,
-        borderTopColor: colors.border,
-      }
-    }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: colors.primary,
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: "Home",
           tabBarIcon: ({ color }) => <Home color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="activity"
         options={{
-          title: 'Activity',
+          title: "Activity",
           tabBarIcon: ({ color }) => <Repeat color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="subscriptions"
         options={{
-          title: 'Subs',
+          title: "Subs",
           tabBarIcon: ({ color }) => <CreditCard color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="insights"
         options={{
-          title: 'Insights',
+          title: "Insights",
           tabBarIcon: ({ color }) => <PieChart color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
-          title: 'More',
+          title: "More",
           tabBarIcon: ({ color }) => <MoreHorizontal color={color} size={24} />,
         }}
       />

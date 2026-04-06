@@ -7,24 +7,7 @@ import {
   BreadcrumbSeparator,
 } from "@expent/ui/components/breadcrumb";
 import { Button } from "@expent/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction } from "@expent/ui/components/card";
-import { Input } from "@expent/ui/components/input";
-import { Separator } from "@expent/ui/components/separator";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@expent/ui/components/sidebar";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
-
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ReceiptTextIcon, Share2Icon, SparklesIcon } from "lucide-react";
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SplitDialog } from "@/components/split-dialog";
-import { useSession } from "@/lib/auth-client";
-import { toast } from "@expent/ui/components/goey-toaster";
-import { DataTable } from "@/components/data-table";
-import type { Column } from "@/components/data-table";
-import { TransactionViewer } from "@/components/transaction-viewer";
-import type { Transaction as TransactionType } from "@/components/transaction-viewer";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +15,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@expent/ui/components/dropdown-menu";
-import { MoreVerticalIcon, Trash2Icon } from "lucide-react";
+import { toast } from "@expent/ui/components/goey-toaster";
+import { Input } from "@expent/ui/components/input";
+import { Separator } from "@expent/ui/components/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@expent/ui/components/sidebar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { MoreVerticalIcon, ReceiptTextIcon, Share2Icon, SparklesIcon, Trash2Icon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AppSidebar } from "@/components/app-sidebar";
+import type { Column } from "@/components/data-table";
+import { DataTable } from "@/components/data-table";
+import { SplitDialog } from "@/components/split-dialog";
+import type { Transaction as TransactionType } from "@/components/transaction-viewer";
+import { TransactionViewer } from "@/components/transaction-viewer";
+import { useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/dashboard/")({
   component: RouteComponent,

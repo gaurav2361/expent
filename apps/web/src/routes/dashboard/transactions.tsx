@@ -1,4 +1,4 @@
-import * as React from "react";
+import { Badge } from "@expent/ui/components/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,7 +7,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@expent/ui/components/breadcrumb";
-import { Badge } from "@expent/ui/components/badge";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Checkbox } from "@expent/ui/components/checkbox";
@@ -19,12 +18,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@expent/ui/components/dropdown-menu";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { Separator } from "@expent/ui/components/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@expent/ui/components/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 import { Tabs, TabsList, TabsTrigger } from "@expent/ui/components/tabs";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import type { ColumnDef, ColumnFiltersState, SortingState, VisibilityState } from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
@@ -35,30 +38,27 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import type { ColumnDef, ColumnFiltersState, SortingState, VisibilityState } from "@tanstack/react-table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  DownloadIcon,
-  ScaleIcon,
-  Columns3Icon,
-  MoreVerticalIcon,
-  SearchIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
+  Columns3Icon,
+  DownloadIcon,
+  MoreVerticalIcon,
+  ScaleIcon,
+  SearchIcon,
   Share2Icon,
 } from "lucide-react";
-import { useSession } from "@/lib/auth-client";
+import * as React from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SplitDialog } from "@/components/split-dialog";
-import { TransactionViewer } from "@/components/transaction-viewer";
 import type { Transaction } from "@/components/transaction-viewer";
-import { toast } from "@expent/ui/components/goey-toaster";
+import { TransactionViewer } from "@/components/transaction-viewer";
+import { useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/dashboard/transactions")({
   component: RouteComponent,
@@ -326,7 +326,7 @@ function RouteComponent() {
     const headers = ["Date", "Direction", "Amount", "Source", "ID"];
     const rows = rowsExport.map((txn: Transaction) => [txn.date, txn.direction, txn.amount, txn.source, txn.id]);
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const csvContent = `data:text/csv;charset=utf-8,${[headers.join(","), ...rows.map((e) => e.join(","))].join("\n")}`;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);

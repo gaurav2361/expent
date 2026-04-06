@@ -78,10 +78,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         ios: {
           fonts: [
-            "node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
-            "node_modules/@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf",
-            "node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf",
-            "node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf",
+            "../../node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
+            "../../node_modules/@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf",
+            "../../node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf",
+            "../../node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf",
           ],
         },
         android: {
@@ -90,19 +90,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
               fontFamily: "Inter",
               fontDefinitions: [
                 {
-                  path: "node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
+                  path: "../../node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
                   weight: 400,
                 },
                 {
-                  path: "node_modules/@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf",
+                  path: "../../node_modules/@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf",
                   weight: 500,
                 },
                 {
-                  path: "node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf",
+                  path: "../../node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf",
                   weight: 600,
                 },
                 {
-                  path: "node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf",
+                  path: "../../node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf",
                   weight: 700,
                 },
               ],

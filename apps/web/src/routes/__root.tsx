@@ -1,5 +1,5 @@
-import appCss from "@expent/ui/globals.css?url";
 import { Toaster } from "@expent/ui/components/goey-toaster";
+import appCss from "@expent/ui/globals.css?url";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { MotionConfig } from "motion/react";

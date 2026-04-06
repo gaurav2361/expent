@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { useTransactions } from "@/hooks/use-transactions";
 import type { TransactionWithDetail } from "@expent/types";
+import * as React from "react";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useTransactions } from "@/hooks/use-transactions";
 
 export function Overview() {
   const { transactions } = useTransactions();
@@ -42,13 +42,7 @@ export function Overview() {
   return (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart data={chartData}>
-        <XAxis
-          dataKey="name"
-          stroke="#888888"
-          fontSize={12}
-          tickLine={false}
-          axisLine={false}
-        />
+        <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis
           direction="ltr"
           stroke="#888888"
@@ -58,12 +52,7 @@ export function Overview() {
           tickFormatter={(value) => `₹${value}`}
         />
         <Tooltip cursor={{ fill: "var(--muted)" }} contentStyle={{ borderRadius: "8px" }} />
-        <Bar
-          dataKey="total"
-          fill="currentColor"
-          radius={[4, 4, 0, 0]}
-          className="fill-primary"
-        />
+        <Bar dataKey="total" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" />
       </BarChart>
     </ResponsiveContainer>
   );

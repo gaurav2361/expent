@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { cn, Badge, Tooltip, TooltipContent, TooltipTrigger } from "./_adapter";
+import type * as React from "react";
 import { resolveSafeNavigationHref } from "@/components/tool-ui/shared/media";
+import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "./_adapter";
 
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
@@ -163,7 +163,7 @@ export function DateValue({ value, options, locale }: DateValueProps) {
   const dateFormat = options?.dateFormat ?? "short";
   const date = new Date(value);
 
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return <span className="text-muted-foreground">{value}</span>;
   }
 
@@ -406,7 +406,6 @@ export function renderFormattedValue({ value, column, row, locale }: RenderForma
       return <BadgeValue value={String(value)} options={fmt} />;
     case "array":
       return <ArrayValue value={Array.isArray(value) ? value : String(value)} options={fmt} />;
-    case "text":
     default:
       return String(value);
   }

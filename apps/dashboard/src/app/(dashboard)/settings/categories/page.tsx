@@ -1,13 +1,13 @@
 "use client";
 
-import * as React from "react";
-import { Separator } from "@expent/ui/components/separator";
-import { Button } from "@expent/ui/components/button";
-import { useCategories } from "@/hooks/use-categories";
-import { CreateCategoryDialog, ICON_MAP, COLOR_PALETTE } from "@/components/categories/create-category-dialog";
-import { toast } from "@expent/ui/components/goey-toaster";
-import { PlusIcon, Trash2Icon, TagIcon, LockIcon } from "lucide-react";
 import type { Category } from "@expent/types";
+import { Button } from "@expent/ui/components/button";
+import { toast } from "@expent/ui/components/goey-toaster";
+import { Separator } from "@expent/ui/components/separator";
+import { LockIcon, PlusIcon, TagIcon, Trash2Icon } from "lucide-react";
+import * as React from "react";
+import { COLOR_PALETTE, CreateCategoryDialog, ICON_MAP } from "@/components/categories/create-category-dialog";
+import { useCategories } from "@/hooks/use-categories";
 
 export default function SettingsCategoriesPage() {
   const { categories, isLoading, deleteMutation } = useCategories();
@@ -41,9 +41,7 @@ export default function SettingsCategoriesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium">Categories</h3>
-          <p className="text-sm text-muted-foreground">
-            Manage the categories used to tag your transactions.
-          </p>
+          <p className="text-sm text-muted-foreground">Manage the categories used to tag your transactions.</p>
         </div>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <PlusIcon className="mr-2 h-4 w-4" /> New Category
@@ -73,14 +71,11 @@ export default function SettingsCategoriesPage() {
                   const Icon = getIcon(cat.icon);
                   const color = getColor(cat.color);
                   return (
-                    <div
-                      key={cat.id}
-                      className="flex items-center justify-between rounded-lg border p-3 bg-muted/20"
-                    >
+                    <div key={cat.id} className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
                       <div className="flex items-center gap-3">
                         <div
                           className="flex size-9 items-center justify-center rounded-lg shrink-0"
-                          style={{ backgroundColor: color + "20", color }}
+                          style={{ backgroundColor: `${color}20`, color }}
                         >
                           <Icon className="size-4" />
                         </div>
@@ -99,9 +94,7 @@ export default function SettingsCategoriesPage() {
 
           {/* User Categories */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Your Categories
-            </h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Categories</h4>
             {userCategories.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
                 <TagIcon className="h-8 w-8 text-muted-foreground/40 mb-3" />
@@ -126,17 +119,14 @@ export default function SettingsCategoriesPage() {
                       <div className="flex items-center gap-3">
                         <div
                           className="flex size-9 items-center justify-center rounded-lg shrink-0"
-                          style={{ backgroundColor: color + "20", color }}
+                          style={{ backgroundColor: `${color}20`, color }}
                         >
                           <Icon className="size-4" />
                         </div>
                         <div>
                           <p className="text-sm font-medium">{cat.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span
-                              className="inline-block size-2.5 rounded-full"
-                              style={{ backgroundColor: color }}
-                            />
+                            <span className="inline-block size-2.5 rounded-full" style={{ backgroundColor: color }} />
                             <span className="text-xs text-muted-foreground capitalize">
                               {COLOR_PALETTE.find((c) => c.hex === color)?.id || "Custom"}
                             </span>

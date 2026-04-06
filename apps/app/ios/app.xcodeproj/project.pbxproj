@@ -14,6 +14,10 @@
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 		F5B15218FDE97C627115FB61 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4B6A84C81513C87A413673F3 /* PrivacyInfo.xcprivacy */; };
+		F964DF7BD17F4B92A7973452 /* Inter_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 30BCB21592C64094BD84200A /* Inter_400Regular.ttf */; };
+		03CE2D7E300D411190A5FDB4 /* Inter_500Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1F96BB2A202A425F87764B4A /* Inter_500Medium.ttf */; };
+		4CCB9449E28E4E4F911003C5 /* Inter_600SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 83307FA84BBA4FBE9D37CF6B /* Inter_600SemiBold.ttf */; };
+		0DEA7106D06146C682433BEA /* Inter_700Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B32DFF69AEAA40DF8D3E2669 /* Inter_700Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +34,10 @@
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = app/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* app-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "app-Bridging-Header.h"; path = "app/app-Bridging-Header.h"; sourceTree = "<group>"; };
+		30BCB21592C64094BD84200A /* Inter_400Regular.ttf */ = {isa = PBXFileReference; name = "Inter_400Regular.ttf"; path = "../../../node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		1F96BB2A202A425F87764B4A /* Inter_500Medium.ttf */ = {isa = PBXFileReference; name = "Inter_500Medium.ttf"; path = "../../../node_modules/@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		83307FA84BBA4FBE9D37CF6B /* Inter_600SemiBold.ttf */ = {isa = PBXFileReference; name = "Inter_600SemiBold.ttf"; path = "../../../node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		B32DFF69AEAA40DF8D3E2669 /* Inter_700Bold.ttf */ = {isa = PBXFileReference; name = "Inter_700Bold.ttf"; path = "../../../node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +109,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				32D0B4EAD6729F6AF4982030 /* Pods */,
 				1E32405382557B35D16C2EE3 /* ExpoModulesProviders */,
+				E146D1F0754A448BAAAA4471 /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -131,6 +140,18 @@
 			name = Supporting;
 			path = app/Supporting;
 			sourceTree = "<group>";
+		};
+		E146D1F0754A448BAAAA4471 /* Resources */ = {
+			isa = "PBXGroup";
+			children = (
+				30BCB21592C64094BD84200A /* Inter_400Regular.ttf */,
+				1F96BB2A202A425F87764B4A /* Inter_500Medium.ttf */,
+				83307FA84BBA4FBE9D37CF6B /* Inter_600SemiBold.ttf */,
+				B32DFF69AEAA40DF8D3E2669 /* Inter_700Bold.ttf */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+			path = "";
 		};
 /* End PBXGroup section */
 
@@ -197,6 +218,10 @@
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				F5B15218FDE97C627115FB61 /* PrivacyInfo.xcprivacy in Resources */,
+				F964DF7BD17F4B92A7973452 /* Inter_400Regular.ttf in Resources */,
+				03CE2D7E300D411190A5FDB4 /* Inter_500Medium.ttf in Resources */,
+				4CCB9449E28E4E4F911003C5 /* Inter_600SemiBold.ttf in Resources */,
+				0DEA7106D06146C682433BEA /* Inter_700Bold.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -353,12 +378,14 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = org.name.app;
-				PRODUCT_NAME = app;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.expent.app.development";
+				PRODUCT_NAME = "Expent";
 				SWIFT_OBJC_BRIDGING_HEADER = "app/app-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_ENTITLEMENTS = app/Expent.entitlements;
 			};
 			name = Debug;
 		};
@@ -382,11 +409,13 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = org.name.app;
-				PRODUCT_NAME = app;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.expent.app.development";
+				PRODUCT_NAME = "Expent";
 				SWIFT_OBJC_BRIDGING_HEADER = "app/app-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_ENTITLEMENTS = app/Expent.entitlements;
 			};
 			name = Release;
 		};

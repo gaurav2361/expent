@@ -1,24 +1,13 @@
 "use client";
 
-import * as React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
-import { Button } from "@expent/ui/components/button";
 import { Badge } from "@expent/ui/components/badge";
-import { Separator } from "@expent/ui/components/separator";
-import {
-  ShieldIcon,
-  KeyIcon,
-  SmartphoneIcon,
-  LogOutIcon,
-  FingerprintIcon,
-  LaptopIcon,
-  Trash2Icon,
-  PlusIcon,
-} from "lucide-react";
-import { useSession, signOut } from "@/lib/auth-client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { Button } from "@expent/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { toast } from "@expent/ui/components/goey-toaster";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FingerprintIcon, KeyIcon, LaptopIcon, PlusIcon, SmartphoneIcon, Trash2Icon } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 
 export function SecurityPanel() {
   const queryClient = useQueryClient();

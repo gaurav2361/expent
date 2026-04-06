@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import type { Category } from "@expent/types";
+import { Button } from "@expent/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -9,43 +10,42 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@expent/ui/components/dialog";
-import { Button } from "@expent/ui/components/button";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
-import { useCategories } from "@/hooks/use-categories";
-import { toast } from "@expent/ui/components/goey-toaster";
+import { cn } from "@expent/ui/lib/utils";
 import {
-  ShoppingCartIcon,
-  BriefcaseIcon,
-  CoffeeIcon,
-  CarIcon,
-  PlaneIcon,
   ActivityIcon,
+  BabyIcon,
+  BookIcon,
+  BriefcaseIcon,
+  CalendarIcon,
+  CarIcon,
+  CheckIcon,
+  CoffeeIcon,
+  DumbbellIcon,
+  FilmIcon,
+  FuelIcon,
+  GamepadIcon,
+  GiftIcon,
+  GraduationCapIcon,
+  HeartIcon,
   HomeIcon,
   MonitorIcon,
-  FilmIcon,
-  GiftIcon,
-  BookIcon,
-  SmartphoneIcon,
-  CheckIcon,
-  WalletIcon,
-  HeartIcon,
   MusicIcon,
-  UtensilsIcon,
-  ShirtIcon,
-  GraduationCapIcon,
-  BabyIcon,
-  FuelIcon,
-  WifiIcon,
-  GamepadIcon,
   PawPrintIcon,
-  DumbbellIcon,
+  PlaneIcon,
+  ShirtIcon,
+  ShoppingCartIcon,
+  SmartphoneIcon,
   SparklesIcon,
-  CalendarIcon,
   TagIcon,
+  UtensilsIcon,
+  WalletIcon,
+  WifiIcon,
 } from "lucide-react";
-import { cn } from "@expent/ui/lib/utils";
-import type { Category } from "@expent/types";
+import * as React from "react";
+import { useCategories } from "@/hooks/use-categories";
 
 export const ICON_MAP: Record<string, React.ElementType> = {
   "shopping-cart": ShoppingCartIcon,
@@ -170,7 +170,7 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
             <div className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
               <div
                 className="flex size-10 items-center justify-center rounded-lg shrink-0"
-                style={{ backgroundColor: selectedColor + "20", color: selectedColor }}
+                style={{ backgroundColor: `${selectedColor}20`, color: selectedColor }}
               >
                 {(() => {
                   const Icon = ICON_MAP[selectedIcon] || TagIcon;
@@ -216,7 +216,9 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
                   type="button"
                   className={cn(
                     "flex items-center justify-center rounded-md border p-2 transition-all hover:bg-muted",
-                    selectedIcon === key ? "border-primary bg-primary/10 text-primary" : "border-transparent text-muted-foreground"
+                    selectedIcon === key
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-transparent text-muted-foreground"
                   )}
                   onClick={() => setSelectedIcon(key)}
                   aria-label={`Select ${key} icon`}

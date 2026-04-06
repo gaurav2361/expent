@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@expent/ui/lib/utils";
-import { useState } from "react";
 import { Button } from "@expent/ui/components/button";
+import { cn } from "@expent/ui/lib/utils";
 import { XIcon } from "lucide-react";
+import { useState } from "react";
 
 const latestChange = {
   badge: "UPDATE",

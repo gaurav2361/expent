@@ -1,33 +1,33 @@
 "use client";
 
+import { AlertCircle, Check } from "lucide-react";
 import { useCallback, useMemo } from "react";
-import type {
-  PreferencesPanelProps,
-  PreferencesPanelReceiptProps,
-  PreferencesValue,
-  PreferenceItem,
-  PreferenceSection,
-} from "./schema";
 import { ActionButtons } from "../shared/action-buttons";
 import { normalizeActionsConfig } from "../shared/actions-config";
-import { type Action } from "../shared/schema";
+import type { Action } from "../shared/schema";
 import { useControllableState } from "../shared/use-controllable-state";
 import { useSignatureReset } from "../shared/use-signature-reset";
 
 import {
   cn,
-  Switch,
-  ToggleGroup,
-  ToggleGroupItem,
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
   Separator,
-  Label,
+  Switch,
+  ToggleGroup,
+  ToggleGroupItem,
 } from "./_adapter";
-import { Check, AlertCircle } from "lucide-react";
+import type {
+  PreferenceItem,
+  PreferenceSection,
+  PreferencesPanelProps,
+  PreferencesPanelReceiptProps,
+  PreferencesValue,
+} from "./schema";
 import { createPreferencesSectionSignature } from "./signature";
 
 function getInitialValue(item: PreferenceItem): string | boolean {

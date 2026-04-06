@@ -1,7 +1,7 @@
+import type { LucideIcon } from "lucide-react";
+import { AlertCircle, Check, Loader2, Timer, X } from "lucide-react";
 import { cn } from "./_adapter";
 import type { ProgressStep, ProgressTrackerChoice, ProgressTrackerProps } from "./schema";
-import { Check, X, Loader2, Timer, AlertCircle } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 function formatElapsedTime(milliseconds: number): string {
   const roundedSeconds = Math.round(Math.max(0, milliseconds) / 100) / 10;

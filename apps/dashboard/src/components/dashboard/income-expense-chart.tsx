@@ -1,17 +1,8 @@
 "use client";
 
-import * as React from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  Legend,
-} from "recharts";
 import type { TransactionWithDetail } from "@expent/types";
+import * as React from "react";
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 interface IncomeExpenseChartProps {
   transactions: TransactionWithDetail[] | undefined;

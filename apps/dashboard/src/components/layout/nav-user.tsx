@@ -1,7 +1,4 @@
 "use client";
-import * as React from "react";
-import { MoreVerticalIcon, LogOutIcon, SettingsIcon, BellIcon, UserCogIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@expent/ui/components/avatar";
 import {
@@ -14,6 +11,9 @@ import {
   DropdownMenuTrigger,
 } from "@expent/ui/components/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@expent/ui/components/sidebar";
+import { BellIcon, LogOutIcon, MoreVerticalIcon, SettingsIcon, UserCogIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { signOut, useSession } from "@/lib/auth-client";
 
 export function NavUser() {
@@ -76,33 +76,42 @@ export function NavUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => {
-                React.startTransition(() => {
-                  /* @ts-ignore -- react experimental */
-                  if (typeof React.addTransitionType === 'function') React.addTransitionType('nav-forward');
-                  router.push("/settings/profile");
-                });
-              }} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => {
+                  React.startTransition(() => {
+                    /* @ts-expect-error -- react experimental */
+                    if (typeof React.addTransitionType === "function") React.addTransitionType("nav-forward");
+                    router.push("/settings/profile");
+                  });
+                }}
+                className="cursor-pointer"
+              >
                 <UserCogIcon />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                React.startTransition(() => {
-                  /* @ts-ignore -- react experimental */
-                  if (typeof React.addTransitionType === 'function') React.addTransitionType('nav-forward');
-                  router.push("/settings/account");
-                });
-              }} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => {
+                  React.startTransition(() => {
+                    /* @ts-expect-error -- react experimental */
+                    if (typeof React.addTransitionType === "function") React.addTransitionType("nav-forward");
+                    router.push("/settings/account");
+                  });
+                }}
+                className="cursor-pointer"
+              >
                 <SettingsIcon />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                React.startTransition(() => {
-                  /* @ts-ignore -- react experimental */
-                  if (typeof React.addTransitionType === 'function') React.addTransitionType('nav-forward');
-                  router.push("/settings/notifications");
-                });
-              }} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => {
+                  React.startTransition(() => {
+                    /* @ts-expect-error -- react experimental */
+                    if (typeof React.addTransitionType === "function") React.addTransitionType("nav-forward");
+                    router.push("/settings/notifications");
+                  });
+                }}
+                className="cursor-pointer"
+              >
                 <BellIcon />
                 Notifications
               </DropdownMenuItem>

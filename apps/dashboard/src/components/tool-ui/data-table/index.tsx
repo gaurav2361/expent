@@ -1,29 +1,27 @@
 export { DataTable, useDataTable } from "./data-table";
-
-export { renderFormattedValue } from "./formatters";
+export type { FormatConfig } from "./formatters";
 export {
-  NumberValue,
-  CurrencyValue,
-  PercentValue,
-  DeltaValue,
-  DateValue,
-  BooleanValue,
-  LinkValue,
-  BadgeValue,
-  StatusBadge,
   ArrayValue,
+  BadgeValue,
+  BooleanValue,
+  CurrencyValue,
+  DateValue,
+  DeltaValue,
+  LinkValue,
+  NumberValue,
+  PercentValue,
+  renderFormattedValue,
+  StatusBadge,
 } from "./formatters";
-
 export type {
   Column,
-  DataTableProps,
-  DataTableSerializableProps,
-  DataTableClientProps,
-  DataTableRowData,
-  RowPrimitive,
-  RowData,
   ColumnKey,
+  DataTableClientProps,
+  DataTableProps,
+  DataTableRowData,
+  DataTableSerializableProps,
+  RowData,
+  RowPrimitive,
 } from "./types";
-export type { FormatConfig } from "./formatters";
 
-export { sortData, parseNumericLike } from "./utilities";
+export { parseNumericLike, sortData } from "./utilities";

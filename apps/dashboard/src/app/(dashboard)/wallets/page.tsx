@@ -1,18 +1,16 @@
 "use client";
 
-import * as React from "react";
+import { Badge } from "@expent/ui/components/badge";
+import { Button } from "@expent/ui/components/button";
 import {
   Card,
+  CardAction,
   CardContent,
-  CardHeader,
-  CardTitle,
   CardDescription,
   CardFooter,
-  CardAction,
+  CardHeader,
+  CardTitle,
 } from "@expent/ui/components/card";
-import { Button } from "@expent/ui/components/button";
-import { Input } from "@expent/ui/components/input";
-import { Badge } from "@expent/ui/components/badge";
 import {
   Dialog,
   DialogContent,
@@ -22,18 +20,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@expent/ui/components/dialog";
+import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
-import { toast } from "@expent/ui/components/goey-toaster";
 import {
-  PlusIcon,
-  WalletIcon,
-  CreditCardIcon,
   BanknoteIcon,
   Building2Icon,
-  SmartphoneIcon,
+  CreditCardIcon,
   MoreVerticalIcon,
+  PlusIcon,
+  SmartphoneIcon,
+  WalletIcon,
 } from "lucide-react";
+import * as React from "react";
 import { useWallets } from "@/hooks/use-wallets";
 
 export default function WalletsPage() {

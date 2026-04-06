@@ -2,27 +2,27 @@
 
 import * as React from "react";
 import {
-  cn,
-  Table,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableHeader,
-  TableHead,
-  Button,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
+  Button,
+  cn,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "./_adapter";
-import { sortData, createDataTableRowKeys, getDataTableMobileDescriptionId } from "./utilities";
-import { renderFormattedValue } from "./formatters";
-import type { DataTableProps, DataTableContextValue, RowData, DataTableRowData, ColumnKey, Column } from "./types";
 import type { FormatConfig } from "./formatters";
+import { renderFormattedValue } from "./formatters";
+import type { Column, ColumnKey, DataTableContextValue, DataTableProps, DataTableRowData, RowData } from "./types";
+import { createDataTableRowKeys, getDataTableMobileDescriptionId, sortData } from "./utilities";
 
 export const DEFAULT_LOCALE = "en-US" as const;
 
@@ -633,7 +633,6 @@ function DataTableAccordionCard({ row, index, rowKey, isFirst = false }: DataTab
                 "motion-safe:group-data-[state=closed]:slide-out-to-top-1",
                 "duration-150"
               )}
-              role="list"
               aria-label="Additional data"
             >
               {secondary.map((col) => (

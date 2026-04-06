@@ -1,6 +1,6 @@
 import { Kbd, KbdGroup } from "@expent/ui/components/kbd";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@expent/ui/components/tooltip";
 import { SidebarTrigger } from "@expent/ui/components/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@expent/ui/components/tooltip";
 
 export function CustomSidebarTrigger() {
   return (

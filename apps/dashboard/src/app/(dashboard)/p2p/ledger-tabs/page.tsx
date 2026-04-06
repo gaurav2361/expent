@@ -1,12 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@expent/ui/components/card";
-import { Button } from "@expent/ui/components/button";
-import { Input } from "@expent/ui/components/input";
 import { Badge } from "@expent/ui/components/badge";
+import { Button } from "@expent/ui/components/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@expent/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -16,22 +12,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@expent/ui/components/dialog";
+import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
-import { toast } from "@expent/ui/components/goey-toaster";
 import {
-  PlusIcon,
-  NotebookTabsIcon,
-  UserIcon,
-  ArrowUpRightIcon,
   ArrowDownLeftIcon,
-  HistoryIcon,
+  ArrowUpRightIcon,
   CheckCircle2Icon,
   ClockIcon,
+  HistoryIcon,
+  NotebookTabsIcon,
+  PlusIcon,
   WalletIcon,
 } from "lucide-react";
-import { useLedgerTabs } from "@/hooks/use-p2p";
+import * as React from "react";
 import { useContacts } from "@/hooks/use-contacts";
+import { useLedgerTabs } from "@/hooks/use-p2p";
 import { useWallets } from "@/hooks/use-wallets";
 
 export default function LedgerTabsPage() {

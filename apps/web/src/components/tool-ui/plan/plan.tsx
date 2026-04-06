@@ -1,25 +1,25 @@
 "use client";
 
+import { Check, ChevronRight, Loader2, MoreHorizontal, X } from "lucide-react";
 import * as React from "react";
-import { useMemo, useState, useEffect, useRef, memo } from "react";
-import { Loader2, Check, X, MoreHorizontal, ChevronRight } from "lucide-react";
-import type { PlanProps, PlanTodo, PlanTodoStatus } from "./schema";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
-  cn,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
   Accordion,
+  AccordionContent,
   AccordionItem,
   AccordionTrigger,
-  AccordionContent,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Collapsible,
-  CollapsibleTrigger,
   CollapsibleContent,
+  CollapsibleTrigger,
+  cn,
 } from "./_adapter";
 import { calculatePlanProgress, shouldCelebrateProgress } from "./progress";
+import type { PlanProps, PlanTodo, PlanTodoStatus } from "./schema";
 
 const INITIAL_VISIBLE_TODO_COUNT = 4;
 

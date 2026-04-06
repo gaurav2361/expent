@@ -1,22 +1,16 @@
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Text } from '@/components/ui/text';
-import * as React from 'react';
-import { TextInput, View } from 'react-native';
-import { router } from 'expo-router';
-import { showErrorMessage } from '@/components/ui/utils';
+import { router } from "expo-router";
+import * as React from "react";
+import { type TextInput, View } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Text } from "@/components/ui/text";
+import { showErrorMessage } from "@/components/ui/utils";
 
 export function ResetPasswordForm() {
-  const [password, setPassword] = React.useState('');
-  const [code, setCode] = React.useState('');
+  const [password, setPassword] = React.useState("");
+  const [code, setCode] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const codeInputRef = React.useRef<TextInput>(null);
 
@@ -26,18 +20,18 @@ export function ResetPasswordForm() {
 
   async function onSubmit() {
     if (!password || !code) {
-      showErrorMessage('Please fill in all fields');
+      showErrorMessage("Please fill in all fields");
       return;
     }
 
     setIsLoading(true);
     try {
       // TODO: Call your reset password API here
-      console.log('Resetting password with code:', code);
+      console.log("Resetting password with code:", code);
       // Simulate success and navigate
-      router.replace('/(auth)/sign-in');
+      router.replace("/(auth)/sign-in");
     } catch (error) {
-      showErrorMessage(error instanceof Error ? error.message : 'Something went wrong');
+      showErrorMessage(error instanceof Error ? error.message : "Something went wrong");
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +80,7 @@ export function ResetPasswordForm() {
               />
             </View>
             <Button className="w-full" onPress={onSubmit} disabled={isLoading}>
-              <Text>{isLoading ? 'Resetting...' : 'Reset Password'}</Text>
+              <Text>{isLoading ? "Resetting..." : "Reset Password"}</Text>
             </Button>
           </View>
         </CardContent>
