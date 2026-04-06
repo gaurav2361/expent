@@ -17,7 +17,7 @@ export function NotFoundPage() {
           <div className="flex gap-2">
             <Button render={<a href="/" />} nativeButton={false}>
               <HomeIcon data-icon="inline-start" />
-              Go Home
+              Go dashboard
             </Button>
           </div>
         </EmptyContent>

@@ -109,7 +109,10 @@ pub async fn list_transactions(
             .await?
         {
             if let Some(c_id) = party.contact_id {
-                if let Some(c) = entities::contacts::Entity::find_by_id(c_id.clone()).one(db).await? {
+                if let Some(c) = entities::contacts::Entity::find_by_id(c_id.clone())
+                    .one(db)
+                    .await?
+                {
                     contact_name = Some(c.name);
                     contact_id = Some(c_id);
                 }
