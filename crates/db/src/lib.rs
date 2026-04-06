@@ -458,9 +458,7 @@ impl SmartMerge {
         services::categories::list_categories(db, user_id).await
     }
 
-    pub async fn ensure_system_categories(
-        db: &DatabaseConnection,
-    ) -> Result<(), DbErr> {
+    pub async fn ensure_system_categories(db: &DatabaseConnection) -> Result<(), DbErr> {
         services::categories::ensure_system_categories(db).await
     }
 

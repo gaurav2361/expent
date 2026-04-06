@@ -60,16 +60,15 @@ pub async fn upload_avatar_handler(
     let mut file_name = String::new();
     let mut content_type = String::new();
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
-        ApiError::BadRequest(e.to_string())
-    })? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?
+    {
         let name = field.name().unwrap_or_default().to_string();
         if name == "file" {
             file_name = field.file_name().unwrap_or("avatar").to_string();
-            content_type = field
-                .content_type()
-                .unwrap_or("image/png")
-                .to_string();
+            content_type = field.content_type().unwrap_or("image/png").to_string();
 
             // Validate it's an image content type
             if !content_type.starts_with("image/") {
@@ -78,16 +77,17 @@ pub async fn upload_avatar_handler(
                 ));
             }
 
-            file_data = Some(field.bytes().await.map_err(|e| {
-                ApiError::Internal(e.to_string())
-            })?);
+            file_data = Some(
+                field
+                    .bytes()
+                    .await
+                    .map_err(|e| ApiError::Internal(e.to_string()))?,
+            );
             break;
         }
     }
 
-    let data = file_data.ok_or_else(|| {
-        ApiError::BadRequest("No file uploaded".to_string())
-    })?;
+    let data = file_data.ok_or_else(|| ApiError::BadRequest("No file uploaded".to_string()))?;
 
     // Compress to WebP, max 512×512 for avatars
     let processed = state
@@ -120,7 +120,11 @@ pub async fn upload_avatar_handler(
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))?;
 
-    tracing::info!("✅ Avatar uploaded for user {}: {}", session.user.id, avatar_url);
+    tracing::info!(
+        "✅ Avatar uploaded for user {}: {}",
+        session.user.id,
+        avatar_url
+    );
 
     Ok(Json(AvatarUploadResponse {
         url: avatar_url,
