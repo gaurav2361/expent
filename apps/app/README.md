@@ -1,49 +1,73 @@
-<h1 align="center">
-  <img alt="logo" src="./assets/icon.png" width="124px" style="border-radius:10px"/><br/>
-Mobile App </h1>
+# Minimal Uniwind Template
 
-> This Project is based on [Obytes starter](https://starter.obytes.com)
+This is a [React Native](https://reactnative.dev/) project built with [Expo](https://expo.dev/) and [React Native Reusables](https://reactnativereusables.com).
 
-## Requirements
+It was initialized using the following command, then the `Minimal (Uniwind)` template was selected when prompted:
 
-- [React Native dev environment ](https://reactnative.dev/docs/environment-setup)
-- [Node.js LTS release](https://nodejs.org/en/)
-- [Git](https://git-scm.com/)
-- [Watchman](https://facebook.github.io/watchman/docs/install#buildinstall), required only for macOS or Linux users
-- [Pnpm](https://pnpm.io/installation)
-- [Cursor](https://www.cursor.com/) or [VS Code Editor](https://code.visualstudio.com/download) ⚠️ Make sure to install all recommended extension from `.vscode/extensions.json`
-
-## 👋 Quick start
-
-Clone the repo to your machine and install deps :
-
-```sh
-git clone https://github.com/user/repo-name
-
-cd ./repo-name
-
-pnpm install
+```bash
+npx @react-native-reusables/cli@latest init
 ```
 
-To run the app on ios
+## Getting Started
 
-```sh
-pnpm ios
+To run the development server:
+
+```bash
+    npm run dev
+    # or
+    yarn dev
+    # or
+    pnpm dev
+    # or
+    bun dev
 ```
 
-To run the app on Android
+This will start the Expo Dev Server. Open the app in:
 
-```sh
-pnpm android
+- **iOS**: press `i` to launch in the iOS simulator _(Mac only)_
+- **Android**: press `a` to launch in the Android emulator
+- **Web**: press `w` to run in a browser
+
+You can also scan the QR code using the [Expo Go](https://expo.dev/go) app on your device. This project fully supports running in Expo Go for quick testing on physical devices.
+
+## Adding components
+
+You can add more reusable components using the CLI:
+
+```bash
+npx react-native-reusables/cli@latest add [...components]
 ```
 
-## ✍️ Documentation
+> e.g. `npx react-native-reusables/cli@latest add input textarea`
 
-- [Rules and Conventions](https://starter.obytes.com/getting-started/rules-and-conventions/)
-- [Project structure](https://starter.obytes.com/getting-started/project-structure)
-- [Environment vars and config](https://starter.obytes.com/getting-started/environment-vars-config)
-- [UI and Theming](https://starter.obytes.com/ui-and-theme/ui-theming)
-- [Components](https://starter.obytes.com/ui-and-theme/components)
-- [Forms](https://starter.obytes.com/ui-and-theme/Forms)
-- [Data fetching](https://starter.obytes.com/guides/data-fetching)
-- [Contribute to starter](https://starter.obytes.com/how-to-contribute/)
+If you don't specify any component names, you'll be prompted to select which components to add interactively. Use the `--all` flag to install all available components at once.
+
+## Project Features
+
+- ⚛️ Built with [Expo Router](https://expo.dev/router)
+- 🎨 Styled with [Tailwind CSS](https://tailwindcss.com/) via [Uniwind](https://uniwind.dev/)
+- 📦 UI powered by [React Native Reusables](https://github.com/founded-labs/react-native-reusables)
+- 🚀 New Architecture enabled
+- 🔥 Edge to Edge enabled
+- 📱 Runs on iOS, Android, and Web
+
+## Learn More
+
+To dive deeper into the technologies used:
+
+- [React Native Docs](https://reactnative.dev/docs/getting-started)
+- [Expo Docs](https://docs.expo.dev/)
+- [Uniwind Docs](https://docs.uniwind.dev/)
+- [React Native Reusables](https://reactnativereusables.com)
+
+## Deploy with EAS
+
+The easiest way to deploy your app is with [Expo Application Services (EAS)](https://expo.dev/eas).
+
+- [EAS Build](https://docs.expo.dev/build/introduction/)
+- [EAS Updates](https://docs.expo.dev/eas-update/introduction/)
+- [EAS Submit](https://docs.expo.dev/submit/introduction/)
+
+---
+
+If you enjoy using React Native Reusables, please consider giving it a ⭐ on [GitHub](https://github.com/founded-labs/react-native-reusables). Your support means a lot!
