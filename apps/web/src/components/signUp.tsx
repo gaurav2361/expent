@@ -1,16 +1,16 @@
 "use client";
 
 import { Button } from "@expent/ui/components/button";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@expent/ui/components/input-group";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { AtSignIcon, ChevronLeftIcon } from "lucide-react";
+import { useState } from "react";
 import { AuthDivider } from "@/components/auth-divider";
 import { AuthShades } from "@/components/auth-shades";
 import { SocialLogins } from "@/components/auth-social";
 import { Logo } from "@/components/logo";
-import { useState } from "react";
 import { signUp } from "@/lib/auth-client";
-import { toast } from "@expent/ui/components/goey-toaster";
 
 export function SignUp() {
   const [email, setEmail] = useState("");

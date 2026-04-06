@@ -2,10 +2,10 @@
 
 import { Toaster } from "@expent/ui/components/goey-toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "@/components/ui-elements/theme-provider";
-import { useTheme } from "next-themes";
 import { MotionConfig } from "motion/react";
+import { useTheme } from "next-themes";
 import { useState } from "react";
+import { ThemeProvider } from "@/components/ui-elements/theme-provider";
 
 function AppToaster() {
   const { resolvedTheme } = useTheme();

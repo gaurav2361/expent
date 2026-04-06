@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import type { Contact } from "@expent/types";
+import { Button } from "@expent/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -9,12 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@expent/ui/components/dialog";
-import { Button } from "@expent/ui/components/button";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
+import * as React from "react";
 import { useContacts } from "@/hooks/use-contacts";
-import { toast } from "@expent/ui/components/goey-toaster";
-import type { Contact } from "@expent/types";
 
 interface CreateContactDialogProps {
   open: boolean;

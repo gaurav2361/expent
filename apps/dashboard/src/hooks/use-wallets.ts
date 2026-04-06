@@ -1,8 +1,8 @@
+import type { Wallet } from "@expent/types";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
-import { toast } from "@expent/ui/components/goey-toaster";
-import type { Wallet } from "@expent/types";
 
 export function useWallets() {
   const session = useSession();

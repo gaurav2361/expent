@@ -1,30 +1,32 @@
-import { View, TouchableOpacity } from 'react-native';
-import { Text } from '@/components/ui/text';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Repeat, Users, CheckCircle2, Search, ArrowUpRight, ArrowDownLeft, SlidersHorizontal } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { FlashList } from '@shopify/flash-list';
-import * as Haptics from 'expo-haptics';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { FlashList } from "@shopify/flash-list";
+import * as Haptics from "expo-haptics";
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Search, SlidersHorizontal, Users } from "lucide-react-native";
+import * as React from "react";
+import { View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Text } from "@/components/ui/text";
 
 const TRANSACTIONS = Array.from({ length: 20 }, (_, i) => ({
   id: i.toString(),
-  merchant: i % 3 === 0 ? 'Zomato' : i % 3 === 1 ? 'Amazon' : 'Apple Services',
-  date: 'Oct 12, 2023',
-  amount: i % 2 === 0 ? '-₹1,200.00' : '+₹5,000.00',
-  type: i % 2 === 0 ? 'OUT' : 'IN',
-  category: i % 3 === 0 ? 'Food' : i % 3 === 1 ? 'Shopping' : 'Entertainment'
+  merchant: i % 3 === 0 ? "Zomato" : i % 3 === 1 ? "Amazon" : "Apple Services",
+  date: "Oct 12, 2023",
+  amount: i % 2 === 0 ? "-₹1,200.00" : "+₹5,000.00",
+  type: i % 2 === 0 ? "OUT" : "IN",
+  category: i % 3 === 0 ? "Food" : i % 3 === 1 ? "Shopping" : "Entertainment",
 }));
 
 export default function ActivityScreen() {
+  const [tabValue, setTabValue] = React.useState("transactions");
   const handlePress = () => {
     Haptics.selectionAsync();
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <Animated.View entering={FadeIn} className="flex-1">
         {/* Header */}
         <View className="px-6 py-6 flex-row items-center justify-between">
@@ -39,7 +41,7 @@ export default function ActivityScreen() {
           </View>
         </View>
 
-        <Tabs defaultValue="transactions" className="flex-1">
+        <Tabs value={tabValue} onValueChange={setTabValue} className="flex-1">
           <View className="px-6 mb-6">
             <TabsList className="bg-muted/50 rounded-2xl p-1.5 flex-row border border-border/40">
               <TabsTrigger value="transactions" className="flex-1 rounded-xl py-2.5" onPress={handlePress}>
@@ -63,14 +65,16 @@ export default function ActivityScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 100 }}
                 renderItem={({ item }) => (
-                  <Card 
-                    style={{ borderCurve: 'continuous' }}
+                  <Card
+                    style={{ borderCurve: "continuous" }}
                     className="bg-card/40 border-border/40 rounded-[24px] mb-4 border"
                   >
                     <CardContent className="p-4 flex-row items-center justify-between">
                       <View className="flex-row items-center gap-4">
-                        <View className={`w-12 h-12 rounded-2xl items-center justify-center ${item.type === 'IN' ? 'bg-success-100/50' : 'bg-primary/5'}`}>
-                          {item.type === 'IN' ? (
+                        <View
+                          className={`w-12 h-12 rounded-2xl items-center justify-center ${item.type === "IN" ? "bg-success-100/50" : "bg-primary/5"}`}
+                        >
+                          {item.type === "IN" ? (
                             <ArrowDownLeft size={20} color="hsl(var(--success-600))" />
                           ) : (
                             <ArrowUpRight size={20} className="text-primary" />
@@ -79,15 +83,17 @@ export default function ActivityScreen() {
                         <View>
                           <Text className="font-bold text-foreground text-base tracking-tight">{item.merchant}</Text>
                           <View className="flex-row items-center gap-2 mt-0.5">
-                            <Text className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{item.category}</Text>
+                            <Text className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                              {item.category}
+                            </Text>
                             <Text className="text-[10px] text-muted-foreground">•</Text>
                             <Text className="text-[10px] text-muted-foreground font-medium">{item.date}</Text>
                           </View>
                         </View>
                       </View>
-                      <Text 
-                        style={{ fontVariant: ['tabular-nums'] }}
-                        className={`font-bold text-base ${item.type === 'IN' ? 'text-success-600' : 'text-foreground'}`}
+                      <Text
+                        style={{ fontVariant: ["tabular-nums"] }}
+                        className={`font-bold text-base ${item.type === "IN" ? "text-success-600" : "text-foreground"}`}
                       >
                         {item.amount}
                       </Text>
@@ -98,27 +104,34 @@ export default function ActivityScreen() {
             </TabsContent>
 
             <TabsContent value="p2p" className="flex-1">
-              <View className="bg-primary rounded-[32px] p-8 mb-8 shadow-lg shadow-primary/20" style={{ borderCurve: 'continuous' }}>
+              <View
+                className="bg-primary rounded-[32px] p-8 mb-8 shadow-lg shadow-primary/20"
+                style={{ borderCurve: "continuous" }}
+              >
                 <View className="flex-row items-center gap-3 mb-4">
                   <View className="w-10 h-10 rounded-full bg-white/10 items-center justify-center">
                     <Users size={20} color="white" />
                   </View>
                   <Text className="font-bold text-white text-xl">Split Requests</Text>
                 </View>
-                <Text className="text-white/80 mb-6 text-base leading-5">You have 3 split requests from your group waiting for approval.</Text>
+                <Text className="text-white/80 mb-6 text-base leading-5">
+                  You have 3 split requests from your group waiting for approval.
+                </Text>
                 <Button className="bg-white rounded-2xl h-14" onPress={handlePress}>
                   <Text className="text-primary font-bold text-base">Review Now</Text>
                 </Button>
               </View>
-              
-              <Text className="text-muted-foreground font-bold text-xs uppercase tracking-widest mb-4 ml-1">Recent Splits</Text>
-              
+
+              <Text className="text-muted-foreground font-bold text-xs uppercase tracking-widest mb-4 ml-1">
+                Recent Splits
+              </Text>
+
               <FlashList
                 data={[1, 2, 3]}
                 estimatedItemSize={90}
                 renderItem={({ item }) => (
-                  <Card 
-                    style={{ borderCurve: 'continuous' }}
+                  <Card
+                    style={{ borderCurve: "continuous" }}
                     className="bg-card/40 border-border/40 rounded-[24px] mb-4 border"
                   >
                     <CardContent className="p-4 flex-row items-center justify-between">
@@ -132,10 +145,7 @@ export default function ActivityScreen() {
                         </View>
                       </View>
                       <View className="items-end">
-                        <Text 
-                          style={{ fontVariant: ['tabular-nums'] }}
-                          className="font-bold text-foreground text-base"
-                        >
+                        <Text style={{ fontVariant: ["tabular-nums"] }} className="font-bold text-foreground text-base">
                           ₹450.00
                         </Text>
                         <View className="bg-orange-100/50 px-2 py-0.5 rounded-full mt-1">
@@ -153,9 +163,17 @@ export default function ActivityScreen() {
                 <View className="w-24 h-24 bg-success-100 rounded-full items-center justify-center mb-8 shadow-sm">
                   <CheckCircle2 size={48} color="hsl(var(--success-600))" />
                 </View>
-                <Text className="text-2xl font-bold text-foreground text-center mb-3 tracking-tight">Everything is synced</Text>
-                <Text className="text-muted-foreground text-center text-base leading-5">Your transactions match your bank statements perfectly.</Text>
-                <Button variant="outline" className="mt-10 border-border/60 rounded-3xl w-full h-16 bg-background shadow-sm" onPress={handlePress}>
+                <Text className="text-2xl font-bold text-foreground text-center mb-3 tracking-tight">
+                  Everything is synced
+                </Text>
+                <Text className="text-muted-foreground text-center text-base leading-5">
+                  Your transactions match your bank statements perfectly.
+                </Text>
+                <Button
+                  variant="outline"
+                  className="mt-10 border-border/60 rounded-3xl w-full h-16 bg-background shadow-sm"
+                  onPress={handlePress}
+                >
                   <Text className="font-bold text-base">Sync Statements</Text>
                 </Button>
               </View>

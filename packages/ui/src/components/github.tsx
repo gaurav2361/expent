@@ -1,11 +1,10 @@
 "use client";
 
+import { cn } from "@expent/ui/lib/utils";
 import type { Variants } from "motion/react";
 import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
-
-import { cn } from "@expent/ui/lib/utils";
 
 export interface GithubIconHandle {
   startAnimation: () => void;

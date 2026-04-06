@@ -1,15 +1,15 @@
 "use client";
 
-import * as React from "react";
-import { Separator } from "@expent/ui/components/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@expent/ui/components/avatar";
+import { Button } from "@expent/ui/components/button";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
-import { Button } from "@expent/ui/components/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@expent/ui/components/avatar";
+import { Separator } from "@expent/ui/components/separator";
 import { CameraIcon, LoaderIcon } from "lucide-react";
-import { toast } from "@expent/ui/components/goey-toaster";
-import { useSession } from "@/lib/auth-client";
+import * as React from "react";
 import { apiClient } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 
 export default function SettingsProfilePage() {
   const session = useSession();
@@ -75,7 +75,7 @@ export default function SettingsProfilePage() {
         throw new Error(errorText);
       }
 
-      const result = await response.json() as { url: string; key: string };
+      const result = (await response.json()) as { url: string; key: string };
       setAvatarPreview(result.url);
 
       // Refetch session so the new avatar URL propagates to NavUser & everywhere else
@@ -154,9 +154,7 @@ export default function SettingsProfilePage() {
             </div>
             <div className="space-y-1">
               <p className="text-sm font-medium">Upload a new avatar</p>
-              <p className="text-[0.8rem] text-muted-foreground">
-                JPG, PNG or GIF. Max 5MB. Auto-compressed to WebP.
-              </p>
+              <p className="text-[0.8rem] text-muted-foreground">JPG, PNG or GIF. Max 5MB. Auto-compressed to WebP.</p>
               <label
                 htmlFor="avatar-upload"
                 className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 cursor-pointer transition-colors"
@@ -170,12 +168,7 @@ export default function SettingsProfilePage() {
         {/* Name */}
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-          />
+          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
         </div>
 
         {/* Username */}
@@ -195,13 +188,7 @@ export default function SettingsProfilePage() {
         {/* Email */}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            disabled
-            className="opacity-60"
-          />
+          <Input id="email" type="email" value={email} disabled className="opacity-60" />
           <p className="text-[0.8rem] text-muted-foreground">
             Email cannot be changed from this page. Contact support to update your email.
           </p>

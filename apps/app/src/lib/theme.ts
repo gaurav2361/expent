@@ -1,4 +1,4 @@
-import { type Theme } from "@react-navigation/native";
+import type { Theme } from "@react-navigation/native";
 
 /**
  * React Navigation theme configuration that maps to the CSS variables

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { client } from '@/lib/api';
-import { create } from 'zustand';
-import { getItem, setItem, removeItem } from '@/lib/storage';
+import { useEffect, useState } from "react";
+import { create } from "zustand";
+import { client } from "@/lib/api";
+import { getItem, removeItem, setItem } from "@/lib/storage";
 
-const AUTH_KEY = 'auth_session';
+const AUTH_KEY = "auth_session";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -43,19 +43,19 @@ export function useAuth() {
         } else {
           clearAuth();
         }
-      } catch (error) {
+      } catch (_error) {
         clearAuth();
       }
     };
     checkSession();
-  }, []);
+  }, [setAuth, clearAuth]);
 
   const signIn = async (email?: string, password?: string) => {
     setIsSubmitting(true);
     try {
       // Temporary stub for Better Auth integration
-      console.log('Signing in with:', email);
-      const response = await client.post('/auth/sign-in/email', {
+      console.log("Signing in with:", email);
+      const response = await client.post("/auth/sign-in/email", {
         email,
         password,
       });
@@ -72,9 +72,9 @@ export function useAuth() {
   const signUp = async (email?: string, password?: string, name?: string) => {
     setIsSubmitting(true);
     try {
-      console.log('Signing up with:', email, name);
+      console.log("Signing up with:", email, name);
       // Temporary stub for Better Auth integration
-      const response = await client.post('/auth/sign-up/email', {
+      const response = await client.post("/auth/sign-up/email", {
         email,
         password,
         name,
@@ -92,7 +92,7 @@ export function useAuth() {
   const signOut = async () => {
     setIsSubmitting(true);
     try {
-      await client.post('/auth/sign-out');
+      await client.post("/auth/sign-out");
     } catch (error) {
       console.error(error);
     } finally {

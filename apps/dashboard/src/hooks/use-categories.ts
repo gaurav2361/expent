@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Category } from "@expent/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
-import type { Category } from "@expent/types";
 
 export function useCategories() {
   const queryClient = useQueryClient();

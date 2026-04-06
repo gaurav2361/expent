@@ -1,18 +1,20 @@
 "use client";
 
-import * as React from "react";
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
 import type { TransactionWithDetail } from "@expent/types";
+import * as React from "react";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 const COLORS = [
-  "#3b82f6", "#ef4444", "#10b981", "#f97316", "#8b5cf6",
-  "#ec4899", "#06b6d4", "#eab308", "#64748b", "#14b8a6",
+  "#3b82f6",
+  "#ef4444",
+  "#10b981",
+  "#f97316",
+  "#8b5cf6",
+  "#ec4899",
+  "#06b6d4",
+  "#eab308",
+  "#64748b",
+  "#14b8a6",
 ];
 
 interface CategoryChartProps {
@@ -26,7 +28,7 @@ export function CategoryChart({ transactions }: CategoryChartProps) {
 
     transactions.forEach((txn) => {
       if (txn.direction === "OUT") {
-        const cat = (txn as Record<string, unknown>).category_name as string || "Uncategorized";
+        const cat = ((txn as Record<string, unknown>).category_name as string) || "Uncategorized";
         map.set(cat, (map.get(cat) || 0) + parseFloat(txn.amount));
       }
     });

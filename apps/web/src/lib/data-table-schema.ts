@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { ToolUIIdSchema, ToolUIReceiptSchema, ToolUIRoleSchema } from "@/components/tool-ui/shared/schema";
 import { defineToolUiContract } from "@/components/tool-ui/shared/contract";
+import { ToolUIIdSchema, ToolUIReceiptSchema, ToolUIRoleSchema } from "@/components/tool-ui/shared/schema";
 import type { Column, DataTableProps, RowData } from "@/lib/data-table-types";
 
 const AlignEnum = z.enum(["left", "right", "center"]);

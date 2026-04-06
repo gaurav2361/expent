@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { Button } from "@expent/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@expent/ui/components/dialog";
-import { Button } from "@expent/ui/components/button";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
+import * as React from "react";
 import { useWallets } from "@/hooks/use-wallets";
-import { toast } from "@expent/ui/components/goey-toaster";
 
 interface CreateWalletDialogProps {
   open: boolean;
@@ -71,7 +71,7 @@ export function CreateWalletDialog({ open, onOpenChange, onCreated }: CreateWall
           <DialogTitle>Create Wallet</DialogTitle>
           <DialogDescription>Add a new bank account, credit card, or cash wallet.</DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="wallet-name">Wallet Name</Label>
@@ -83,7 +83,7 @@ export function CreateWalletDialog({ open, onOpenChange, onCreated }: CreateWall
               autoComplete="off"
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="wallet-type">Type</Label>
@@ -99,7 +99,7 @@ export function CreateWalletDialog({ open, onOpenChange, onCreated }: CreateWall
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="wallet-balance">Initial Balance (₹)</Label>
               <Input

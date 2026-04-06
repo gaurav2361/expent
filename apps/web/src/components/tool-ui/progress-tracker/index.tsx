@@ -1,7 +1,7 @@
 export { ProgressTracker } from "./progress-tracker";
-export {
-  type SerializableProgressTracker,
-  type ProgressTrackerProps,
-  type ProgressTrackerChoice,
-  type ProgressStep,
+export type {
+  ProgressStep,
+  ProgressTrackerChoice,
+  ProgressTrackerProps,
+  SerializableProgressTracker,
 } from "./schema";

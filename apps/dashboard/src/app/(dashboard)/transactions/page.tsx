@@ -1,10 +1,9 @@
 "use client";
-import * as React from "react";
+import type { Transaction, TransactionWithDetail, TypedProcessedOcr } from "@expent/types";
 import { Badge } from "@expent/ui/components/badge";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Checkbox } from "@expent/ui/components/checkbox";
-import { Label } from "@expent/ui/components/label";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -13,10 +12,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@expent/ui/components/dropdown-menu";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
+import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 import { Tabs, TabsList, TabsTrigger } from "@expent/ui/components/tabs";
+import { useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef, ColumnFiltersState, SortingState, VisibilityState } from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
@@ -27,34 +30,30 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import type { ColumnDef, ColumnFiltersState, SortingState, VisibilityState } from "@tanstack/react-table";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  DownloadIcon,
-  ScaleIcon,
-  Columns3Icon,
-  MoreVerticalIcon,
-  SearchIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
-  Share2Icon,
+  Columns3Icon,
+  DownloadIcon,
+  MoreVerticalIcon,
   PencilIcon,
-  Trash2Icon,
+  ScaleIcon,
+  SearchIcon,
+  Share2Icon,
   UploadIcon,
 } from "lucide-react";
+import * as React from "react";
+import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
+import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
 import { useTransactions } from "@/hooks/use-transactions";
-import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
 import { apiClient } from "@/lib/api-client";
-import { toast } from "@expent/ui/components/goey-toaster";
-import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
-import { useQueryClient } from "@tanstack/react-query";
-import type { Transaction, TransactionWithDetail, TypedProcessedOcr } from "@expent/types";
 
 // Route Component
 export default function TransactionsPage() {
@@ -255,8 +254,8 @@ export default function TransactionsPage() {
         header: "Wallet",
         cell: ({ row }) => (
           <span className="text-xs font-medium">
-            {row.original.direction === "IN" 
-              ? row.original.destination_wallet_name || "—" 
+            {row.original.direction === "IN"
+              ? row.original.destination_wallet_name || "—"
               : row.original.source_wallet_name || "—"}
           </span>
         ),
@@ -264,11 +263,7 @@ export default function TransactionsPage() {
       {
         accessorKey: "contact",
         header: "Contact",
-        cell: ({ row }) => (
-          <span className="text-xs">
-            {row.original.contact_name || "—"}
-          </span>
-        ),
+        cell: ({ row }) => <span className="text-xs">{row.original.contact_name || "—"}</span>,
       },
       {
         accessorKey: "status",
@@ -392,7 +387,7 @@ export default function TransactionsPage() {
     const headers = ["Date", "Direction", "Amount", "Source", "ID"];
     const rows = rowsExport.map((txn: Transaction) => [txn.date, txn.direction, txn.amount, txn.source, txn.id]);
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const csvContent = `data:text/csv;charset=utf-8,${[headers.join(","), ...rows.map((e) => e.join(","))].join("\n")}`;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);

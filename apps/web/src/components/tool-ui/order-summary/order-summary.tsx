@@ -1,7 +1,7 @@
 import { CheckCircle, Package } from "lucide-react";
 import type { ReactElement } from "react";
 import { cn, Separator } from "./_adapter";
-import type { OrderSummaryProps, OrderItem, Pricing, OrderDecision, OrderSummaryVariant } from "./schema";
+import type { OrderDecision, OrderItem, OrderSummaryProps, OrderSummaryVariant, Pricing } from "./schema";
 
 function formatCurrency(amount: number, currency: string): string {
   try {
@@ -100,7 +100,7 @@ function PricingBreakdown({ pricing, className }: { pricing: Pricing; className?
 function formatDate(isoString: string): string | undefined {
   try {
     const date = new Date(isoString);
-    if (isNaN(date.getTime())) return undefined;
+    if (Number.isNaN(date.getTime())) return undefined;
     return date.toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",

@@ -4,7 +4,6 @@ dependencies = [
   "uvicorn",
   "easyocr",
   "pdfplumber",
-  "boto3",
   "requests",
   "python-multipart",
   "python-dotenv",

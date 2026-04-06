@@ -1,8 +1,8 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useSession } from "@/lib/auth-client";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const session = useSession();

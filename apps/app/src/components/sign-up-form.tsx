@@ -1,27 +1,21 @@
-import { SocialConnections } from '@/components/social-connections';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Text } from '@/components/ui/text';
-import * as React from 'react';
-import { Pressable, type TextInput, View } from 'react-native';
-import { useAuth } from '@/lib/auth/use-auth';
-import { router } from 'expo-router';
-import { showErrorMessage } from '@/components/ui/utils';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { router } from "expo-router";
+import * as React from "react";
+import { Pressable, type TextInput, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { SocialConnections } from "@/components/social-connections";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Text } from "@/components/ui/text";
+import { showErrorMessage } from "@/components/ui/utils";
+import { useAuth } from "@/lib/auth/use-auth";
 
 export function SignUpForm() {
-  const [name, setName] = React.useState('');
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
+  const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const { signUp, isLoading } = useAuth();
   const passwordInputRef = React.useRef<TextInput>(null);
 
@@ -31,15 +25,15 @@ export function SignUpForm() {
 
   async function onSubmit() {
     if (!name || !email || !password) {
-      showErrorMessage('Please fill in all fields');
+      showErrorMessage("Please fill in all fields");
       return;
     }
 
     try {
       await signUp(email, password, name);
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } catch (error) {
-      showErrorMessage(error instanceof Error ? error.message : 'Failed to create account');
+      showErrorMessage(error instanceof Error ? error.message : "Failed to create account");
     }
   }
 
@@ -63,7 +57,9 @@ export function SignUpForm() {
         <CardContent className="gap-6 pt-4">
           <View className="gap-5">
             <View className="gap-2">
-              <Label nativeID="name-label" className="ml-1 font-semibold">Full Name</Label>
+              <Label nativeID="name-label" className="ml-1 font-semibold">
+                Full Name
+              </Label>
               <Input
                 id="name"
                 placeholder="John Doe"
@@ -76,7 +72,9 @@ export function SignUpForm() {
               />
             </View>
             <View className="gap-2">
-              <Label nativeID="email-label" className="ml-1 font-semibold">Email</Label>
+              <Label nativeID="email-label" className="ml-1 font-semibold">
+                Email
+              </Label>
               <Input
                 id="email"
                 placeholder="name@example.com"
@@ -92,7 +90,9 @@ export function SignUpForm() {
               />
             </View>
             <View className="gap-2">
-              <Label nativeID="password-label" className="ml-1 font-semibold">Password</Label>
+              <Label nativeID="password-label" className="ml-1 font-semibold">
+                Password
+              </Label>
               <Input
                 ref={passwordInputRef}
                 id="password"
@@ -106,16 +106,22 @@ export function SignUpForm() {
                 aria-labelledby="password-label"
               />
             </View>
-            <Button className="w-full h-14 rounded-2xl bg-primary mt-2 shadow-lg shadow-primary/20" onPress={onSubmit} disabled={isLoading}>
+            <Button
+              className="w-full h-14 rounded-2xl bg-primary mt-2 shadow-lg shadow-primary/20"
+              onPress={onSubmit}
+              disabled={isLoading}
+            >
               <Text className="text-primary-foreground font-bold text-lg">
-                {isLoading ? 'Creating...' : 'Create Account'}
+                {isLoading ? "Creating..." : "Create Account"}
               </Text>
             </Button>
           </View>
 
           <View className="flex-row items-center py-2">
             <Separator className="flex-1 opacity-50" />
-            <Text className="text-muted-foreground px-4 text-xs font-medium uppercase tracking-widest">or sign up with</Text>
+            <Text className="text-muted-foreground px-4 text-xs font-medium uppercase tracking-widest">
+              or sign up with
+            </Text>
             <Separator className="flex-1 opacity-50" />
           </View>
 
@@ -125,8 +131,9 @@ export function SignUpForm() {
             <Text className="text-muted-foreground">Already have an account?</Text>
             <Pressable
               onPress={() => {
-                router.push('/(auth)/sign-in');
-              }}>
+                router.push("/(auth)/sign-in");
+              }}
+            >
               <Text className="font-bold text-primary">Sign in</Text>
             </Pressable>
           </View>

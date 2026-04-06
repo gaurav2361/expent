@@ -1,9 +1,9 @@
-import { View, Image, TouchableOpacity } from 'react-native';
-import { Text } from '@/components/ui/text';
-import { Button } from '@/components/ui/button';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { router } from "expo-router";
+import { TouchableOpacity, View } from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 
 export default function SplashOnboarding() {
   return (
@@ -23,7 +23,7 @@ export default function SplashOnboarding() {
         {/* Content Section */}
         <Animated.View entering={FadeInDown.delay(400)} className="w-full items-center">
           <Text className="text-4xl font-bold text-foreground text-center mb-4 leading-[44px]">
-            Master your{'\n'}finances.
+            Master your{"\n"}finances.
           </Text>
           <Text className="text-muted-foreground text-center px-4 text-lg leading-6">
             Track expenses, manage subscriptions, and gain deep insights into your spending habits.
@@ -32,16 +32,16 @@ export default function SplashOnboarding() {
 
         {/* Action Buttons */}
         <Animated.View entering={FadeInDown.delay(600)} className="w-full gap-4">
-          <Button 
+          <Button
             className="bg-primary rounded-2xl h-16 w-full shadow-lg shadow-primary/30"
-            onPress={() => router.replace('/(auth)/sign-in')}
+            onPress={() => router.replace("/(auth)/sign-in")}
           >
             <Text className="text-primary-foreground font-bold text-lg">Get Started</Text>
           </Button>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             className="h-12 w-full items-center justify-center"
-            onPress={() => router.replace('/(tabs)')}
+            onPress={() => router.replace("/(tabs)")}
           >
             <Text className="text-muted-foreground font-semibold text-base">Continue as Guest</Text>
           </TouchableOpacity>

@@ -1,21 +1,20 @@
 "use client";
 
-import * as React from "react";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbLink,
   BreadcrumbSeparator,
 } from "@expent/ui/components/breadcrumb";
 import { Button } from "@expent/ui/components/button";
 import { Separator } from "@expent/ui/components/separator";
-
+import { BellIcon, SendIcon } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import * as React from "react";
 import { CustomSidebarTrigger } from "@/components/layout/custom-sidebar-trigger";
-import { SendIcon, BellIcon } from "lucide-react";
 
 const generateBreadcrumbs = (path: string) => {
   if (path === "/") return [{ label: "Overview", href: "/" }];
@@ -33,7 +32,10 @@ const generateBreadcrumbs = (path: string) => {
       label = "P2P";
     } else {
       // Capitalize 'shared-ledgers' to 'Shared Ledgers'
-      label = seg.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      label = seg
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
     }
 
     crumbs.push({ label, href: currentPath });
@@ -46,7 +48,7 @@ export function AppNavbar() {
   const breadcrumbs = generateBreadcrumbs(pathname);
 
   return (
-    <header 
+    <header
       className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 shadow-sm border-b z-10 sticky top-0 bg-background/95 backdrop-blur-sm"
       style={{ viewTransitionName: "persistent-nav" }}
     >

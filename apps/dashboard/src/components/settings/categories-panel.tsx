@@ -1,13 +1,13 @@
 "use client";
 
-import * as React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Button } from "@expent/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { PlusIcon, TagIcon, Trash2Icon } from "lucide-react";
+import * as React from "react";
 import { apiClient } from "@/lib/api-client";
-import { toast } from "@expent/ui/components/goey-toaster";
-import { TagIcon, PlusIcon, Trash2Icon } from "lucide-react";
 
 export function CategoriesPanel() {
   const queryClient = useQueryClient();

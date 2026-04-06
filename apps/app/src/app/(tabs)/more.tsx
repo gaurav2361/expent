@@ -1,43 +1,34 @@
-import { View, ScrollView, TouchableOpacity } from 'react-native';
-import { Text } from '@/components/ui/text';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  User, 
-  Palette, 
-  Wallet, 
-  Contact, 
-  LogOut, 
-  ChevronRight,
-  ShieldCheck,
-  Bell
-} from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Separator } from '@/components/ui/separator';
+import { router } from "expo-router";
+import { Bell, ChevronRight, Contact, LogOut, Palette, ShieldCheck, User, Wallet } from "lucide-react-native";
+import { ScrollView, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Text } from "@/components/ui/text";
 
 const MENU_GROUPS = [
   {
-    title: 'Financials',
+    title: "Financials",
     items: [
-      { id: 'wallets', label: 'Wallets', icon: Wallet, route: '/(tabs)/wallets' },
-      { id: 'contacts', label: 'Contacts', icon: Contact, route: '/(tabs)/contacts' },
-    ]
+      { id: "wallets", label: "Wallets", icon: Wallet, route: "/(tabs)/wallets" },
+      { id: "contacts", label: "Contacts", icon: Contact, route: "/(tabs)/contacts" },
+    ],
   },
   {
-    title: 'Account Settings',
+    title: "Account Settings",
     items: [
-      { id: 'profile', label: 'My Profile', icon: User, route: '/(settings)/profile' },
-      { id: 'account', label: 'Account Security', icon: ShieldCheck, route: '/(settings)/account' },
-      { id: 'appearance', label: 'Appearance', icon: Palette, route: '/(settings)/appearance' },
-      { id: 'notifications', label: 'Notifications', icon: Bell, route: '#' },
-    ]
-  }
+      { id: "profile", label: "My Profile", icon: User, route: "/(settings)/profile" },
+      { id: "account", label: "Account Security", icon: ShieldCheck, route: "/(settings)/account" },
+      { id: "appearance", label: "Appearance", icon: Palette, route: "/(settings)/appearance" },
+      { id: "notifications", label: "Notifications", icon: Bell, route: "#" },
+    ],
+  },
 ];
 
 export default function MoreScreen() {
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <View className="px-4 py-4 mb-4">
         <Text className="text-2xl font-bold text-foreground">More</Text>
       </View>
@@ -53,8 +44,8 @@ export default function MoreScreen() {
                 <CardContent className="p-0">
                   {group.items.map((item, index) => (
                     <View key={item.id}>
-                      <TouchableOpacity 
-                        onPress={() => item.route !== '#' && router.push(item.route)}
+                      <TouchableOpacity
+                        onPress={() => item.route !== "#" && router.push(item.route as any)}
                         className="flex-row items-center justify-between p-5"
                       >
                         <View className="flex-row items-center gap-4">
@@ -73,10 +64,10 @@ export default function MoreScreen() {
             </View>
           ))}
 
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="h-16 rounded-[28px] flex-row items-center gap-3 border border-border bg-card/50"
-            onPress={() => router.replace('/(auth)/sign-in')}
+            onPress={() => router.replace("/(auth)/sign-in")}
           >
             <LogOut size={20} className="text-destructive" />
             <Text className="font-bold text-destructive">Sign Out</Text>

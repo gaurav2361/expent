@@ -1,8 +1,8 @@
 "use client";
 
-import { SidebarProvider, SidebarInset } from "@expent/ui/components/sidebar";
-import { AppSidebar } from "@/components/layout/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@expent/ui/components/sidebar";
 import { AppNavbar } from "@/components/layout/app-navbar";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 
 export function SidebarClient({ defaultOpen, children }: { defaultOpen: boolean; children: React.ReactNode }) {
   return (

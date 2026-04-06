@@ -1,9 +1,9 @@
 "use client";
 
-import type { Action } from "./schema";
-import { cn, Button } from "./_adapter";
-import { useActionButtons } from "./use-action-buttons";
 import { Spinner } from "@expent/ui/components/spinner";
+import { Button, cn } from "./_adapter";
+import type { Action } from "./schema";
+import { useActionButtons } from "./use-action-buttons";
 
 export interface ActionButtonsProps {
   actions: Action[];

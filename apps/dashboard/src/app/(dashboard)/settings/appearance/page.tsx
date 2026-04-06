@@ -1,13 +1,13 @@
 "use client";
 
-import * as React from "react";
-import { Separator } from "@expent/ui/components/separator";
-import { Label } from "@expent/ui/components/label";
 import { Button } from "@expent/ui/components/button";
-import { RadioGroup, RadioGroupItem } from "@expent/ui/components/radio-group";
-import { useTheme } from "next-themes";
 import { toast } from "@expent/ui/components/goey-toaster";
-import { MonitorIcon, SunIcon, MoonIcon } from "lucide-react";
+import { Label } from "@expent/ui/components/label";
+import { RadioGroup, RadioGroupItem } from "@expent/ui/components/radio-group";
+import { Separator } from "@expent/ui/components/separator";
+import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { useTheme } from "next-themes";
+import * as React from "react";
 
 export default function SettingsAppearancePage() {
   const { theme, setTheme } = useTheme();
@@ -42,9 +42,7 @@ export default function SettingsAppearancePage() {
                 type="button"
                 onClick={() => setSelectedTheme(value)}
                 className={`flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all hover:bg-muted/50 cursor-pointer ${
-                  selectedTheme === value
-                    ? "border-primary bg-primary/5"
-                    : "border-muted"
+                  selectedTheme === value ? "border-primary bg-primary/5" : "border-muted"
                 }`}
               >
                 <Icon className={`h-6 w-6 ${selectedTheme === value ? "text-primary" : "text-muted-foreground"}`} />
@@ -59,15 +57,21 @@ export default function SettingsAppearancePage() {
           <RadioGroup defaultValue="default" className="grid gap-3">
             <div className="flex items-center space-x-3">
               <RadioGroupItem value="small" id="font-small" />
-              <Label htmlFor="font-small" className="font-normal">Small</Label>
+              <Label htmlFor="font-small" className="font-normal">
+                Small
+              </Label>
             </div>
             <div className="flex items-center space-x-3">
               <RadioGroupItem value="default" id="font-default" />
-              <Label htmlFor="font-default" className="font-normal">Default</Label>
+              <Label htmlFor="font-default" className="font-normal">
+                Default
+              </Label>
             </div>
             <div className="flex items-center space-x-3">
               <RadioGroupItem value="large" id="font-large" />
-              <Label htmlFor="font-large" className="font-normal">Large</Label>
+              <Label htmlFor="font-large" className="font-normal">
+                Large
+              </Label>
             </div>
           </RadioGroup>
         </div>

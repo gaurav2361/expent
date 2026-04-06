@@ -1,10 +1,10 @@
-import type * as React from "react";
-import { Command as CommandPrimitive } from "cmdk";
-
-import { cn } from "@expent/ui/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@expent/ui/components/dialog";
 import { InputGroup, InputGroupAddon } from "@expent/ui/components/input-group";
-import { SearchIcon, CheckIcon } from "lucide-react";
+
+import { cn } from "@expent/ui/lib/utils";
+import { Command as CommandPrimitive } from "cmdk";
+import { CheckIcon, SearchIcon } from "lucide-react";
+import type * as React from "react";
 
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
@@ -141,11 +141,11 @@ function CommandShortcut({ className, ...props }: React.ComponentProps<"span">) 
 export {
   Command,
   CommandDialog,
-  CommandInput,
-  CommandList,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
-  CommandShortcut,
+  CommandList,
   CommandSeparator,
+  CommandShortcut,
 };

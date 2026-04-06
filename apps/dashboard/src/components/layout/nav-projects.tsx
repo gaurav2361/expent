@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@expent/ui/components/sidebar";
-import { MoreHorizontalIcon, FolderIcon, ShareIcon, Trash2Icon } from "lucide-react";
+import { FolderIcon, MoreHorizontalIcon, ShareIcon, Trash2Icon } from "lucide-react";
 
 export function NavProjects({
   projects,
