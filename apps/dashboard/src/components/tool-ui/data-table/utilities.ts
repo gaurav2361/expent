@@ -123,45 +123,71 @@ function hashString(value: string): string {
  * - Disambiguates duplicates without relying on array index.
  */
 export function createDataTableRowKeys(rows: Array<Record<string, unknown>>, identifierKey?: string): string[] {
-  const canonicalRows = rows.map((row) => stableStringify(row));
+  const baseKeys = new Array<string | null>(rows.length);
+  const baseCounts = new Map<string, number>();
 
-  const baseKeys = rows.map((row, index) => {
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
     const identifier = getRowIdentifier(
       row as Record<string, string | number | boolean | null | (string | number | boolean | null)[]>,
       identifierKey
     );
 
     if (identifier) {
-      return `id:${identifier}`;
+      const key = `id:${identifier}`;
+      baseKeys[i] = key;
+      const count = baseCounts.get(key);
+      baseCounts.set(key, count === undefined ? 1 : count + 1);
+    } else {
+      baseKeys[i] = null;
     }
-
-    return `row:${hashString(canonicalRows[index])}`;
-  });
-
-  const baseCounts = new Map<string, number>();
-  baseKeys.forEach((key) => {
-    baseCounts.set(key, (baseCounts.get(key) ?? 0) + 1);
-  });
+  }
 
   const usedKeys = new Map<string, number>();
+  const result = new Array<string>(rows.length);
 
-  return rows.map((_row, index) => {
-    const baseKey = baseKeys[index];
-    if ((baseCounts.get(baseKey) ?? 0) === 1) {
-      return baseKey;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    let baseKey = baseKeys[i];
+
+    if (baseKey === null) {
+      const canonical = stableStringify(row);
+      baseKey = `row:${hashString(canonical)}`;
+
+      let disambiguatedKey = baseKey;
+      const seenCount = usedKeys.get(disambiguatedKey);
+
+      if (seenCount !== undefined) {
+        usedKeys.set(disambiguatedKey, seenCount + 1);
+        disambiguatedKey = `${disambiguatedKey}::d${seenCount + 1}`;
+      } else {
+        usedKeys.set(disambiguatedKey, 1);
+      }
+      result[i] = disambiguatedKey;
+      continue;
     }
 
-    const rowFingerprint = hashString(canonicalRows[index]);
+    if (baseCounts.get(baseKey) === 1) {
+      result[i] = baseKey;
+      continue;
+    }
+
+    const canonical = stableStringify(row);
+    const rowFingerprint = hashString(canonical);
     let disambiguatedKey = `${baseKey}::${rowFingerprint}`;
 
-    const seenCount = usedKeys.get(disambiguatedKey) ?? 0;
-    usedKeys.set(disambiguatedKey, seenCount + 1);
-    if (seenCount > 0) {
+    const seenCount = usedKeys.get(disambiguatedKey);
+    if (seenCount !== undefined) {
+      usedKeys.set(disambiguatedKey, seenCount + 1);
       disambiguatedKey = `${disambiguatedKey}::d${seenCount + 1}`;
+    } else {
+      usedKeys.set(disambiguatedKey, 1);
     }
 
-    return disambiguatedKey;
-  });
+    result[i] = disambiguatedKey;
+  }
+
+  return result;
 }
 
 function sanitizeDomIdToken(value: string): string {
