@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { Button } from "@expent/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -9,21 +9,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@expent/ui/components/dialog";
-import { Button } from "@expent/ui/components/button";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@expent/ui/components/goey-toaster";
-import { PlusIcon, UserIcon, WalletIcon, TagIcon } from "lucide-react";
-
-import { apiClient } from "@/lib/api-client";
-import { useWallets } from "@/hooks/use-wallets";
-import { useContacts } from "@/hooks/use-contacts";
-import { useCategories } from "@/hooks/use-categories";
+import { PlusIcon, TagIcon, UserIcon, WalletIcon } from "lucide-react";
+import * as React from "react";
 import { CreateCategoryDialog, ICON_MAP } from "@/components/categories/create-category-dialog";
 import { CreateContactDialog } from "@/components/contacts/create-contact-dialog";
 import { CreateWalletDialog } from "@/components/wallets/create-wallet-dialog";
+import { useCategories } from "@/hooks/use-categories";
+import { useContacts } from "@/hooks/use-contacts";
+import { useWallets } from "@/hooks/use-wallets";
+import { apiClient } from "@/lib/api-client";
 
 const getCategoryIcon = (iconName: string | null | undefined) => {
   if (!iconName) return TagIcon;
@@ -166,10 +165,10 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                   </SelectContent>
                 </Select>
               </div>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                title="Add Wallet" 
+              <Button
+                variant="outline"
+                size="icon"
+                title="Add Wallet"
                 aria-label="Add new wallet"
                 onClick={() => setCreateWalletOpen(true)}
               >
@@ -203,10 +202,10 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                   </SelectContent>
                 </Select>
               </div>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                title="Add Contact" 
+              <Button
+                variant="outline"
+                size="icon"
+                title="Add Contact"
                 aria-label="Add new contact"
                 onClick={() => setCreateContactOpen(true)}
               >
@@ -236,7 +235,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                           <div className="flex items-center gap-2 truncate">
                             <div
                               className="flex size-5 items-center justify-center rounded shrink-0"
-                              style={{ backgroundColor: color + "20", color }}
+                              style={{ backgroundColor: `${color}20`, color }}
                             >
                               <Icon className="size-3" />
                             </div>
@@ -261,7 +260,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                           <div className="flex items-center gap-2">
                             <div
                               className="flex size-6 items-center justify-center rounded shrink-0"
-                              style={{ backgroundColor: color + "20", color }}
+                              style={{ backgroundColor: `${color}20`, color }}
                             >
                               <Icon className="size-3.5" />
                             </div>
@@ -273,10 +272,10 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                   </SelectContent>
                 </Select>
               </div>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                title="Add Category" 
+              <Button
+                variant="outline"
+                size="icon"
+                title="Add Category"
                 aria-label="Add new category"
                 onClick={() => setCreateCategoryOpen(true)}
               >
@@ -297,10 +296,10 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
           </Button>
         </DialogFooter>
       </DialogContent>
-      <CreateCategoryDialog 
-        open={createCategoryOpen} 
-        onOpenChange={setCreateCategoryOpen} 
-        onCreated={(id) => setCategoryId(id)} 
+      <CreateCategoryDialog
+        open={createCategoryOpen}
+        onOpenChange={setCreateCategoryOpen}
+        onCreated={(id) => setCategoryId(id)}
       />
       <CreateContactDialog
         open={createContactOpen}

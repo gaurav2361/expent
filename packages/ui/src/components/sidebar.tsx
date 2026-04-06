@@ -1,17 +1,16 @@
-import * as React from "react";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { cva, type VariantProps } from "class-variance-authority";
-
-import { useIsMobile } from "@expent/ui/hooks/use-mobile";
-import { cn } from "@expent/ui/lib/utils";
 import { Button } from "@expent/ui/components/button";
 import { Input } from "@expent/ui/components/input";
 import { Separator } from "@expent/ui/components/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@expent/ui/components/sheet";
 import { Skeleton } from "@expent/ui/components/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@expent/ui/components/tooltip";
+import { useIsMobile } from "@expent/ui/hooks/use-mobile";
+import { cn } from "@expent/ui/lib/utils";
+import { cva, type VariantProps } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
+import * as React from "react";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -79,7 +78,7 @@ function SidebarProvider({
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
-  }, [isMobile, setOpen, setOpenMobile]);
+  }, [isMobile, setOpen]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -108,7 +107,7 @@ function SidebarProvider({
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, toggleSidebar]
   );
 
   return (

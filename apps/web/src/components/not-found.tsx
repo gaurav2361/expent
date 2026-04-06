@@ -1,6 +1,6 @@
 import { Button } from "@expent/ui/components/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@expent/ui/components/empty";
-import { CompassIcon, HomeIcon } from "lucide-react";
+import { HomeIcon } from "lucide-react";
 
 export function NotFoundPage() {
   return (

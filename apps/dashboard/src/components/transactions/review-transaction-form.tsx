@@ -1,14 +1,13 @@
 "use client";
 
-import * as React from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@expent/ui/components/card";
+import type { TypedProcessedOcr } from "@expent/types";
 import { Button } from "@expent/ui/components/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
-import { CheckIcon, Trash2Icon, ReceiptIcon, WalletIcon, UserIcon, TagIcon } from "lucide-react";
-
-import type { TypedProcessedOcr, GPayExtraction, OcrResult } from "@expent/types";
+import { CheckIcon, ReceiptIcon, TagIcon, Trash2Icon, UserIcon, WalletIcon } from "lucide-react";
+import * as React from "react";
 import { useCategories } from "@/hooks/use-categories";
 
 interface ReviewTransactionFormProps {
@@ -66,7 +65,7 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
           } else {
             setDate(new Date().toISOString().split("T")[0]);
           }
-        } catch (e) {
+        } catch (_e) {
           setDate(new Date().toISOString().split("T")[0]);
         }
       } else {

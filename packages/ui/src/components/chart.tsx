@@ -1,10 +1,9 @@
 "use client";
 
-import * as React from "react";
-import * as RechartsPrimitive from "recharts";
-import type { TooltipValueType } from "recharts";
-
 import { cn } from "@expent/ui/lib/utils";
+import * as React from "react";
+import type { TooltipValueType } from "recharts";
+import * as RechartsPrimitive from "recharts";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
@@ -304,4 +303,4 @@ function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key:
   return configLabelKey in config ? config[configLabelKey] : config[key];
 }
 
-export { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartStyle };
+export { ChartContainer, ChartLegend, ChartLegendContent, ChartStyle, ChartTooltip, ChartTooltipContent };

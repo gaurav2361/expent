@@ -2,7 +2,7 @@
 
 import { Badge } from "@expent/ui/components/badge";
 import { Button } from "@expent/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction } from "@expent/ui/components/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -14,17 +14,15 @@ import {
 } from "@expent/ui/components/dialog";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@expent/ui/components/tooltip";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, UserPlusIcon, UsersIcon, Trash2Icon } from "lucide-react";
+import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, Trash2Icon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { useState } from "react";
-import { useSession } from "@/lib/auth-client";
-import { toast } from "@expent/ui/components/goey-toaster";
+import { useGroupMembers, useGroups } from "@/hooks/use-p2p";
 import { apiClient } from "@/lib/api-client";
-import { useGroups, useGroupMembers } from "@/hooks/use-p2p";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
+import { useSession } from "@/lib/auth-client";
 
 function InviteDialog({ groupId, groupName }: { groupId: string; groupName: string }) {
   const [email, setEmail] = useState("");

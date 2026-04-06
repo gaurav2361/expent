@@ -1,5 +1,5 @@
-import { useTheme } from "next-themes";
 import { GooeyToaster, gooeyToast } from "goey-toast";
+import { useTheme } from "next-themes";
 import "goey-toast/styles.css";
 
 const Toaster = ({ ...props }: React.ComponentProps<typeof GooeyToaster>) => {

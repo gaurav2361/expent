@@ -1,11 +1,11 @@
 "use client";
 
-import { Separator } from "@expent/ui/components/separator";
-import { Label } from "@expent/ui/components/label";
 import { Button } from "@expent/ui/components/button";
-import { Switch } from "@expent/ui/components/switch";
-import { RadioGroup, RadioGroupItem } from "@expent/ui/components/radio-group";
 import { toast } from "@expent/ui/components/goey-toaster";
+import { Label } from "@expent/ui/components/label";
+import { RadioGroup, RadioGroupItem } from "@expent/ui/components/radio-group";
+import { Separator } from "@expent/ui/components/separator";
+import { Switch } from "@expent/ui/components/switch";
 
 export default function SettingsDisplayPage() {
   return (
@@ -20,9 +20,7 @@ export default function SettingsDisplayPage() {
       <div className="space-y-8">
         <div className="space-y-4">
           <Label>Sidebar Items</Label>
-          <p className="text-[0.8rem] text-muted-foreground">
-            Select the items you want to display in the sidebar.
-          </p>
+          <p className="text-[0.8rem] text-muted-foreground">Select the items you want to display in the sidebar.</p>
           <div className="space-y-3">
             {[
               { label: "Transactions", defaultChecked: true },
@@ -45,18 +43,20 @@ export default function SettingsDisplayPage() {
           <RadioGroup defaultValue="relative" className="grid gap-3">
             <div className="flex items-center space-x-3">
               <RadioGroupItem value="relative" id="date-relative" />
-              <Label htmlFor="date-relative" className="font-normal">Relative (e.g. &quot;2 days ago&quot;)</Label>
+              <Label htmlFor="date-relative" className="font-normal">
+                Relative (e.g. &quot;2 days ago&quot;)
+              </Label>
             </div>
             <div className="flex items-center space-x-3">
               <RadioGroupItem value="absolute" id="date-absolute" />
-              <Label htmlFor="date-absolute" className="font-normal">Absolute (e.g. &quot;Apr 5, 2026&quot;)</Label>
+              <Label htmlFor="date-absolute" className="font-normal">
+                Absolute (e.g. &quot;Apr 5, 2026&quot;)
+              </Label>
             </div>
           </RadioGroup>
         </div>
 
-        <Button onClick={() => toast.success("Display settings saved!")}>
-          Update display
-        </Button>
+        <Button onClick={() => toast.success("Display settings saved!")}>Update display</Button>
       </div>
     </div>
   );

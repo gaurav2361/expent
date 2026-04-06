@@ -9,9 +9,9 @@ import {
   DropdownMenuTrigger,
 } from "@expent/ui/components/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@expent/ui/components/sidebar";
-import { ChevronsUpDownIcon, SparklesIcon, BadgeCheckIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react";
-import { signOut, useSession } from "@/lib/auth-client";
 import { useNavigate } from "@tanstack/react-router";
+import { BadgeCheckIcon, BellIcon, ChevronsUpDownIcon, CreditCardIcon, LogOutIcon, SparklesIcon } from "lucide-react";
+import { signOut, useSession } from "@/lib/auth-client";
 
 export function NavUser({
   user: _user,

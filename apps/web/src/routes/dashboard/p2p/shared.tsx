@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@expent/ui/components/dialog";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Separator } from "@expent/ui/components/separator";
@@ -30,7 +31,6 @@ import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, UserPlusIcon, UsersI
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useSession } from "@/lib/auth-client";
-import { toast } from "@expent/ui/components/goey-toaster";
 
 export const Route = createFileRoute("/dashboard/p2p/shared")({
   component: SharedLedgersComponent,
@@ -41,7 +41,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:";
 function InviteDialog({ groupId, groupName }: { groupId: string; groupName: string }) {
   const [email, setEmail] = useState("");
   const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
+  const _queryClient = useQueryClient();
 
   const inviteMutation = useMutation({
     mutationFn: async () => {

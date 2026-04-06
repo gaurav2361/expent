@@ -1,9 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
+import type { Contact } from "@expent/types";
 import { Button } from "@expent/ui/components/button";
-import { Input } from "@expent/ui/components/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -13,11 +12,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@expent/ui/components/dialog";
+import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
-import { SearchIcon, PlusIcon, UserIcon, PinIcon, PhoneIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronRightIcon, PhoneIcon, PinIcon, PlusIcon, SearchIcon, UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import * as React from "react";
 import { useContacts } from "@/hooks/use-contacts";
-import type { Contact } from "@expent/types";
 
 export default function ContactsPage() {
   const router = useRouter();

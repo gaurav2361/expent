@@ -1,22 +1,8 @@
 "use client";
 
+import type { P2PRequestWithSender, TransactionWithDetail, TypedProcessedOcr } from "@expent/types";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
-import { Input } from "@expent/ui/components/input";
-import { Label } from "@expent/ui/components/label";
-import { Share2Icon, MoreVerticalIcon, Trash2Icon, PlusIcon } from "lucide-react";
-import { useMemo, useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
-
-import { SplitDialog } from "@/components/transactions/split-dialog";
-import { ManualTransactionDialog } from "@/components/transactions/manual-transaction-dialog";
-import { toast } from "@expent/ui/components/goey-toaster";
-import { DataTable } from "@/components/data-table/data-table";
-import type { Column } from "@/lib/data-table-types";
-import { TransactionViewer } from "@/components/transactions/transaction-viewer";
-import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
-import { ApprovalCard } from "@/components/tool-ui/approval-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,22 +10,38 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@expent/ui/components/dropdown-menu";
+import { toast } from "@expent/ui/components/goey-toaster";
+import { Input } from "@expent/ui/components/input";
+import { Label } from "@expent/ui/components/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@expent/ui/components/tabs";
-import { ActivityIcon, CreditCardIcon, FileTextIcon, WalletIcon } from "lucide-react";
-import { Overview } from "@/components/dashboard/overview";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  ActivityIcon,
+  CreditCardIcon,
+  FileTextIcon,
+  MoreVerticalIcon,
+  PlusIcon,
+  Share2Icon,
+  Trash2Icon,
+  WalletIcon,
+} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
 import { Analytics } from "@/components/dashboard/analytics";
-import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart";
 import { CategoryChart } from "@/components/dashboard/category-chart";
-
-import { useTransactions } from "@/hooks/use-transactions";
-import { useP2P } from "@/hooks/use-p2p";
-import { apiClient } from "@/lib/api-client";
+import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart";
+import { Overview } from "@/components/dashboard/overview";
+import { DataTable } from "@/components/data-table/data-table";
+import { ApprovalCard } from "@/components/tool-ui/approval-card";
+import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
+import { ManualTransactionDialog } from "@/components/transactions/manual-transaction-dialog";
 import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
-import type {
-  P2PRequestWithSender,
-  TransactionWithDetail,
-  TypedProcessedOcr,
-} from "@expent/types";
+import { SplitDialog } from "@/components/transactions/split-dialog";
+import { TransactionViewer } from "@/components/transactions/transaction-viewer";
+import { useP2P } from "@/hooks/use-p2p";
+import { useTransactions } from "@/hooks/use-transactions";
+import { apiClient } from "@/lib/api-client";
+import type { Column } from "@/lib/data-table-types";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -68,7 +70,9 @@ export default function DashboardPage() {
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadSteps, setUploadSteps] = useState<{ id: string; label: string; status: "pending" | "in-progress" | "completed" | "failed" }[]>([]);
+  const [uploadSteps, setUploadSteps] = useState<
+    { id: string; label: string; status: "pending" | "in-progress" | "completed" | "failed" }[]
+  >([]);
   const [processedOcr, setProcessedOcr] = useState<TypedProcessedOcr | null>(null);
   const [isSavingOcr, setIsSavingOcr] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
@@ -77,7 +81,7 @@ export default function DashboardPage() {
 
   const { totalBalance, monthlySpend } = useMemo(() => {
     if (!transactions) return { totalBalance: 0, monthlySpend: 0 };
-    
+
     let bal = 0;
     let spend = 0;
     const now = new Date();
@@ -90,14 +94,14 @@ export default function DashboardPage() {
         bal += amount;
       } else {
         bal -= amount;
-        
+
         const txnDate = new Date(txn.date);
         if (txnDate.getMonth() === currentMonth && txnDate.getFullYear() === currentYear) {
           spend += amount;
         }
       }
     });
-    
+
     return { totalBalance: bal, monthlySpend: spend };
   }, [transactions]);
 
@@ -308,7 +312,9 @@ export default function DashboardPage() {
                   <CreditCardIcon className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">₹{monthlySpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                  <div className="text-2xl font-bold">
+                    ₹{monthlySpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">Total expenses this month</p>
                 </CardContent>
               </Card>
@@ -320,7 +326,12 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{p2pRequests?.length || 0}</div>
-                  <Button variant="link" size="sm" className="px-0 h-auto text-xs" onClick={() => router.push("/p2p/pending")}>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="px-0 h-auto text-xs"
+                    onClick={() => router.push("/p2p/pending")}
+                  >
                     View Requests &rarr;
                   </Button>
                 </CardContent>
@@ -332,7 +343,9 @@ export default function DashboardPage() {
                   <FileTextIcon className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent className="mt-1">
-                  <Label htmlFor="quick-upload" className="sr-only">Quick Upload</Label>
+                  <Label htmlFor="quick-upload" className="sr-only">
+                    Quick Upload
+                  </Label>
                   <div className="flex gap-2">
                     <Input
                       id="quick-upload"

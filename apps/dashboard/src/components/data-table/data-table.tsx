@@ -1,35 +1,35 @@
 "use client";
 
 import * as React from "react";
+import type {
+  Column,
+  ColumnKey,
+  DataTableContextValue,
+  DataTableProps,
+  DataTableRowData,
+  RowData,
+} from "@/lib/data-table-types";
+import { createDataTableRowKeys, getDataTableMobileDescriptionId, sortData } from "@/lib/data-table-utilities";
 import {
-  cn,
-  Table,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableHeader,
-  TableHead,
-  Button,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
+  Button,
+  cn,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "./_adapter";
-import { sortData, createDataTableRowKeys, getDataTableMobileDescriptionId } from "@/lib/data-table-utilities";
-import { renderFormattedValue } from "./formatters";
-import type {
-  DataTableProps,
-  DataTableContextValue,
-  RowData,
-  DataTableRowData,
-  ColumnKey,
-  Column,
-} from "@/lib/data-table-types";
 import type { FormatConfig } from "./formatters";
+import { renderFormattedValue } from "./formatters";
 
 export const DEFAULT_LOCALE = "en-US" as const;
 
@@ -657,7 +657,6 @@ function DataTableAccordionCard({ row, index, rowKey, isFirst = false }: DataTab
                 "motion-safe:group-data-[state=closed]:slide-out-to-top-1",
                 "duration-150"
               )}
-              role="list"
               aria-label="Additional data"
             >
               {secondary.map((col) => (

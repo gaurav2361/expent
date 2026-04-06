@@ -1,7 +1,5 @@
-export { cn } from "@expent/ui/lib/utils";
 export { Button } from "@expent/ui/components/button";
-export { Switch } from "@expent/ui/components/switch";
-export { ToggleGroup, ToggleGroupItem } from "@expent/ui/components/toggle-group";
+export { Label } from "@expent/ui/components/label";
 export {
   Select,
   SelectContent,
@@ -10,4 +8,6 @@ export {
   SelectValue,
 } from "@expent/ui/components/select";
 export { Separator } from "@expent/ui/components/separator";
-export { Label } from "@expent/ui/components/label";
+export { Switch } from "@expent/ui/components/switch";
+export { ToggleGroup, ToggleGroupItem } from "@expent/ui/components/toggle-group";
+export { cn } from "@expent/ui/lib/utils";

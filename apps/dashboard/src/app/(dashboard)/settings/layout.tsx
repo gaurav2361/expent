@@ -1,9 +1,9 @@
 "use client";
 
 import { Separator } from "@expent/ui/components/separator";
-import { SidebarNav } from "@/components/settings/sidebar-nav";
-import { UserCogIcon, WrenchIcon, PaletteIcon, BellIcon, MonitorIcon, TagIcon } from "lucide-react";
+import { BellIcon, MonitorIcon, PaletteIcon, TagIcon, UserCogIcon, WrenchIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { SidebarNav } from "@/components/settings/sidebar-nav";
 
 const sidebarNavItems = [
   {
@@ -59,9 +59,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
             <SidebarNav items={sidebarNavItems} />
           </aside>
         )}
-        <div className="flex w-full overflow-y-auto p-1">
-          {children}
-        </div>
+        <div className="flex w-full overflow-y-auto p-1">{children}</div>
       </div>
     </div>
   );

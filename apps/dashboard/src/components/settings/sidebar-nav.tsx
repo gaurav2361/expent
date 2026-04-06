@@ -1,10 +1,9 @@
 "use client";
 
+import { buttonVariants } from "@expent/ui/components/button";
+import { cn } from "@expent/ui/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-import { cn } from "@expent/ui/lib/utils";
-import { buttonVariants } from "@expent/ui/components/button";
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   items: {
@@ -26,9 +25,7 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
           transitionTypes={["fade-in"]}
           className={cn(
             buttonVariants({ variant: "ghost" }),
-            pathname === item.href
-              ? "bg-muted hover:bg-muted"
-              : "hover:bg-transparent hover:underline",
+            pathname === item.href ? "bg-muted hover:bg-muted" : "hover:bg-transparent hover:underline",
             "justify-start gap-2"
           )}
         >

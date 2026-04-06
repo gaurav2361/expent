@@ -1,5 +1,3 @@
-import type * as React from "react";
-
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -8,6 +6,7 @@ import {
   SidebarMenuItem,
 } from "@expent/ui/components/sidebar";
 import Link from "next/link";
+import type * as React from "react";
 
 export function NavSecondary({
   items,

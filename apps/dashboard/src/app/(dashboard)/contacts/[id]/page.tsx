@@ -1,11 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@expent/ui/components/card";
-import { Button } from "@expent/ui/components/button";
 import { Badge } from "@expent/ui/components/badge";
-import { Separator } from "@expent/ui/components/separator";
+import { Button } from "@expent/ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -15,25 +12,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@expent/ui/components/dialog";
-import { Label } from "@expent/ui/components/label";
-import { Input } from "@expent/ui/components/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { toast } from "@expent/ui/components/goey-toaster";
+import { Input } from "@expent/ui/components/input";
+import { Label } from "@expent/ui/components/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
+import { Separator } from "@expent/ui/components/separator";
 import {
   ArrowLeftIcon,
+  CheckIcon,
+  CopyIcon,
   PhoneIcon,
-  WalletIcon,
   PlusIcon,
   ReceiptIcon,
-  UserIcon,
   StoreIcon,
-  CopyIcon,
-  CheckIcon,
   Trash2Icon,
+  UserIcon,
+  WalletIcon,
 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import * as React from "react";
 import { DataTable } from "@/components/data-table/data-table";
-import type { Column } from "@/lib/data-table-types";
 import { useContactDetail, useContacts } from "@/hooks/use-contacts";
+import type { Column } from "@/lib/data-table-types";
 
 export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();

@@ -3,24 +3,6 @@
 import { Badge } from "@expent/ui/components/badge";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@expent/ui/components/card";
-import { Separator } from "@expent/ui/components/separator";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import {
-  CalendarIcon,
-  CreditCardIcon,
-  SparklesIcon,
-  Trash2Icon,
-  CheckIcon,
-  ClockIcon,
-  BellRingIcon,
-  MailIcon,
-  SmartphoneIcon,
-} from "lucide-react";
-import { useSession } from "@/lib/auth-client";
-import { apiClient } from "@/lib/api-client";
-import { toast } from "@expent/ui/components/goey-toaster";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@expent/ui/components/tabs";
 import {
   Dialog,
   DialogContent,
@@ -30,10 +12,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@expent/ui/components/dialog";
-import { Label } from "@expent/ui/components/label";
+import { toast } from "@expent/ui/components/goey-toaster";
 import { Input } from "@expent/ui/components/input";
+import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@expent/ui/components/tabs";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  BellRingIcon,
+  CalendarIcon,
+  CheckIcon,
+  ClockIcon,
+  MailIcon,
+  SmartphoneIcon,
+  SparklesIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useState } from "react";
+import { apiClient } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 
 export default function SubscriptionsComponent() {
   const queryClient = useQueryClient();
@@ -249,7 +246,7 @@ function AlertConfigDialog({
       apiClient(`/api/subscriptions/${sub.id}/alerts`, {
         method: "POST",
         body: JSON.stringify({
-          days_before: parseInt(days),
+          days_before: parseInt(days, 10),
           channel,
         }),
       }),

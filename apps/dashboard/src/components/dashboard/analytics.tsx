@@ -1,19 +1,11 @@
 "use client";
 
-import * as React from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
-import { useTransactions } from "@/hooks/use-transactions";
-import { TrendingUpIcon, TrendingDownIcon, WalletIcon, BarChart3Icon } from "lucide-react";
 import type { TransactionWithDetail } from "@expent/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
+import { BarChart3Icon, TrendingDownIcon, TrendingUpIcon, WalletIcon } from "lucide-react";
+import * as React from "react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useTransactions } from "@/hooks/use-transactions";
 
 export function Analytics() {
   const { transactions } = useTransactions();
@@ -78,7 +70,7 @@ export function Analytics() {
     const map = new Map<string, number>();
     transactions.forEach((txn: TransactionWithDetail) => {
       if (txn.direction === "OUT") {
-        const key = (txn as Record<string, unknown>).contact_name as string || txn.source || "Unknown";
+        const key = ((txn as Record<string, unknown>).contact_name as string) || txn.source || "Unknown";
         map.set(key, (map.get(key) || 0) + parseFloat(txn.amount));
       }
     });
@@ -94,7 +86,7 @@ export function Analytics() {
     const map = new Map<string, number>();
     transactions.forEach((txn: TransactionWithDetail) => {
       if (txn.direction === "IN") {
-        const key = (txn as Record<string, unknown>).contact_name as string || txn.source || "Unknown";
+        const key = ((txn as Record<string, unknown>).contact_name as string) || txn.source || "Unknown";
         map.set(key, (map.get(key) || 0) + parseFloat(txn.amount));
       }
     });
@@ -129,8 +121,22 @@ export function Analytics() {
                   <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <Area type="monotone" dataKey="income" stroke="#10b981" fillOpacity={1} fill="url(#colorIncome)" name="Income" />
-              <Area type="monotone" dataKey="expense" stroke="#ef4444" fillOpacity={1} fill="url(#colorExpense)" name="Expense" />
+              <Area
+                type="monotone"
+                dataKey="income"
+                stroke="#10b981"
+                fillOpacity={1}
+                fill="url(#colorIncome)"
+                name="Income"
+              />
+              <Area
+                type="monotone"
+                dataKey="expense"
+                stroke="#ef4444"
+                fillOpacity={1}
+                fill="url(#colorExpense)"
+                name="Expense"
+              />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
@@ -144,7 +150,9 @@ export function Analytics() {
             <TrendingUpIcon className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">₹{metrics.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold text-emerald-600">
+              ₹{metrics.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
             <p className="text-xs text-muted-foreground">All time earnings</p>
           </CardContent>
         </Card>
@@ -154,7 +162,9 @@ export function Analytics() {
             <TrendingDownIcon className="h-4 w-4 text-rose-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-rose-600">₹{metrics.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold text-rose-600">
+              ₹{metrics.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
             <p className="text-xs text-muted-foreground">All time spending</p>
           </CardContent>
         </Card>
@@ -174,7 +184,9 @@ export function Analytics() {
             <WalletIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{metrics.avgTxn.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold">
+              ₹{metrics.avgTxn.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
             <p className="text-xs text-muted-foreground">Mean value per transaction</p>
           </CardContent>
         </Card>
@@ -188,7 +200,11 @@ export function Analytics() {
             <CardDescription>Highest spending contacts/sources</CardDescription>
           </CardHeader>
           <CardContent>
-            <SimpleBarList items={topExpenses} barClass="bg-rose-500" valueFormatter={(n) => `₹${n.toLocaleString()}`} />
+            <SimpleBarList
+              items={topExpenses}
+              barClass="bg-rose-500"
+              valueFormatter={(n) => `₹${n.toLocaleString()}`}
+            />
           </CardContent>
         </Card>
         <Card className="col-span-1 lg:col-span-3">
@@ -197,7 +213,11 @@ export function Analytics() {
             <CardDescription>Highest earning contacts/sources</CardDescription>
           </CardHeader>
           <CardContent>
-            <SimpleBarList items={topIncome} barClass="bg-emerald-500" valueFormatter={(n) => `₹${n.toLocaleString()}`} />
+            <SimpleBarList
+              items={topIncome}
+              barClass="bg-emerald-500"
+              valueFormatter={(n) => `₹${n.toLocaleString()}`}
+            />
           </CardContent>
         </Card>
       </div>

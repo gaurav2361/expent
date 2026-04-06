@@ -4,18 +4,17 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from "@expent/ui/components/sidebar";
 import { Link } from "@tanstack/react-router";
 import {
   LayoutDashboardIcon,
+  MessageSquareShareIcon,
   ReceiptIcon,
-  UsersIcon,
   RepeatIcon,
   Settings2Icon,
-  MessageSquareShareIcon,
+  UsersIcon,
 } from "lucide-react";
 import type * as React from "react";
 import { NavMain } from "@/components/nav-main";

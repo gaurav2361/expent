@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { UserCogIcon, WrenchIcon, PaletteIcon, BellIcon, MonitorIcon, TagIcon, ChevronRightIcon } from "lucide-react";
+import { BellIcon, ChevronRightIcon, MonitorIcon, PaletteIcon, TagIcon, UserCogIcon, WrenchIcon } from "lucide-react";
 import { motion, type Variants } from "motion/react";
+import Link from "next/link";
 
 const sidebarNavItems = [
   {
@@ -67,15 +67,15 @@ const containerVariants: Variants = {
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 15, scale: 0.95 },
-  show: { 
-    opacity: 1, 
-    y: 0, 
-    scale: 1, 
-    transition: { 
-      type: "spring", 
-      stiffness: 300, 
-      damping: 24 
-    } 
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 24,
+    },
   },
 };
 
@@ -111,7 +111,9 @@ export default function SettingsIndexPage() {
 
               <div className="relative z-10">
                 <div className="flex items-start justify-between mb-5">
-                  <div className={`p-3 rounded-xl ${item.bg} ${item.color} group-hover:scale-110 group-hover:shadow-sm transition-all duration-300`}>
+                  <div
+                    className={`p-3 rounded-xl ${item.bg} ${item.color} group-hover:scale-110 group-hover:shadow-sm transition-all duration-300`}
+                  >
                     {item.icon}
                   </div>
                   <div className="h-8 w-8 rounded-full bg-muted/40 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground text-muted-foreground transition-colors duration-300">
@@ -122,9 +124,7 @@ export default function SettingsIndexPage() {
                 <h3 className="text-lg font-semibold mb-2 tracking-tight group-hover:text-primary transition-colors">
                   {item.title}
                 </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {item.description}
-                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
             </Link>
           </motion.div>

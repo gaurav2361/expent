@@ -1,10 +1,10 @@
 "use client";
 
-import { Separator } from "@expent/ui/components/separator";
-import { Input } from "@expent/ui/components/input";
-import { Label } from "@expent/ui/components/label";
 import { Button } from "@expent/ui/components/button";
 import { toast } from "@expent/ui/components/goey-toaster";
+import { Input } from "@expent/ui/components/input";
+import { Label } from "@expent/ui/components/label";
+import { Separator } from "@expent/ui/components/separator";
 
 export default function SettingsAccountPage() {
   return (
@@ -37,14 +37,10 @@ export default function SettingsAccountPage() {
             <option value="EUR">€ Euro (EUR)</option>
             <option value="GBP">£ Pound Sterling (GBP)</option>
           </select>
-          <p className="text-[0.8rem] text-muted-foreground">
-            Set the default currency for new transactions.
-          </p>
+          <p className="text-[0.8rem] text-muted-foreground">Set the default currency for new transactions.</p>
         </div>
 
-        <Button onClick={() => toast.success("Account settings updated!")}>
-          Update account
-        </Button>
+        <Button onClick={() => toast.success("Account settings updated!")}>Update account</Button>
       </div>
     </div>
   );

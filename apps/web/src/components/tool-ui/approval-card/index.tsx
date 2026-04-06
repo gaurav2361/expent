@@ -1,7 +1,7 @@
 export { ApprovalCard } from "./approval-card";
-export {
-  type SerializableApprovalCard,
-  type ApprovalCardProps,
-  type ApprovalDecision,
-  type MetadataItem,
+export type {
+  ApprovalCardProps,
+  ApprovalDecision,
+  MetadataItem,
+  SerializableApprovalCard,
 } from "./schema";
