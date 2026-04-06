@@ -44,7 +44,7 @@ let
 
     # Define architecture based on Nix evaluation
     ARCH="${arch}"
-    
+
     if ! avdmanager list avd | grep -q "macos_emulator"; then
       echo "Creating Android 34 Emulator for $ARCH..."
       echo "no" | avdmanager create avd \
@@ -56,7 +56,7 @@ let
 
     echo "Checking for running emulators..."
     ADB_BIN="${androidSdk}/share/android-sdk/platform-tools/adb"
-    
+
     if $ADB_BIN devices | grep -q "emulator-"; then
       echo "Emulator already running. Waiting for it to be fully ready..."
     else
@@ -64,11 +64,11 @@ let
       EMULATOR_BIN="${androidSdk}/share/android-sdk/emulator/emulator"
       $EMULATOR_BIN -avd macos_emulator -dns-server 8.8.8.8 -gpu host &
     fi
-    
+
     # Wait for the emulator to be online
     echo "Waiting for emulator to be ready..."
     $ADB_BIN wait-for-device
-    
+
     # Also wait for the boot to complete
     while [ "$($ADB_BIN shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; do
       sleep 1
