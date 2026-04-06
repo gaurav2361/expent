@@ -70,7 +70,7 @@ pub async fn process_image_ocr_handler(
 
     let mut processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json)
         .map_err(|e| ApiError::Internal(format!("Failed to parse OCR response: {}", e)))?;
-    
+
     processed_ocr.r2_key = Some(payload.key);
 
     Ok(Json(processed_ocr))

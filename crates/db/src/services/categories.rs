@@ -9,7 +9,7 @@ pub async fn list_categories(
         .filter(
             sea_orm::Condition::any()
                 .add(entities::categories::Column::UserId.eq(user_id))
-                .add(entities::categories::Column::UserId.eq("system"))
+                .add(entities::categories::Column::UserId.eq("system")),
         )
         .all(db)
         .await
@@ -58,7 +58,9 @@ pub async fn ensure_system_categories(db: &DatabaseConnection) -> Result<(), DbE
     ];
 
     for (id, name, icon, color) in system_cats {
-        let exists = entities::categories::Entity::find_by_id(id.to_string()).one(db).await?;
+        let exists = entities::categories::Entity::find_by_id(id.to_string())
+            .one(db)
+            .await?;
         if exists.is_none() {
             let cat = entities::categories::ActiveModel {
                 id: Set(id.to_string()),

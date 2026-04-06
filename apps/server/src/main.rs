@@ -46,8 +46,8 @@ impl FromRef<AppState> for DatabaseConnection {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
 
-    let rust_log = std::env::var("RUST_LOG")
-        .unwrap_or_else(|_| "info,server=debug,better_auth=info".into());
+    let rust_log =
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "info,server=debug,better_auth=info".into());
 
     let filter_string = if rust_log.contains("sqlx=") {
         rust_log
