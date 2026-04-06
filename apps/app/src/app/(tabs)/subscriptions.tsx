@@ -1,4 +1,4 @@
-import { View, ScrollView } from 'react-native';
+import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, MoreHorizontal, Calendar, CreditCard, Sparkles, AlertCircle } from 'lucide-react-native';
