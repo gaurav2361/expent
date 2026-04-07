@@ -6,12 +6,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Inject API base URL pointing to the local proxy/port
       - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-http://localhost:7878}
     env_file:
       - .env
     depends_on:
       - server
+    restart: unless-stopped
 
   server:
     build:
@@ -20,13 +20,13 @@ services:
     ports:
       - "7878:7878"
     environment:
-      # Automatically wire OCR worker in docker network
       - OCR_WORKER_URL=http://ocr:8090/ocr
       - RUST_LOG=info
     env_file:
       - .env
     depends_on:
       - ocr
+    restart: unless-stopped
 
   ocr:
     build:
@@ -38,3 +38,4 @@ services:
       - PYTHONUNBUFFERED=1
     env_file:
       - .env
+    restart: unless-stopped
