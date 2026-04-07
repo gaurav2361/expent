@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 chrono       = { features = [ "serde" ], version = "0.4.44" }
 rust_decimal = "1.41.0"
-sea-orm      = { features = [ "sqlx-sqlite", "runtime-tokio-native-tls", "macros" ], version = "1.1.19" }
+sea-orm      = { features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros" ], version = "1.1.19" }
 serde        = { features = [ "derive" ], version = "1.0.228" }
 serde_json   = "1.0.149"
 strum = { version = "0.26", features = ["derive"] }

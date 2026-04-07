@@ -8,7 +8,7 @@ use db::entities::accounts;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 #[async_trait]
-impl AccountOps for SqliteAdapter {
+impl AccountOps for PostgresAdapter {
     type Account = Account;
 
     async fn create_account(&self, data: CreateAccount) -> AuthResult<Self::Account> {

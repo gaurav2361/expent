@@ -25,12 +25,12 @@ pub mod routes;
 #[derive(Clone)]
 pub struct AppState {
     pub db: DatabaseConnection,
-    pub auth: Arc<better_auth::BetterAuth<SqliteAdapter>>,
+    pub auth: Arc<better_auth::BetterAuth<PostgresAdapter>>,
     pub upload_client: UploadClient,
     pub ocr_service: Arc<OcrService>,
 }
 
-impl FromRef<AppState> for Arc<better_auth::BetterAuth<SqliteAdapter>> {
+impl FromRef<AppState> for Arc<better_auth::BetterAuth<PostgresAdapter>> {
     fn from_ref(state: &AppState) -> Self {
         state.auth.clone()
     }

@@ -1,4 +1,4 @@
-use crate::adapter::SqliteAdapter;
+use crate::adapter::PostgresAdapter;
 use async_trait::async_trait;
 use better_auth::types_mod::{
     AuthError, AuthResult, CreateUser, ListUsersParams, UpdateUser, User, UserOps,
