@@ -1,6 +1,6 @@
 use axum::Router;
 use axum::extract::{Json, Path, State};
-use axum::routing::{get, post, put};
+use axum::routing::{get, put};
 use db::SmartMerge;
 use serde::Deserialize;
 
