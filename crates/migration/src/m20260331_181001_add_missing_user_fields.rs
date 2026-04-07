@@ -6,6 +6,11 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // As evaluated in review, attempting to batch ADD COLUMN operations
+        // via raw SQL string manipulation (to work around SeaORM's TableAlterStatement
+        // overwriting operations) breaks Iden abstractions and introduces brittle code.
+        // Since SQLite doesn't support multiple ADD COLUMN statements anyway, and
+        // this is a one-time migration, we prioritize framework safety over this optimization.
         let columns = vec![
             ColumnDef::new(Users::Username).string().to_owned(),
             ColumnDef::new(Users::DisplayUsername).string().to_owned(),
