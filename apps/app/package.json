@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.33.0",
   "main": "expo-router/entry",
   "scripts": {
-    "dev": "run-emulator && expo run:android",
+    "dev-no": "run-emulator && expo run:android",
     "android": "expo start -c --android",
     "ios": "expo start -c --ios",
     "web": "expo start -c --web",

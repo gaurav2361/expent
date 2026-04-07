@@ -3,9 +3,10 @@ import sys
 import os
 
 # Add parent directory to path to allow absolute imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from apps.ocr.utils import get_media_type
+
 
 def test_get_media_type():
     # Test valid known extensions
@@ -30,5 +31,5 @@ def test_get_media_type():
     # Test edge cases
     assert get_media_type("") == "image/png"
     assert get_media_type(None) == "image/png"
-    assert get_media_type(".hidden") == "image/png" # "hidden" falls under unknown
+    assert get_media_type(".hidden") == "image/png"  # "hidden" falls under unknown
     assert get_media_type("multiple.dots.image.jpg") == "image/jpeg"

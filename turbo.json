@@ -45,6 +45,10 @@
     "typecheck": {
       "dependsOn": ["^typecheck"]
     },
+    "test": {
+      "dependsOn": ["^test"],
+      "inputs": ["src/**/*.rs", "src/**/*.ts", "src/**/*.tsx"]
+    },
     "dev": {
       "cache": false,
       "persistent": true,
