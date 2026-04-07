@@ -1,10 +1,7 @@
 import base64
 import fitz  # PyMuPDF
-
-import base64
 import csv
 import io
-import fitz  # PyMuPDF
 import pdfplumber
 
 
