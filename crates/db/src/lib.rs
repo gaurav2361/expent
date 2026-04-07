@@ -611,7 +611,8 @@ mod tests {
 
     #[tokio::test]
     async fn benchmark_split_transaction() -> Result<(), DbErr> {
-        let db = Database::connect("sqlite::memory:").await?;
+        let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+        let db = Database::connect(&db_url).await?;
 
         // Setup schema
         let db_backend = db.get_database_backend();

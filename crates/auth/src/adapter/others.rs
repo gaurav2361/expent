@@ -68,7 +68,7 @@ impl better_auth::AuthMember for DummyMember {
 }
 
 #[async_trait]
-impl OrganizationOps for SqliteAdapter {
+impl OrganizationOps for PostgresAdapter {
     type Organization = DummyOrganization;
     async fn create_organization(
         &self,

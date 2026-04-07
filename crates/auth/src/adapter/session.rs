@@ -6,7 +6,7 @@ use db::entities::sessions;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, prelude::Expr};
 
 #[async_trait]
-impl SessionOps for SqliteAdapter {
+impl SessionOps for PostgresAdapter {
     type Session = Session;
 
     async fn create_session(&self, data: CreateSession) -> AuthResult<Self::Session> {

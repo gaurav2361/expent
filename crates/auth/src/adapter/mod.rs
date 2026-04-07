@@ -7,11 +7,11 @@ pub mod user;
 pub mod verification;
 
 #[derive(Clone)]
-pub struct SqliteAdapter {
+pub struct PostgresAdapter {
     pub db: DatabaseConnection,
 }
 
-impl SqliteAdapter {
+impl PostgresAdapter {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }
