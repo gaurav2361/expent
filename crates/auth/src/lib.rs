@@ -26,7 +26,7 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let auth = Arc::from_ref(state);
 
-        let mut mapped_headers = HashMap::new();
+        let mut mapped_headers = HashMap::with_capacity(parts.headers.len());
         for (name, value) in parts.headers.iter() {
             if let Ok(val_str) = value.to_str() {
                 mapped_headers.insert(name.as_str().to_string(), val_str.to_string());
