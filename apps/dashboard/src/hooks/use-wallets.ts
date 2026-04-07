@@ -40,11 +40,24 @@ export function useWallets() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiClient(`/api/wallets/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      toast.success("Wallet deleted");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return {
     wallets: query.data,
     isLoading: query.isLoading,
     error: query.error,
     createMutation,
     updateMutation,
+    deleteMutation,
   };
 }

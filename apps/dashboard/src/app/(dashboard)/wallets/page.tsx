@@ -20,6 +20,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@expent/ui/components/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@expent/ui/components/dropdown-menu";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
@@ -28,11 +35,14 @@ import {
   Building2Icon,
   CreditCardIcon,
   MoreVerticalIcon,
+  PencilIcon,
   PlusIcon,
   SmartphoneIcon,
+  Trash2Icon,
   WalletIcon,
 } from "lucide-react";
 import * as React from "react";
+import { useTransactions } from "@/hooks/use-transactions";
 import { useWallets } from "@/hooks/use-wallets";
 
 export default function WalletsPage() {
@@ -41,7 +51,7 @@ export default function WalletsPage() {
   const [newType, setNewType] = React.useState("CASH");
   const [newBalance, setNewBalance] = React.useState("0");
 
-  const { wallets, isLoading, createMutation } = useWallets();
+  const { wallets, isLoading, createMutation, updateMutation, deleteMutation } = useWallets();
 
   const handleCreate = () => {
     createMutation.mutate(
@@ -147,7 +157,12 @@ export default function WalletsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {wallets.map((wallet) => (
-            <WalletCard key={wallet.id} wallet={wallet} />
+            <WalletCard
+              key={wallet.id}
+              wallet={wallet}
+              onUpdate={(data) => updateMutation.mutate({ id: wallet.id, data })}
+              onDelete={() => deleteMutation.mutate(wallet.id)}
+            />
           ))}
         </div>
       )}
@@ -155,7 +170,57 @@ export default function WalletsPage() {
   );
 }
 
-function WalletCard({ wallet }: { wallet: any }) {
+function WalletCard({
+  wallet,
+  onUpdate,
+  onDelete,
+}: {
+  wallet: any;
+  onUpdate: (data: any) => void;
+  onDelete: () => void;
+}) {
+  const { transactions } = useTransactions({ limit: 1000 });
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [editName, setEditName] = React.useState(wallet.name);
+  const [editBalance, setEditBalance] = React.useState(wallet.balance.toString());
+
+  const lastStats = React.useMemo(() => {
+    if (!transactions) return { lastIn: 0, lastOut: 0 };
+
+    const walletTxns = transactions.filter(
+      (txn) =>
+        (txn.source_wallet_id === wallet.id || txn.destination_wallet_id === wallet.id) && txn.status !== "CANCELLED"
+    );
+
+    const lastInTxn = walletTxns.find((txn) => txn.destination_wallet_id === wallet.id);
+    const lastOutTxn = walletTxns.find((txn) => txn.source_wallet_id === wallet.id);
+
+    return {
+      lastIn: lastInTxn ? parseFloat(lastInTxn.amount) : 0,
+      lastOut: lastOutTxn ? parseFloat(lastOutTxn.amount) : 0,
+    };
+  }, [transactions, wallet.id]);
+
+  const calculatedNet = React.useMemo(() => {
+    if (!transactions) return 0;
+    return transactions.reduce((acc, txn) => {
+      if (txn.status === "CANCELLED") return acc;
+      const amount = parseFloat(txn.amount);
+      if (txn.destination_wallet_id === wallet.id) return acc + amount;
+      if (txn.source_wallet_id === wallet.id) return acc - amount;
+      return acc;
+    }, 0);
+  }, [transactions, wallet.id]);
+
+  const handleEdit = () => {
+    onUpdate({ name: editName, balance: parseFloat(editBalance) });
+    setIsEditDialogOpen(false);
+  };
+
+  const handleSync = () => {
+    setEditBalance(calculatedNet.toString());
+  };
+
   const typeIcon = () => {
     switch (wallet.type) {
       case "BANK":
@@ -182,14 +247,36 @@ function WalletCard({ wallet }: { wallet: any }) {
           </div>
         </div>
         <CardAction>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
-            aria-label="More options"
-          >
-            <MoreVerticalIcon className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="More options"
+                >
+                  <MoreVerticalIcon className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+                <PencilIcon className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this wallet? This will not delete transactions.")) {
+                    onDelete();
+                  }
+                }}
+              >
+                <Trash2Icon className="mr-2 h-4 w-4" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardAction>
       </CardHeader>
       <CardContent className="p-4 pt-0">
@@ -199,12 +286,73 @@ function WalletCard({ wallet }: { wallet: any }) {
             ₹{parseFloat(wallet.balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </p>
         </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Last In</p>
+            <p className="text-sm font-semibold text-green-600">
+              {lastStats.lastIn > 0
+                ? `+₹${lastStats.lastIn.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                : "—"}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Last Out</p>
+            <p className="text-sm font-semibold text-red-600">
+              {lastStats.lastOut > 0
+                ? `-₹${lastStats.lastOut.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                : "—"}
+            </p>
+          </div>
+        </div>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex gap-2">
         <Badge variant="outline" className="text-[10px] bg-muted/30">
           Last updated {new Date(wallet.updated_at).toLocaleDateString()}
         </Badge>
       </CardFooter>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Wallet</DialogTitle>
+            <DialogDescription>Update wallet details or adjust balance manually.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Wallet Name</Label>
+              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-balance">Balance (₹)</Label>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-[10px]"
+                  onClick={handleSync}
+                  title="Sync with transaction history"
+                >
+                  Sync with history (₹{calculatedNet.toLocaleString()})
+                </Button>
+              </div>
+              <Input
+                id="edit-balance"
+                type="number"
+                step="0.01"
+                value={editBalance}
+                onChange={(e) => setEditBalance(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
