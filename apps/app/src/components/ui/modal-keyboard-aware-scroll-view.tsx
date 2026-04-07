@@ -31,5 +31,5 @@ const BottomSheetKeyboardAwareScrollView = memo(BottomSheetScrollViewComponent);
 BottomSheetKeyboardAwareScrollView.displayName = "BottomSheetKeyboardAwareScrollView";
 
 export default BottomSheetKeyboardAwareScrollView as (
-  props: BottomSheetScrollViewProps & KeyboardAwareScrollViewProps
+  props: BottomSheetScrollViewProps & KeyboardAwareScrollViewProps,
 ) => ReturnType<typeof BottomSheetKeyboardAwareScrollView>;

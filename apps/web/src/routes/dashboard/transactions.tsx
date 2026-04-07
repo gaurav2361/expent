@@ -292,7 +292,7 @@ function RouteComponent() {
         ),
       },
     ],
-    [triggerSplit, updateMutation, deleteMutation]
+    [triggerSplit, updateMutation, deleteMutation],
   );
 
   const table = useReactTable({

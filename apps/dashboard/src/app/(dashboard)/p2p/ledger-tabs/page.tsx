@@ -58,7 +58,7 @@ export default function LedgerTabsPage() {
           setTargetAmount("");
           setContactId("none");
         },
-      }
+      },
     );
   };
 
@@ -261,7 +261,7 @@ function RepaymentDialog({ tab, open, onOpenChange }: { tab: any; open: boolean;
       },
       {
         onSuccess: () => onOpenChange(false),
-      }
+      },
     );
   };
 

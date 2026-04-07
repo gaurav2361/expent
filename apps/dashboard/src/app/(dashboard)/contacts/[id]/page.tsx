@@ -149,7 +149,7 @@ export default function ContactDetailPage() {
                             { type: newIdType, value: newIdValue },
                             {
                               onSuccess: () => setIsAddIdDialogOpen(false),
-                            }
+                            },
                           )
                         }
                         disabled={!newIdValue || addIdentifierMutation.isPending}

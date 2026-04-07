@@ -37,7 +37,7 @@ function ApprovalCardReceipt({ id, title, choice, actionLabel, className }: Appr
         "flex w-full min-w-64 max-w-md flex-col",
         "text-foreground",
         "motion-safe:animate-in motion-safe:fade-in motion-safe:blur-in-sm motion-safe:zoom-in-95 motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)] motion-safe:fill-mode-both",
-        className
+        className,
       )}
       data-slot="approval-card"
       data-tool-ui-id={id}
@@ -49,7 +49,7 @@ function ApprovalCardReceipt({ id, title, choice, actionLabel, className }: Appr
         <span
           className={cn(
             "flex size-8 shrink-0 items-center justify-center rounded-full bg-muted",
-            isApproved ? "text-primary" : "text-muted-foreground"
+            isApproved ? "text-primary" : "text-muted-foreground",
           )}
         >
           {isApproved ? <Check className="size-4" /> : <X className="size-4" />}
@@ -90,7 +90,7 @@ export function ApprovalCard({
         await onCancel?.();
       }
     },
-    [onConfirm, onCancel]
+    [onConfirm, onCancel],
   );
 
   const handleKeyDown = React.useCallback(
@@ -100,7 +100,7 @@ export function ApprovalCard({
         onCancel?.();
       }
     },
-    [onCancel]
+    [onCancel],
   );
 
   const isDestructive = resolvedVariant === "destructive";
@@ -140,7 +140,7 @@ export function ApprovalCard({
                 <span
                   className={cn(
                     "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                    isDestructive ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                    isDestructive ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary",
                   )}
                 >
                   <Icon className="size-5" />

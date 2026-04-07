@@ -135,8 +135,8 @@ export default function TransactionsPage() {
 
       setUploadSteps((prev) =>
         prev.map((s) =>
-          s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s
-        )
+          s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s,
+        ),
       );
 
       const result = await apiClient<any>("/api/ocr/process", {
@@ -146,8 +146,8 @@ export default function TransactionsPage() {
 
       setUploadSteps((prev) =>
         prev.map((s) =>
-          s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s
-        )
+          s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s,
+        ),
       );
 
       setUploadSteps((prev) => prev.map((s) => (s.id === "3" ? { ...s, status: "completed" } : s)));
@@ -344,7 +344,7 @@ export default function TransactionsPage() {
         ),
       },
     ],
-    [triggerSplit, updateMutation, deleteMutation, editingTxnId]
+    [triggerSplit, updateMutation, deleteMutation, editingTxnId],
   );
 
   const table = useReactTable({

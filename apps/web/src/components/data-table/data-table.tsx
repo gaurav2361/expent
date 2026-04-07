@@ -87,7 +87,7 @@ function DataTableProvider<T extends object = RowData>({
 
   const [internalSortBy, setInternalSortBy] = React.useState<ColumnKey<T> | undefined>(defaultSort?.by);
   const [internalSortDirection, setInternalSortDirection] = React.useState<"asc" | "desc" | undefined>(
-    defaultSort?.direction
+    defaultSort?.direction,
   );
 
   const sortBy = controlledSort?.by ?? internalSortBy;
@@ -126,7 +126,7 @@ function DataTableProvider<T extends object = RowData>({
         setInternalSortDirection(next.direction);
       }
     },
-    [sortBy, sortDirection, controlledSort, onSortChange]
+    [sortBy, sortDirection, controlledSort, onSortChange],
   );
 
   const contextValue: DataTableContextValue<T> = {
@@ -155,7 +155,7 @@ function DataTableLayout({ layout, emptyMessage, maxHeight, className }: DataTab
   const { columns, data, rowIdKey, sortBy, sortDirection, id } = useDataTable();
   const rowKeys = React.useMemo(
     () => createDataTableRowKeys(data as Array<Record<string, unknown>>, rowIdKey ? String(rowIdKey) : undefined),
-    [data, rowIdKey]
+    [data, rowIdKey],
   );
   const mobileDescriptionId = React.useMemo(() => getDataTableMobileDescriptionId(String(id ?? "data-table")), [id]);
 
@@ -178,7 +178,7 @@ function DataTableLayout({ layout, emptyMessage, maxHeight, className }: DataTab
             className={cn(
               "bg-card relative w-full overflow-clip overflow-y-auto rounded-lg border",
               "touch-pan-x",
-              maxHeight && "max-h-[--max-height]"
+              maxHeight && "max-h-[--max-height]",
             )}
             style={maxHeight ? ({ "--max-height": maxHeight } as React.CSSProperties) : undefined}
           >
@@ -387,7 +387,7 @@ function DataTableHead({ column, columnIndex = 0, totalColumns = 1 }: DataTableH
     "min-w-0 gap-1 font-normal",
     align === "right" && "text-right",
     align === "center" && "text-center",
-    align === "left" && "text-left"
+    align === "left" && "text-left",
   );
   const labelAlignClass = align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
 
@@ -449,7 +449,7 @@ function DataTableBody() {
   const { data, rowIdKey } = useDataTable<DataTableRowData>();
   const rowKeys = React.useMemo(
     () => createDataTableRowKeys(data as Array<Record<string, unknown>>, rowIdKey ? String(rowIdKey) : undefined),
-    [data, rowIdKey]
+    [data, rowIdKey],
   );
   const hasWarnedRowKeyRef = React.useRef(false);
 
@@ -460,7 +460,7 @@ function DataTableBody() {
       console.warn(
         "[DataTable] Missing `rowIdKey` prop. Falling back to inferred/content-derived row keys. " +
           "Strongly recommended: Pass a `rowIdKey` prop that points to a unique identifier in your row data (e.g., 'id', 'uuid', 'symbol').\n" +
-          'Example: <DataTable rowIdKey="id" columns={...} data={...} />'
+          'Example: <DataTable rowIdKey="id" columns={...} data={...} />',
       );
     }
   }, [rowIdKey, data.length]);
@@ -655,7 +655,7 @@ function DataTableAccordionCard({ row, index, rowKey, isFirst = false }: DataTab
                 "motion-safe:group-data-[state=open]:slide-in-from-top-1",
                 "motion-safe:group-data-[state=closed]:animate-out motion-safe:group-data-[state=closed]:fade-out-0",
                 "motion-safe:group-data-[state=closed]:slide-out-to-top-1",
-                "duration-150"
+                "duration-150",
               )}
               aria-label="Additional data"
             >
@@ -668,7 +668,7 @@ function DataTableAccordionCard({ row, index, rowKey, isFirst = false }: DataTab
                     className={cn(
                       "text-foreground min-w-0 text-pretty wrap-break-word",
                       col.align === "right" && "text-right",
-                      col.align === "center" && "text-center"
+                      col.align === "center" && "text-center",
                     )}
                     role="cell"
                     aria-labelledby={`row-${stableRowId}-${String(col.key)}-label`}
@@ -737,7 +737,7 @@ function SimpleCard({
             className={cn(
               "min-w-0 wrap-break-word",
               col.align === "right" && "text-right",
-              col.align === "center" && "text-center"
+              col.align === "center" && "text-center",
             )}
             role="cell"
             aria-labelledby={`row-${stableRowId}-${String(col.key)}-label`}

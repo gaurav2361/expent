@@ -29,7 +29,7 @@ function BreadcrumbLink({ className, render, ...props }: useRender.ComponentProp
       {
         className: cn("transition-colors hover:text-foreground", className),
       },
-      props
+      props,
     ),
     render,
     state: {

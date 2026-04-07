@@ -37,7 +37,7 @@ function InviteDialog({ groupId, groupName }: { groupId: string; groupName: stri
           setOpen(false);
           setEmail("");
         },
-      }
+      },
     );
   };
 
@@ -284,7 +284,7 @@ export default function SharedLedgersComponent() {
           setNewGroupName("");
           setNewGroupDesc("");
         },
-      }
+      },
     );
   };
 

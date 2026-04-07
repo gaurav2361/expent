@@ -20,11 +20,13 @@
     "app:ios": "pnpm --filter @expent/app ios",
     "app:android": "pnpm --filter @expent/app android",
     "app:emulator": "pnpm --filter @expent/app emulator",
-    "db:seed": "uv run --with requests python scripts/seed.py"
+    "db:seed": "uv run --with requests python scripts/seed.py",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.10",
     "dotenv-cli": "^11.0.0",
+    "husky": "^9.1.7",
     "turbo": "^2.9.3",
     "typescript": "6.0.2"
   },

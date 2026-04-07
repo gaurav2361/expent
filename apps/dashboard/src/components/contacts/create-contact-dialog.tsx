@@ -57,7 +57,7 @@ export function CreateContactDialog({ open, onOpenChange, onCreated }: CreateCon
         onError: (err) => {
           toast.error(err.message || "Failed to create contact");
         },
-      }
+      },
     );
   };
 

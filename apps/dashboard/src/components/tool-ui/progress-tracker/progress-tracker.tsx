@@ -172,7 +172,7 @@ function ProgressTrackerReceipt({
         "isolate flex w-full max-w-md min-w-80 flex-col",
         "text-foreground select-none",
         "motion-safe:animate-in motion-safe:fade-in motion-safe:blur-in-sm motion-safe:zoom-in-95 motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)] motion-safe:fill-mode-both",
-        className
+        className,
       )}
       data-slot="progress-tracker"
       data-tool-ui-id={id}
@@ -246,7 +246,7 @@ function ProgressTrackerLive({ id, steps, elapsedTime, className }: ProgressTrac
                   <div
                     className={cn(
                       "bg-border absolute top-6 left-5 w-px",
-                      "motion-safe:transition-all motion-safe:duration-300"
+                      "motion-safe:transition-all motion-safe:duration-300",
                     )}
                     style={{
                       height: "calc(100% + 0.25rem)",
@@ -258,7 +258,7 @@ function ProgressTrackerLive({ id, steps, elapsedTime, className }: ProgressTrac
                   className={cn(
                     "relative z-10 flex items-start gap-3 rounded-lg px-2 py-1.5",
                     "motion-safe:transition-all motion-safe:duration-300",
-                    isCurrent && "bg-primary/5"
+                    isCurrent && "bg-primary/5",
                   )}
                   style={{
                     backdropFilter: isCurrent ? "blur(2px)" : undefined,
@@ -272,7 +272,7 @@ function ProgressTrackerLive({ id, steps, elapsedTime, className }: ProgressTrac
                       className={cn(
                         "text-sm leading-6 font-medium",
                         step.status === "pending" && "text-muted-foreground",
-                        step.status === "in-progress" && "motion-safe:shimmer shimmer-invert text-foreground"
+                        step.status === "in-progress" && "motion-safe:shimmer shimmer-invert text-foreground",
                       )}
                     >
                       {step.label}
@@ -281,7 +281,7 @@ function ProgressTrackerLive({ id, steps, elapsedTime, className }: ProgressTrac
                       <div
                         className={cn(
                           "grid motion-safe:transition-[grid-template-rows,opacity] motion-safe:duration-300 motion-safe:ease-out",
-                          shouldShowDescription ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                          shouldShowDescription ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
                         )}
                         aria-hidden={!shouldShowDescription}
                       >

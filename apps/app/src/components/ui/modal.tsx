@@ -80,7 +80,7 @@ export function Modal({
         <ModalHeader title={title} dismiss={modal.dismiss} />
       </>
     ),
-    [title, modal.dismiss]
+    [title, modal.dismiss],
   );
 
   return (

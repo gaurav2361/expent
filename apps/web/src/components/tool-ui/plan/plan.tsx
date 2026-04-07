@@ -107,7 +107,7 @@ const PlanTodoItem = memo(function PlanTodoItem({ todo, className, style, showCo
         "text-sm leading-6 font-medium break-words",
         todo.status === "pending" && "text-muted-foreground",
         todo.status === "in_progress" && "motion-safe:shimmer shimmer-invert text-foreground",
-        (todo.status === "completed" || todo.status === "cancelled") && "text-muted-foreground"
+        (todo.status === "completed" || todo.status === "cancelled") && "text-muted-foreground",
       )}
     >
       {todo.label}
@@ -198,7 +198,7 @@ function TodoList({ todos, newTodoIds }: TodoListProps) {
             showConnector={index < todos.length - 1}
             className={cn(
               isNew &&
-                "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300 motion-safe:ease-out"
+                "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300 motion-safe:ease-out",
             )}
             style={
               isNew
@@ -234,7 +234,7 @@ const ProgressBar = memo(function ProgressBar({ progress, isCelebrating }: Progr
           "h-full rounded-full transition-all duration-500",
           progress === 100
             ? "bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-400 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500 motion-safe:ease-out"
-            : "bg-primary"
+            : "bg-primary",
         )}
         style={{
           width: `${progress}%`,

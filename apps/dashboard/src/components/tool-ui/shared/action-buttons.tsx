@@ -37,7 +37,7 @@ export function ActionButtons({
         align === "left" && "@sm/actions:justify-start",
         align === "center" && "@sm/actions:justify-center",
         align === "right" && "@sm/actions:justify-end",
-        className
+        className,
       )}
     >
       {resolvedActions.map((action) => {
@@ -55,7 +55,7 @@ export function ActionButtons({
               "justify-center",
               "min-h-11 w-full text-base",
               "@sm/actions:min-h-0 @sm/actions:w-auto @sm/actions:px-3 @sm/actions:py-2 @sm/actions:text-sm",
-              action.isConfirming && "ring-destructive ring-2 ring-offset-2 motion-safe:animate-pulse"
+              action.isConfirming && "ring-destructive ring-2 ring-offset-2 motion-safe:animate-pulse",
             )}
             aria-label={action.shortcut ? `${label} (${action.shortcut})` : label}
           >

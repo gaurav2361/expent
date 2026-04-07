@@ -22,7 +22,7 @@ export async function proxy(request: NextRequest) {
       c.name === "__Secure-better-auth.session_token" ||
       c.name === "__Secure-better-auth.session-token" ||
       c.name.includes("session_token") ||
-      c.name.includes("session-token")
+      c.name.includes("session-token"),
   );
 
   const isPublicRoute = publicRoutes.includes(pathname);

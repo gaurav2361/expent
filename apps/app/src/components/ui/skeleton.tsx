@@ -16,7 +16,7 @@ function Skeleton({ className, ...props }: React.ComponentProps<typeof View>) {
     () => ({
       opacity: sv.value,
     }),
-    [sv]
+    [sv],
   );
   return <Animated.View style={style} className={cn("bg-secondary dark:bg-muted rounded-md", className)} {...props} />;
 }

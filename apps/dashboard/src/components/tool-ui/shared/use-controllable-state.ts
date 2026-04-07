@@ -28,7 +28,7 @@ export function useControllableState<T>({ value, defaultValue, onChange }: UseCo
       onChange?.(resolved);
       return resolved;
     },
-    [isControlled, onChange]
+    [isControlled, onChange],
   );
 
   const setUncontrolledValue = useCallback((next: T) => {

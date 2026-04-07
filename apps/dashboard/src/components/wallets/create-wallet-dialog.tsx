@@ -60,7 +60,7 @@ export function CreateWalletDialog({ open, onOpenChange, onCreated }: CreateWall
         onError: (err: Error) => {
           toast.error(err.message || "Failed to create wallet");
         },
-      }
+      },
     );
   };
 

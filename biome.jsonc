@@ -17,10 +17,6 @@
   "files": {
     "includes": [
       "**",
-      "**/src/**/*",
-      "**/.vscode/**/*",
-      "**/index.html",
-      "**/vite.config.ts",
       "!**/dist",
       "!**/.turbo",
       "!**/.vinxi",
@@ -47,7 +43,7 @@
       "complexity": { "useArrowFunction": "error" },
       "correctness": {
         "noUnsafeFinally": "warn",
-        "noUnusedVariables": "warn",
+        "noUnusedVariables": "error",
         "noUnusedImports": "error"
       },
       "security": { "noGlobalEval": "error" },
@@ -74,7 +70,7 @@
     "formatter": {
       "jsxQuoteStyle": "double",
       "quoteProperties": "asNeeded",
-      "trailingCommas": "es5",
+      "trailingCommas": "all",
       "semicolons": "always",
       "arrowParentheses": "always",
       "bracketSpacing": true,

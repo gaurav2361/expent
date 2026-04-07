@@ -16,6 +16,6 @@ export const useUIStore = create<UIStore>()(
     }),
     {
       name: "ui-storage",
-    }
-  )
+    },
+  ),
 );

@@ -67,7 +67,7 @@ export default function WalletsPage() {
           setNewType("CASH");
           setNewBalance("0");
         },
-      }
+      },
     );
   };
 
@@ -189,7 +189,7 @@ function WalletCard({
 
     const walletTxns = transactions.filter(
       (txn) =>
-        (txn.source_wallet_id === wallet.id || txn.destination_wallet_id === wallet.id) && txn.status !== "CANCELLED"
+        (txn.source_wallet_id === wallet.id || txn.destination_wallet_id === wallet.id) && txn.status !== "CANCELLED",
     );
 
     const lastInTxn = walletTxns.find((txn) => txn.destination_wallet_id === wallet.id);

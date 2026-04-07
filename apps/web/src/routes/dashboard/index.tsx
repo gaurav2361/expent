@@ -208,7 +208,7 @@ function RouteComponent() {
           align: "right",
         },
       ] as Column<TransactionType>[],
-    []
+    [],
   );
 
   const txnCellRenderers = useMemo(
@@ -242,7 +242,7 @@ function RouteComponent() {
         </DropdownMenu>
       ),
     }),
-    [triggerSplit, updateMutation, deleteMutation]
+    [triggerSplit, updateMutation, deleteMutation],
   );
 
   useEffect(() => {

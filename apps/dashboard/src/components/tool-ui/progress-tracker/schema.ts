@@ -52,7 +52,7 @@ export type SerializableProgressTracker = z.infer<typeof SerializableProgressTra
 
 const SerializableProgressTrackerSchemaContract = defineToolUiContract(
   "ProgressTracker",
-  SerializableProgressTrackerSchema
+  SerializableProgressTrackerSchema,
 );
 
 export const parseSerializableProgressTracker: (input: unknown) => SerializableProgressTracker =

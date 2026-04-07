@@ -28,7 +28,7 @@ const PreferenceToggleSchema = PreferenceItemBaseSchema.extend({
       z.object({
         value: z.string().min(1),
         label: z.string().min(1),
-      })
+      }),
     )
     .min(2),
   defaultValue: z.string().optional(),
@@ -41,7 +41,7 @@ const PreferenceSelectSchema = PreferenceItemBaseSchema.extend({
       z.object({
         value: z.string().min(1),
         label: z.string().min(1),
-      })
+      }),
     )
     .min(5),
   defaultSelected: z.string().optional(),
@@ -81,12 +81,12 @@ export type SerializablePreferencesPanelReceipt = z.infer<typeof SerializablePre
 
 const SerializablePreferencesPanelSchemaContract = defineToolUiContract(
   "PreferencesPanel",
-  SerializablePreferencesPanelSchema
+  SerializablePreferencesPanelSchema,
 );
 
 const SerializablePreferencesPanelReceiptSchemaContract = defineToolUiContract(
   "PreferencesPanelReceipt",
-  SerializablePreferencesPanelReceiptSchema
+  SerializablePreferencesPanelReceiptSchema,
 );
 
 export const parseSerializablePreferencesPanel: (input: unknown) => SerializablePreferencesPanel =
@@ -99,7 +99,7 @@ export const parseSerializablePreferencesPanelReceipt: (input: unknown) => Seria
   SerializablePreferencesPanelReceiptSchemaContract.parse;
 
 export const safeParseSerializablePreferencesPanelReceipt: (
-  input: unknown
+  input: unknown,
 ) => SerializablePreferencesPanelReceipt | null = SerializablePreferencesPanelReceiptSchemaContract.safeParse;
 
 export interface PreferencesValue {

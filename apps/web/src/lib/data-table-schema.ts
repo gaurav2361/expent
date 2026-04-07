@@ -43,7 +43,7 @@ const formatSchema = z.discriminatedUnion("kind", [
       z.object({
         tone: z.enum(["success", "warning", "danger", "info", "neutral"]),
         label: z.string().optional(),
-      })
+      }),
     ),
   }),
   z.object({
@@ -113,7 +113,7 @@ const JsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null
  */
 export const serializableDataSchema = z.record(
   z.string(),
-  z.union([JsonPrimitiveSchema, z.array(JsonPrimitiveSchema)])
+  z.union([JsonPrimitiveSchema, z.array(JsonPrimitiveSchema)]),
 );
 
 /**
@@ -218,7 +218,7 @@ export type SerializableDataTable = z.infer<typeof SerializableDataTableSchema>;
  * ```
  */
 export function parseSerializableDataTable(
-  input: unknown
+  input: unknown,
 ): Pick<
   DataTableProps<RowData>,
   | "id"
@@ -261,7 +261,7 @@ export function parseSerializableDataTable(
 }
 
 export function safeParseSerializableDataTable(
-  input: unknown
+  input: unknown,
 ): Pick<
   DataTableProps<RowData>,
   | "id"

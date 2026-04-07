@@ -9,7 +9,7 @@ const textVariants = cva(
     "text-foreground text-base",
     Platform.select({
       web: "select-text",
-    })
+    }),
   ),
   {
     variants: {
@@ -17,11 +17,11 @@ const textVariants = cva(
         default: "",
         h1: cn(
           "text-center text-4xl font-extrabold tracking-tight",
-          Platform.select({ web: "scroll-m-20 text-balance" })
+          Platform.select({ web: "scroll-m-20 text-balance" }),
         ),
         h2: cn(
           "border-border border-b pb-2 text-3xl font-semibold tracking-tight",
-          Platform.select({ web: "scroll-m-20 first:mt-0" })
+          Platform.select({ web: "scroll-m-20 first:mt-0" }),
         ),
         h3: cn("text-2xl font-semibold tracking-tight", Platform.select({ web: "scroll-m-20" })),
         h4: cn("text-xl font-semibold tracking-tight", Platform.select({ web: "scroll-m-20" })),
@@ -37,7 +37,7 @@ const textVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 type TextVariantProps = VariantProps<typeof textVariants>;

@@ -31,7 +31,7 @@ function AlertDialogOverlay({
           Platform.select({
             web: "animate-in fade-in-0 fixed",
           }),
-          className
+          className,
         )}
         {...props}
       >
@@ -59,7 +59,7 @@ function AlertDialogContent({
             Platform.select({
               web: "animate-in fade-in-0 zoom-in-95 web:max-w-[calc(100%-2rem)] duration-200",
             }),
-            className
+            className,
           )}
           {...props}
         />

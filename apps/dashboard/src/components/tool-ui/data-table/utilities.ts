@@ -2,7 +2,7 @@ export function sortData<T, K extends Extract<keyof T, string>>(
   data: T[],
   key: K,
   direction: "asc" | "desc",
-  locale?: string
+  locale?: string,
 ): T[] {
   const get = (obj: T, k: K): unknown => (obj as Record<string, unknown>)[k];
   const collator = new Intl.Collator(locale, {
@@ -71,7 +71,7 @@ export function sortData<T, K extends Extract<keyof T, string>>(
  */
 export function getRowIdentifier(
   row: Record<string, string | number | boolean | null | (string | number | boolean | null)[]>,
-  identifierKey?: string
+  identifierKey?: string,
 ): string {
   const candidate =
     (identifierKey ? row[identifierKey] : undefined) ??
@@ -130,7 +130,7 @@ export function createDataTableRowKeys(rows: Array<Record<string, unknown>>, ide
     const row = rows[i];
     const identifier = getRowIdentifier(
       row as Record<string, string | number | boolean | null | (string | number | boolean | null)[]>,
-      identifierKey
+      identifierKey,
     );
 
     if (identifier) {

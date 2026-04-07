@@ -29,6 +29,6 @@ export function createPreferencesSectionSignature(sections: PreferenceSection[])
           options: item.selectOptions.map((option) => option.value),
         };
       }),
-    }))
+    })),
   );
 }

@@ -24,7 +24,7 @@ export function LatestChange() {
       className={cn(
         "group/latest-change size-full min-h-27 justify-center border-t",
         "relative flex size-full flex-col gap-1 overflow-hidden px-4 pt-3 pb-1 *:text-nowrap",
-        "transition-opacity group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:opacity-0"
+        "transition-opacity group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:opacity-0",
       )}
     >
       <span className="font-light font-mono text-[10px] text-muted-foreground">{latestChange.badge}</span>

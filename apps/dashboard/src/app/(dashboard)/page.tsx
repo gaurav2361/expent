@@ -62,7 +62,7 @@ export default function DashboardPage() {
       const qs = params.toString();
       router.replace(qs ? `/?${qs}` : "/", { scroll: false });
     },
-    [router, searchParams]
+    [router, searchParams],
   );
 
   const { transactions, isLoading: isTxnsLoading, updateMutation, deleteMutation } = useTransactions();
@@ -147,7 +147,7 @@ export default function DashboardPage() {
           align: "right",
         },
       ] as Column<TransactionWithDetail>[],
-    []
+    [],
   );
 
   const txnCellRenderers = useMemo(
@@ -183,7 +183,7 @@ export default function DashboardPage() {
         </DropdownMenu>
       ),
     }),
-    [triggerSplit, updateMutation, deleteMutation]
+    [triggerSplit, updateMutation, deleteMutation],
   );
 
   const handleUpload = async () => {
@@ -217,8 +217,8 @@ export default function DashboardPage() {
 
       setUploadSteps((prev) =>
         prev.map((s) =>
-          s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s
-        )
+          s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s,
+        ),
       );
 
       const result = await apiClient<TypedProcessedOcr>("/api/ocr/process", {
@@ -228,8 +228,8 @@ export default function DashboardPage() {
 
       setUploadSteps((prev) =>
         prev.map((s) =>
-          s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s
-        )
+          s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s,
+        ),
       );
 
       setUploadSteps((prev) => prev.map((s) => (s.id === "3" ? { ...s, status: "completed" } : s)));

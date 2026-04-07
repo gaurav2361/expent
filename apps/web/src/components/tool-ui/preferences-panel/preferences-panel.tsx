@@ -276,7 +276,7 @@ function PreferenceItemRow({
       className={cn(
         "flex items-start justify-between gap-4",
         isFirstInSectionWithoutHeading ? "pt-0 pb-3" : "py-3",
-        shouldStack && "flex-col gap-3 @sm/preferences-panel:flex-row @sm/preferences-panel:gap-4"
+        shouldStack && "flex-col gap-3 @sm/preferences-panel:flex-row @sm/preferences-panel:gap-4",
       )}
     >
       <div className="flex flex-col gap-1">
@@ -493,7 +493,7 @@ function PreferencesPanelRoot({
     (itemId: string, newValue: string | boolean) => {
       setValue((prev) => ({ ...prev, [itemId]: newValue }));
     },
-    [setValue]
+    [setValue],
   );
 
   const isDirty = useMemo(() => {
@@ -515,7 +515,7 @@ function PreferencesPanelRoot({
 
       await onAction?.(actionId, nextValue);
     },
-    [currentValue, handleCancel, onAction]
+    [currentValue, handleCancel, onAction],
   );
 
   const normalizedActions = useMemo(() => {
@@ -558,7 +558,7 @@ function PreferencesPanelRoot({
       role="form"
       className={cn(
         "text-foreground @container/preferences-panel flex w-full max-w-md min-w-80 flex-col gap-3",
-        className
+        className,
       )}
     >
       <div className="bg-card flex w-full flex-col overflow-hidden rounded-2xl border shadow-xs">

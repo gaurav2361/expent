@@ -140,7 +140,7 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
         onError: (err) => {
           toast.error(err.message || "Failed to create category");
         },
-      }
+      },
     );
   };
 
@@ -194,7 +194,7 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
                   type="button"
                   className={cn(
                     "flex size-7 cursor-pointer items-center justify-center rounded-full border-2 transition-all hover:scale-110",
-                    selectedColor === c.hex ? "border-foreground scale-110" : "border-transparent"
+                    selectedColor === c.hex ? "border-foreground scale-110" : "border-transparent",
                   )}
                   style={{ backgroundColor: c.hex }}
                   onClick={() => setSelectedColor(c.hex)}
@@ -218,7 +218,7 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
                     "flex items-center justify-center rounded-md border p-2 transition-all hover:bg-muted",
                     selectedIcon === key
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-transparent text-muted-foreground"
+                      : "border-transparent text-muted-foreground",
                   )}
                   onClick={() => setSelectedIcon(key)}
                   aria-label={`Select ${key} icon`}

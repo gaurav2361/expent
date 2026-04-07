@@ -107,7 +107,7 @@ export function useActionButtons(options: UseActionButtonsOptions): UseActionBut
         setConfirmingActionId(null);
       }
     },
-    [actions, confirmingActionId, executingActionId, onAction, onBeforeAction]
+    [actions, confirmingActionId, executingActionId, onAction, onBeforeAction],
   );
 
   const resolvedActions = useMemo(
@@ -128,7 +128,7 @@ export function useActionButtons(options: UseActionButtonsOptions): UseActionBut
           isLoading,
         };
       }),
-    [actions, confirmingActionId, executingActionId]
+    [actions, confirmingActionId, executingActionId],
   );
 
   return {

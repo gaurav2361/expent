@@ -22,7 +22,7 @@ export function useSelectedTheme() {
       Uniwind.setTheme(t);
       _setTheme(t);
     },
-    [_setTheme]
+    [_setTheme],
   );
 
   const selectedTheme = (theme ?? "system") as ColorSchemeType;

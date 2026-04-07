@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "agents-md": {
+      "source": "getsentry/skills",
+      "sourceType": "github",
+      "computedHash": "2c9df6461b050a8010354c5c41aaf1c93487363d8fd0e04121e91829d0007201"
+    },
     "better-auth-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
@@ -11,6 +16,11 @@
       "sourceType": "github",
       "computedHash": "5717187bba9c22030c7174c74012f01c359f21e2ce87e0eb80e24244d8b8c915"
     },
+    "biome-developer": {
+      "source": "biomejs/biome",
+      "sourceType": "github",
+      "computedHash": "ad342eaaa25a75c93bf52c2b55f9de3924ab6c4dd25726064db53ed29cce6cab"
+    },
     "building-components": {
       "source": "vercel/components.build",
       "sourceType": "github",
@@ -20,6 +30,11 @@
       "source": "expo/skills",
       "sourceType": "github",
       "computedHash": "342df93f481a0dba919f372d6c7b40d2b4bf5b51dd24363aea2e5d0bae27a6fa"
+    },
+    "code-reviewer": {
+      "source": "google-gemini/gemini-cli",
+      "sourceType": "github",
+      "computedHash": "270f0dd1d4c15a798bad5253a309cdc2056fe5322f99ba06ca22ce50581adc02"
     },
     "create-auth-skill": {
       "source": "better-auth/skills",

@@ -37,7 +37,7 @@ export default function ContactsPage() {
           setNewName("");
           setNewPhone("");
         },
-      }
+      },
     );
   };
 

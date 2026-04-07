@@ -60,11 +60,7 @@ pub async fn update_wallet(
     wallet.update(db).await
 }
 
-pub async fn adjust_balance<C>(
-    db: &C,
-    wallet_id: &str,
-    amount: Decimal,
-) -> Result<(), DbErr>
+pub async fn adjust_balance<C>(db: &C, wallet_id: &str, amount: Decimal) -> Result<(), DbErr>
 where
     C: ConnectionTrait,
 {
