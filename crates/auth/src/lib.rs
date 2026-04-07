@@ -120,7 +120,7 @@ pub async fn init_auth(
     trusted_origins.sort();
     trusted_origins.dedup();
 
-    let adapter = PostgresAdapter::new(db);
+    let adapter = SqliteAdapter::new(db);
 
     let enable_signup = env::var("ENABLE_SIGNUP")
         .map(|v| v != "false")
