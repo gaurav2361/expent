@@ -101,6 +101,9 @@ pub struct UpdateTransactionRequest {
     pub category_id: Option<String>,
     pub status: Option<db::entities::enums::TransactionStatus>,
     pub notes: Option<String>,
+    pub source_wallet_id: Option<String>,
+    pub destination_wallet_id: Option<String>,
+    pub contact_id: Option<String>,
 }
 
 pub async fn update_transaction_handler(
@@ -119,6 +122,9 @@ pub async fn update_transaction_handler(
         payload.category_id,
         payload.status,
         payload.notes,
+        payload.source_wallet_id,
+        payload.destination_wallet_id,
+        payload.contact_id,
     )
     .await?;
 

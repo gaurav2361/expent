@@ -22,38 +22,56 @@ pub async fn create_transaction(
     contact_id: Option<String>,
     notes: Option<String>,
 ) -> Result<entities::transactions::Model, DbErr> {
-    let txn = entities::transactions::ActiveModel {
-        id: Set(uuid::Uuid::now_v7().to_string()),
-        user_id: Set(user_id.to_string()),
-        amount: Set(amount),
-        direction: Set(direction),
-        date: Set(date),
-        source: Set(source),
-        status: Set(TransactionStatus::Completed),
-        purpose_tag: Set(purpose_tag),
-        category_id: Set(category_id),
-        group_id: Set(None),
-        source_wallet_id: Set(source_wallet_id),
-        destination_wallet_id: Set(destination_wallet_id),
-        ledger_tab_id: Set(None),
-        deleted_at: Set(None),
-        notes: Set(notes),
-    };
+    let user_id = user_id.to_string();
+    db.transaction::<_, entities::transactions::Model, DbErr>(|txn_db| {
+        Box::pin(async move {
+            let txn = entities::transactions::ActiveModel {
+                id: Set(uuid::Uuid::now_v7().to_string()),
+                user_id: Set(user_id),
+                amount: Set(amount),
+                direction: Set(direction),
+                date: Set(date),
+                source: Set(source),
+                status: Set(TransactionStatus::Completed),
+                purpose_tag: Set(purpose_tag),
+                category_id: Set(category_id),
+                group_id: Set(None),
+                source_wallet_id: Set(source_wallet_id.clone()),
+                destination_wallet_id: Set(destination_wallet_id.clone()),
+                ledger_tab_id: Set(None),
+                deleted_at: Set(None),
+                notes: Set(notes),
+            };
 
-    let result = txn.insert(db).await?;
+            let result = txn.insert(txn_db).await?;
 
-    if let Some(c_id) = contact_id {
-        let party = entities::txn_parties::ActiveModel {
-            id: Set(uuid::Uuid::now_v7().to_string()),
-            transaction_id: Set(result.id.clone()),
-            user_id: Set(None),
-            contact_id: Set(Some(c_id)),
-            role: Set("COUNTERPARTY".to_string()),
-        };
-        party.insert(db).await?;
-    }
+            if let Some(c_id) = contact_id {
+                let party = entities::txn_parties::ActiveModel {
+                    id: Set(uuid::Uuid::now_v7().to_string()),
+                    transaction_id: Set(result.id.clone()),
+                    user_id: Set(None),
+                    contact_id: Set(Some(c_id)),
+                    role: Set("COUNTERPARTY".to_string()),
+                };
+                party.insert(txn_db).await?;
+            }
 
-    Ok(result)
+            // Adjust wallet balances
+            if let Some(sw_id) = source_wallet_id {
+                super::wallets::adjust_balance(txn_db, &sw_id, -amount).await?;
+            }
+            if let Some(dw_id) = destination_wallet_id {
+                super::wallets::adjust_balance(txn_db, &dw_id, amount).await?;
+            }
+
+            Ok(result)
+        })
+    })
+    .await
+    .map_err(|e| match e {
+        TransactionError::Connection(ce) => ce,
+        TransactionError::Transaction(te) => te,
+    })
 }
 
 pub async fn list_transactions(
@@ -141,50 +159,119 @@ pub async fn update_transaction(
     category_id: Option<String>,
     status: Option<TransactionStatus>,
     notes: Option<String>,
+    source_wallet_id: Option<String>,
+    destination_wallet_id: Option<String>,
+    contact_id: Option<String>,
 ) -> Result<entities::transactions::Model, DbErr> {
-    let txn = entities::transactions::Entity::find_by_id(txn_id.to_string())
-        .one(db)
-        .await?
-        .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
+    let user_id = user_id.to_string();
+    let txn_id = txn_id.to_string();
+    db.transaction::<_, entities::transactions::Model, DbErr>(|txn_db| {
+        Box::pin(async move {
+            let txn_model = entities::transactions::Entity::find_by_id(txn_id)
+                .one(txn_db)
+                .await?
+                .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
 
-    if txn.user_id != user_id {
-        return Err(DbErr::Custom("Unauthorized".to_string()));
-    }
+            if txn_model.user_id != user_id {
+                return Err(DbErr::Custom("Unauthorized".to_string()));
+            }
 
-    let old_amount = txn.amount;
-    let mut txn: entities::transactions::ActiveModel = txn.into();
+            let old_amount = txn_model.amount;
+            let old_source_wallet = txn_model.source_wallet_id.clone();
+            let old_dest_wallet = txn_model.destination_wallet_id.clone();
 
-    if let Some(amt) = amount {
-        if amt != old_amount {
-            // Log the edit
-            let edit = entities::transaction_edits::ActiveModel {
-                id: Set(uuid::Uuid::now_v7().to_string()),
-                transaction_id: Set(txn.id.as_ref().to_string()),
-                old_amount: Set(old_amount),
-                new_amount: Set(amt),
-                edited_at: Set(Utc::now().into()),
-            };
-            edit.insert(db).await?;
-        }
-        txn.amount = Set(amt);
-    }
-    if let Some(dt) = date {
-        txn.date = Set(dt);
-    }
-    if let Some(tag) = purpose_tag {
-        txn.purpose_tag = Set(Some(tag));
-    }
-    if let Some(c_id) = category_id {
-        txn.category_id = Set(Some(c_id));
-    }
-    if let Some(s) = status {
-        txn.status = Set(s);
-    }
-    if let Some(n) = notes {
-        txn.notes = Set(Some(n));
-    }
+            let mut txn: entities::transactions::ActiveModel = txn_model.clone().into();
 
-    txn.update(db).await
+            if let Some(amt) = amount {
+                if amt != old_amount {
+                    // Log the edit
+                    let edit = entities::transaction_edits::ActiveModel {
+                        id: Set(uuid::Uuid::now_v7().to_string()),
+                        transaction_id: Set(txn.id.as_ref().to_string()),
+                        old_amount: Set(old_amount),
+                        new_amount: Set(amt),
+                        edited_at: Set(Utc::now().into()),
+                    };
+                    edit.insert(txn_db).await?;
+                }
+                txn.amount = Set(amt);
+            }
+            if let Some(dt) = date {
+                txn.date = Set(dt);
+            }
+            if let Some(tag) = purpose_tag {
+                txn.purpose_tag = Set(Some(tag));
+            }
+            if let Some(c_id) = category_id {
+                txn.category_id = Set(Some(c_id));
+            }
+            if let Some(s) = status {
+                txn.status = Set(s);
+            }
+            if let Some(n) = notes {
+                txn.notes = Set(Some(n));
+            }
+            if let Some(sw_id) = source_wallet_id.clone() {
+                txn.source_wallet_id = Set(if sw_id.is_empty() { None } else { Some(sw_id) });
+            }
+            if let Some(dw_id) = destination_wallet_id.clone() {
+                txn.destination_wallet_id = Set(if dw_id.is_empty() { None } else { Some(dw_id) });
+            }
+
+            let result = txn.update(txn_db).await?;
+
+            if let Some(c_id) = contact_id {
+                // Delete existing counterparty records for this transaction
+                entities::txn_parties::Entity::delete_many()
+                    .filter(entities::txn_parties::Column::TransactionId.eq(result.id.clone()))
+                    .filter(entities::txn_parties::Column::Role.eq("COUNTERPARTY"))
+                    .exec(txn_db)
+                    .await?;
+
+                if !c_id.is_empty() {
+                    let party = entities::txn_parties::ActiveModel {
+                        id: Set(uuid::Uuid::now_v7().to_string()),
+                        transaction_id: Set(result.id.clone()),
+                        user_id: Set(None),
+                        contact_id: Set(Some(c_id)),
+                        role: Set("COUNTERPARTY".to_string()),
+                    };
+                    party.insert(txn_db).await?;
+                }
+            }
+
+            // Adjust wallet balances
+            // 1. Reverse old effect IF it was not cancelled
+            let old_is_active = txn_model.status != TransactionStatus::Cancelled;
+            if old_is_active {
+                if let Some(sw_id) = old_source_wallet {
+                    super::wallets::adjust_balance(txn_db, &sw_id, old_amount).await?;
+                }
+                if let Some(dw_id) = old_dest_wallet {
+                    super::wallets::adjust_balance(txn_db, &dw_id, -old_amount).await?;
+                }
+            }
+
+            // 2. Apply new effect IF it is not cancelled
+            let new_is_active = result.status != TransactionStatus::Cancelled;
+            if new_is_active {
+                let new_amount = result.amount;
+                if let Some(sw_id) = &result.source_wallet_id {
+                    super::wallets::adjust_balance(txn_db, sw_id, -new_amount).await?;
+                }
+                if let Some(dw_id) = &result.destination_wallet_id {
+                    super::wallets::adjust_balance(txn_db, dw_id, new_amount).await?;
+                }
+            }
+
+            Ok(result)
+        })
+    })
+    .await
+    .map_err(|e| match e {
+        TransactionError::Connection(ce) => ce,
+        TransactionError::Transaction(te) => te,
+    })
 }
 
 pub async fn delete_transaction(
@@ -192,20 +279,45 @@ pub async fn delete_transaction(
     user_id: &str,
     txn_id: &str,
 ) -> Result<u64, DbErr> {
-    let txn = entities::transactions::Entity::find_by_id(txn_id.to_string())
-        .one(db)
-        .await?
-        .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
+    let user_id = user_id.to_string();
+    let txn_id = txn_id.to_string();
+    db.transaction::<_, u64, DbErr>(|txn_db| {
+        Box::pin(async move {
+            let txn_model = entities::transactions::Entity::find_by_id(txn_id)
+                .one(txn_db)
+                .await?
+                .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
 
-    if txn.user_id != user_id {
-        return Err(DbErr::Custom("Unauthorized".to_string()));
-    }
+            if txn_model.user_id != user_id {
+                return Err(DbErr::Custom("Unauthorized".to_string()));
+            }
 
-    let mut txn: entities::transactions::ActiveModel = txn.into();
-    txn.deleted_at = Set(Some(Utc::now().into()));
-    txn.update(db).await?;
+            let old_amount = txn_model.amount;
+            let old_source_wallet = txn_model.source_wallet_id.clone();
+            let old_dest_wallet = txn_model.destination_wallet_id.clone();
 
-    Ok(1)
+            let mut txn: entities::transactions::ActiveModel = txn_model.into();
+            txn.deleted_at = Set(Some(Utc::now().into()));
+            let result_model = txn.update(txn_db).await?;
+
+            // Reverse wallet effects IF it was not cancelled
+            if result_model.status != TransactionStatus::Cancelled {
+                if let Some(sw_id) = old_source_wallet {
+                    super::wallets::adjust_balance(txn_db, &sw_id, old_amount).await?;
+                }
+                if let Some(dw_id) = old_dest_wallet {
+                    super::wallets::adjust_balance(txn_db, &dw_id, -old_amount).await?;
+                }
+            }
+
+            Ok(1)
+        })
+    })
+    .await
+    .map_err(|e| match e {
+        TransactionError::Connection(ce) => ce,
+        TransactionError::Transaction(te) => te,
+    })
 }
 
 /// Splits a transaction among multiple receivers.
@@ -246,16 +358,40 @@ pub async fn revert_transaction(
     user_id: &str,
     txn_id: &str,
 ) -> Result<entities::transactions::Model, DbErr> {
-    let txn = entities::transactions::Entity::find_by_id(txn_id.to_string())
-        .one(db)
-        .await?
-        .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
+    let user_id = user_id.to_string();
+    let txn_id = txn_id.to_string();
+    db.transaction::<_, entities::transactions::Model, DbErr>(|txn_db| {
+        Box::pin(async move {
+            let txn_model = entities::transactions::Entity::find_by_id(txn_id)
+                .one(txn_db)
+                .await?
+                .ok_or_else(|| DbErr::Custom("Transaction not found".to_string()))?;
 
-    if txn.user_id != user_id {
-        return Err(DbErr::Custom("Unauthorized".to_string()));
-    }
+            if txn_model.user_id != user_id {
+                return Err(DbErr::Custom("Unauthorized".to_string()));
+            }
 
-    let mut txn: entities::transactions::ActiveModel = txn.into();
-    txn.deleted_at = Set(None);
-    txn.update(db).await
+            let mut txn: entities::transactions::ActiveModel = txn_model.clone().into();
+            txn.deleted_at = Set(None);
+            let result = txn.update(txn_db).await?;
+
+            // Re-apply wallet effects IF it was not cancelled
+            if result.status != TransactionStatus::Cancelled {
+                let amount = result.amount;
+                if let Some(sw_id) = &result.source_wallet_id {
+                    super::wallets::adjust_balance(txn_db, sw_id, -amount).await?;
+                }
+                if let Some(dw_id) = &result.destination_wallet_id {
+                    super::wallets::adjust_balance(txn_db, dw_id, amount).await?;
+                }
+            }
+
+            Ok(result)
+        })
+    })
+    .await
+    .map_err(|e| match e {
+        TransactionError::Connection(ce) => ce,
+        TransactionError::Transaction(te) => te,
+    })
 }

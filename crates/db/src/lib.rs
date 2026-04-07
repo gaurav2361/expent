@@ -23,6 +23,7 @@ pub struct LineItem {
     pub name: String,
     pub quantity: i32,
     #[ts(type = "string")]
+    #[serde(with = "rust_decimal::serde::str")]
     pub price: Decimal,
 }
 
@@ -53,6 +54,7 @@ pub struct OcrResult {
 )]
 pub struct GPayExtraction {
     #[ts(type = "string")]
+    #[serde(with = "rust_decimal::serde::str")]
     pub amount: Decimal,
     pub direction: String, // "IN" | "OUT"
     pub datetime_str: Option<String>,
@@ -90,6 +92,7 @@ pub struct ProcessedOcr {
 pub struct SplitDetail {
     pub receiver_email: String,
     #[ts(type = "string")]
+    #[serde(with = "rust_decimal::serde::str")]
     pub amount: Decimal,
 }
 
@@ -316,11 +319,14 @@ impl SmartMerge {
         user_id: &str,
         txn_id: &str,
         amount: Option<Decimal>,
-        date: Option<DateTimeWithTimeZone>,
+        date: Option<DateTime<FixedOffset>>,
         purpose_tag: Option<String>,
         category_id: Option<String>,
         status: Option<TransactionStatus>,
         notes: Option<String>,
+        source_wallet_id: Option<String>,
+        destination_wallet_id: Option<String>,
+        contact_id: Option<String>,
     ) -> Result<entities::transactions::Model, DbErr> {
         services::transactions::update_transaction(
             db,
@@ -332,6 +338,9 @@ impl SmartMerge {
             category_id,
             status,
             notes,
+            source_wallet_id,
+            destination_wallet_id,
+            contact_id,
         )
         .await
     }
@@ -418,6 +427,14 @@ impl SmartMerge {
         balance: Option<Decimal>,
     ) -> Result<entities::wallets::Model, DbErr> {
         services::wallets::update_wallet(db, user_id, wallet_id, name, balance).await
+    }
+
+    pub async fn delete_wallet(
+        db: &DatabaseConnection,
+        user_id: &str,
+        wallet_id: &str,
+    ) -> Result<u64, DbErr> {
+        services::wallets::delete_wallet(db, user_id, wallet_id).await
     }
 
     pub async fn create_ledger_tab(

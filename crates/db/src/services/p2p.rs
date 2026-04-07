@@ -177,51 +177,67 @@ pub async fn register_repayment(
     user_id: &str,
     tab_id: &str,
     amount: Decimal,
-    source_wallet_id: Option<String>,
+    wallet_id: Option<String>,
 ) -> Result<entities::transactions::Model, DbErr> {
-    let tab = entities::ledger_tabs::Entity::find_by_id(tab_id.to_string())
-        .one(db)
-        .await?
-        .ok_or_else(|| DbErr::Custom("Ledger tab not found".to_string()))?;
+    let user_id = user_id.to_string();
+    let tab_id = tab_id.to_string();
+    db.transaction::<_, entities::transactions::Model, DbErr>(|txn_db| {
+        Box::pin(async move {
+            let tab = entities::ledger_tabs::Entity::find_by_id(tab_id)
+                .one(txn_db)
+                .await?
+                .ok_or_else(|| DbErr::Custom("Ledger tab not found".to_string()))?;
 
-    let txn = entities::transactions::ActiveModel {
-        id: Set(uuid::Uuid::now_v7().to_string()),
-        user_id: Set(user_id.to_string()),
-        amount: Set(amount),
-        direction: Set(TransactionDirection::In),
-        date: Set(Utc::now().into()),
-        source: Set(TransactionSource::Manual),
-        status: Set(TransactionStatus::Completed),
-        category_id: Set(None),
-        purpose_tag: Set(Some(format!("Repayment for: {}", tab.title))),
-        group_id: Set(None),
-        source_wallet_id: Set(source_wallet_id),
-        destination_wallet_id: Set(None),
-        ledger_tab_id: Set(Some(tab.id.clone())),
-        deleted_at: Set(None),
-        notes: Set(None),
-    };
+            let txn = entities::transactions::ActiveModel {
+                id: Set(uuid::Uuid::now_v7().to_string()),
+                user_id: Set(user_id.to_string()),
+                amount: Set(amount),
+                direction: Set(TransactionDirection::In),
+                date: Set(Utc::now().into()),
+                source: Set(TransactionSource::Manual),
+                status: Set(TransactionStatus::Completed),
+                category_id: Set(None),
+                purpose_tag: Set(Some(format!("Repayment for: {}", tab.title))),
+                group_id: Set(None),
+                source_wallet_id: Set(None),
+                destination_wallet_id: Set(wallet_id.clone()),
+                ledger_tab_id: Set(Some(tab.id.clone())),
+                deleted_at: Set(None),
+                notes: Set(None),
+            };
 
-    let result = txn.insert(db).await?;
+            let result = txn.insert(txn_db).await?;
 
-    let total_paid: Decimal = entities::transactions::Entity::find()
-        .filter(entities::transactions::Column::LedgerTabId.eq(tab.id.clone()))
-        .filter(entities::transactions::Column::DeletedAt.is_null())
-        .all(db)
-        .await?
-        .iter()
-        .map(|t| t.amount)
-        .sum();
+            // Adjust wallet balance (Repayment is INFLOW)
+            if let Some(w_id) = wallet_id {
+                crate::services::wallets::adjust_balance(txn_db, &w_id, amount).await?;
+            }
 
-    if total_paid >= tab.target_amount {
-        let mut tab: entities::ledger_tabs::ActiveModel = tab.into();
-        tab.status = Set(LedgerTabStatus::Settled.to_string());
-        tab.update(db).await?;
-    } else if total_paid > Decimal::ZERO {
-        let mut tab: entities::ledger_tabs::ActiveModel = tab.into();
-        tab.status = Set(LedgerTabStatus::PartiallyPaid.to_string());
-        tab.update(db).await?;
-    }
+            let total_paid: Decimal = entities::transactions::Entity::find()
+                .filter(entities::transactions::Column::LedgerTabId.eq(tab.id.clone()))
+                .filter(entities::transactions::Column::DeletedAt.is_null())
+                .all(txn_db)
+                .await?
+                .iter()
+                .map(|t| t.amount)
+                .sum();
 
-    Ok(result)
+            if total_paid >= tab.target_amount {
+                let mut tab: entities::ledger_tabs::ActiveModel = tab.into();
+                tab.status = Set(LedgerTabStatus::Settled.to_string());
+                tab.update(txn_db).await?;
+            } else if total_paid > Decimal::ZERO {
+                let mut tab: entities::ledger_tabs::ActiveModel = tab.into();
+                tab.status = Set(LedgerTabStatus::PartiallyPaid.to_string());
+                tab.update(txn_db).await?;
+            }
+
+            Ok(result)
+        })
+    })
+    .await
+    .map_err(|e| match e {
+        TransactionError::Connection(ce) => ce,
+        TransactionError::Transaction(te) => te,
+    })
 }
