@@ -79,7 +79,7 @@ export function NavUser() {
               <DropdownMenuItem
                 onClick={() => {
                   React.startTransition(() => {
-                    /* @ts-expect-error -- react experimental */
+
                     if (typeof React.addTransitionType === "function") React.addTransitionType("nav-forward");
                     router.push("/settings/profile");
                   });
@@ -92,7 +92,7 @@ export function NavUser() {
               <DropdownMenuItem
                 onClick={() => {
                   React.startTransition(() => {
-                    /* @ts-expect-error -- react experimental */
+
                     if (typeof React.addTransitionType === "function") React.addTransitionType("nav-forward");
                     router.push("/settings/account");
                   });
@@ -105,7 +105,7 @@ export function NavUser() {
               <DropdownMenuItem
                 onClick={() => {
                   React.startTransition(() => {
-                    /* @ts-expect-error -- react experimental */
+
                     if (typeof React.addTransitionType === "function") React.addTransitionType("nav-forward");
                     router.push("/settings/notifications");
                   });
