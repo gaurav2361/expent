@@ -10,7 +10,7 @@ use std::env;
 use std::sync::Arc;
 
 pub mod adapter;
-use crate::adapter::SqliteAdapter;
+use crate::adapter::PostgresAdapter;
 
 pub struct AuthSession {
     pub user: better_auth::types_mod::User,
@@ -19,7 +19,7 @@ pub struct AuthSession {
 impl<S> FromRequestParts<S> for AuthSession
 where
     S: Send + Sync,
-    Arc<BetterAuth<SqliteAdapter>>: FromRef<S>,
+    Arc<BetterAuth<PostgresAdapter>>: FromRef<S>,
 {
     type Rejection = (StatusCode, String);
 
@@ -92,7 +92,7 @@ where
 
 pub async fn init_auth(
     db: DatabaseConnection,
-) -> Result<Arc<BetterAuth<SqliteAdapter>>, Box<dyn std::error::Error>> {
+) -> Result<Arc<BetterAuth<PostgresAdapter>>, Box<dyn std::error::Error>> {
     let auth_secret = env::var("BETTER_AUTH_SECRET")
         .or_else(|_| env::var("BETTERAUTH_SECRET"))
         .expect("BETTER_AUTH_SECRET must be set");
@@ -120,7 +120,7 @@ pub async fn init_auth(
     trusted_origins.sort();
     trusted_origins.dedup();
 
-    let adapter = SqliteAdapter::new(db);
+    let adapter = PostgresAdapter::new(db);
 
     let enable_signup = env::var("ENABLE_SIGNUP")
         .map(|v| v != "false")
@@ -146,5 +146,4 @@ pub async fn init_auth(
     .await?;
 
     Ok(Arc::new(auth_instance))
-}
 }

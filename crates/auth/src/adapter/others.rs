@@ -1,4 +1,5 @@
-use crate::adapter::SqliteAdapter;
+
+use super::PostgresAdapter;
 use async_trait::async_trait;
 use better_auth::types_mod::{
     ApiKey, ApiKeyOps, AuthError, AuthResult, CreateApiKey, CreateInvitation, CreateMember,
@@ -101,7 +102,7 @@ impl OrganizationOps for PostgresAdapter {
 }
 
 #[async_trait]
-impl MemberOps for SqliteAdapter {
+impl MemberOps for PostgresAdapter {
     type Member = DummyMember;
     async fn create_member(&self, _member: CreateMember) -> AuthResult<Self::Member> {
         Err(AuthError::NotImplemented("MemberOps".to_string()))
@@ -130,7 +131,7 @@ impl MemberOps for SqliteAdapter {
 }
 
 #[async_trait]
-impl InvitationOps for SqliteAdapter {
+impl InvitationOps for PostgresAdapter {
     type Invitation = better_auth::types_mod::Invitation;
     async fn create_invitation(
         &self,
@@ -167,7 +168,7 @@ impl InvitationOps for SqliteAdapter {
 }
 
 #[async_trait]
-impl TwoFactorOps for SqliteAdapter {
+impl TwoFactorOps for PostgresAdapter {
     type TwoFactor = better_auth::types_mod::TwoFactor;
     async fn create_two_factor(&self, _two_factor: CreateTwoFactor) -> AuthResult<Self::TwoFactor> {
         Err(AuthError::NotImplemented("TwoFactorOps".to_string()))
@@ -191,7 +192,7 @@ impl TwoFactorOps for SqliteAdapter {
 }
 
 #[async_trait]
-impl ApiKeyOps for SqliteAdapter {
+impl ApiKeyOps for PostgresAdapter {
     type ApiKey = ApiKey;
     async fn create_api_key(&self, _input: CreateApiKey) -> AuthResult<Self::ApiKey> {
         Err(AuthError::NotImplemented("ApiKeyOps".to_string()))
@@ -217,7 +218,7 @@ impl ApiKeyOps for SqliteAdapter {
 }
 
 #[async_trait]
-impl PasskeyOps for SqliteAdapter {
+impl PasskeyOps for PostgresAdapter {
     type Passkey = Passkey;
     async fn create_passkey(&self, _input: CreatePasskey) -> AuthResult<Self::Passkey> {
         Err(AuthError::NotImplemented("PasskeyOps".to_string()))

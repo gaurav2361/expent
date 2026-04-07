@@ -1,4 +1,4 @@
-use crate::adapter::PostgresAdapter;
+use super::PostgresAdapter;
 use async_trait::async_trait;
 use better_auth::types_mod::{
     AuthError, AuthResult, CreateUser, ListUsersParams, UpdateUser, User, UserOps,
@@ -10,7 +10,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrde
 use std::str::FromStr;
 
 #[async_trait]
-impl UserOps for SqliteAdapter {
+impl UserOps for PostgresAdapter {
     type User = User;
 
     async fn create_user(&self, data: CreateUser) -> AuthResult<Self::User> {

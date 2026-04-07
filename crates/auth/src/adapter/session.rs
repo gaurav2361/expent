@@ -1,4 +1,5 @@
-use crate::adapter::SqliteAdapter;
+
+use super::PostgresAdapter;
 use async_trait::async_trait;
 use better_auth::types_mod::{AuthError, AuthResult, CreateSession, Session, SessionOps};
 use chrono::{DateTime, Utc};

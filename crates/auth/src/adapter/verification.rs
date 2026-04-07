@@ -1,4 +1,4 @@
-use crate::adapter::PostgresAdapter;
+use super::PostgresAdapter;
 use async_trait::async_trait;
 use better_auth::types_mod::{
     AuthError, AuthResult, CreateVerification, Verification, VerificationOps,
@@ -8,7 +8,7 @@ use db::entities::verifications;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 #[async_trait]
-impl VerificationOps for SqliteAdapter {
+impl VerificationOps for PostgresAdapter {
     type Verification = Verification;
 
     async fn create_verification(
