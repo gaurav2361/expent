@@ -73,6 +73,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
       onOpenChange(false);
       setAmount("");
       setDescription("");

@@ -21,7 +21,7 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Transaction> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<TransactionWithDetail> }) =>
       apiClient<Transaction>(`/api/transactions/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -30,10 +30,15 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
           purpose_tag: data.purpose_tag,
           status: data.status,
           notes: data.notes,
+          category_id: data.category_id,
+          source_wallet_id: data.source_wallet_id,
+          destination_wallet_id: data.destination_wallet_id,
+          contact_id: data.contact_id,
         }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
       toast.success("Transaction updated");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -46,6 +51,7 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
       toast.success("Transaction deleted");
     },
     onError: (error: Error) => toast.error(error.message),

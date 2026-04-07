@@ -241,15 +241,6 @@ export default function TransactionsPage() {
         },
       },
       {
-        accessorKey: "purpose_tag",
-        header: "Tag / Note",
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground truncate max-w-[150px] inline-block">
-            {row.original.purpose_tag || "—"}
-          </span>
-        ),
-      },
-      {
         accessorKey: "wallet",
         header: "Wallet",
         cell: ({ row }) => (

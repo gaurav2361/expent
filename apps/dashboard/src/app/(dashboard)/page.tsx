@@ -254,6 +254,7 @@ export default function DashboardPage() {
       });
       setProcessedOcr(null);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
       toast.success("Transaction saved successfully!");
       if (result.contact_created) {
         toast.success("New contact auto-created from receipt!");

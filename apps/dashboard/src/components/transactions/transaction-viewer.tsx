@@ -19,9 +19,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@expent/ui/components/separator";
 import { useIsMobile } from "@expent/ui/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
-import { WalletIcon } from "lucide-react";
+import { UserIcon, WalletIcon } from "lucide-react";
 import * as React from "react";
 import { apiClient } from "@/lib/api-client";
+import { useContacts } from "@/hooks/use-contacts";
+import { useWallets } from "@/hooks/use-wallets";
 
 interface TransactionViewerProps {
   item: TransactionWithDetail;
@@ -32,23 +34,31 @@ interface TransactionViewerProps {
 
 export function TransactionViewer({ item, onUpdate, open, onOpenChange }: TransactionViewerProps) {
   const isMobile = useIsMobile();
-  const [source, setSource] = React.useState<string>(item.source);
-  const [category, setCategory] = React.useState(item.purpose_tag || "Uncategorized");
+  const [source, setSource] = React.useState<string>(item.purpose_tag || item.source || "");
+  const [categoryId, setCategoryId] = React.useState<string>(item.category_id || "none");
   const [status, setStatus] = React.useState<string>(item.status || "COMPLETED");
   const [amount, setAmount] = React.useState(item.amount);
   const [note, setNote] = React.useState(item.notes || "");
+  const [date, setDate] = React.useState(new Date(item.date).toISOString().split("T")[0]);
+  const [walletId, setWalletId] = React.useState<string>(item.source_wallet_id || item.destination_wallet_id || "none");
+  const [contactId, setContactId] = React.useState<string>(item.contact_id || "none");
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
     queryFn: () => apiClient<any[]>("/api/categories"),
   });
 
-  const title = source || "Unknown Source";
+  const { wallets } = useWallets();
+  const { contacts } = useContacts();
+
+  const title = source || "Transaction";
   const formattedDate = new Date(item.date).toLocaleDateString("en-IN", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+
+  const selectedCategoryName = categories?.find((c) => c.id === categoryId)?.name || "Uncategorized";
 
   return (
     <Drawer direction={isMobile ? "bottom" : "right"} open={open} onOpenChange={onOpenChange}>
@@ -82,17 +92,31 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
             </Badge>
           </div>
 
-          {(item.source_wallet_name || item.destination_wallet_name) && (
-            <div className="flex flex-col gap-1 px-1">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                Account / Wallet
-              </span>
-              <div className="flex items-center gap-2 text-sm">
-                <WalletIcon className="h-4 w-4 text-primary" />
-                <span>{item.source_wallet_name || item.destination_wallet_name}</span>
+          <div className="grid grid-cols-2 gap-4">
+            {(item.source_wallet_name || item.destination_wallet_name) && (
+              <div className="flex flex-col gap-1 px-1">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Account / Wallet
+                </span>
+                <div className="flex items-center gap-2 text-sm">
+                  <WalletIcon className="h-4 w-4 text-primary" />
+                  <span>{item.source_wallet_name || item.destination_wallet_name}</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {item.contact_name && (
+              <div className="flex flex-col gap-1 px-1">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Person / Contact
+                </span>
+                <div className="flex items-center gap-2 text-sm">
+                  <UserIcon className="h-4 w-4 text-primary" />
+                  <span>{item.contact_name}</span>
+                </div>
+              </div>
+            )}
+          </div>
 
           <Separator className="my-2" />
 
@@ -101,46 +125,89 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
             onSubmit={(e) => {
               e.preventDefault();
               onUpdate(item.id, {
-                source: source as any,
-                purpose_tag: category === "Uncategorized" ? note : category,
+                purpose_tag: source,
+                category_id: categoryId === "none" ? undefined : categoryId,
                 status: status as any,
                 amount,
                 notes: note,
-              });
+                date: new Date(date).toISOString() as any,
+                source_wallet_id: item.direction === "OUT" ? (walletId === "none" ? "" : walletId) : undefined,
+                destination_wallet_id: item.direction === "IN" ? (walletId === "none" ? "" : walletId) : undefined,
+                contact_id: contactId === "none" ? "" : contactId,
+              } as any);
             }}
           >
             <div className="flex flex-col gap-3">
-              <Label htmlFor="source">Source / Description</Label>
+              <Label htmlFor="source">Description / Merchant</Label>
               <Input id="source" value={source} onChange={(e) => setSource(e.target.value)} />
             </div>
 
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="amount">Amount</Label>
-              <Input id="amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-3">
+                <Label htmlFor="amount">Amount</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-3">
+                <Label htmlFor="date">Date</Label>
+                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-3">
+                <Label htmlFor="wallet">Wallet</Label>
+                <Select value={walletId} onValueChange={(val) => setWalletId(val || "none")}>
+                  <SelectTrigger id="wallet" className="w-full">
+                    <SelectValue placeholder="Select wallet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Wallet</SelectItem>
+                    {wallets?.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Label htmlFor="contact">Person</Label>
+                <Select value={contactId} onValueChange={(val) => setContactId(val || "none")}>
+                  <SelectTrigger id="contact" className="w-full">
+                    <SelectValue placeholder="Select contact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Contact</SelectItem>
+                    {contacts?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-3">
                 <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={(val) => setCategory(val || "Uncategorized")}>
+                <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "none")}>
                   <SelectTrigger id="category" className="w-full">
-                    <SelectValue placeholder="Select a category" />
+                    <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Uncategorized">Uncategorized</SelectItem>
+                    <SelectItem value="none">Uncategorized</SelectItem>
                     {categories?.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.name}>
+                      <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
                       </SelectItem>
                     ))}
-                    {!categories && (
-                      <>
-                        <SelectItem value="Food">Food & Drinks</SelectItem>
-                        <SelectItem value="Travel">Travel</SelectItem>
-                        <SelectItem value="Shopping">Shopping</SelectItem>
-                        <SelectItem value="Salary">Salary</SelectItem>
-                      </>
-                    )}
                   </SelectContent>
                 </Select>
               </div>

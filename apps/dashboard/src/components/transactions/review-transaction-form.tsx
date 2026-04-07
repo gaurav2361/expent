@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckIcon, ReceiptIcon, TagIcon, Trash2Icon, UserIcon, WalletIcon } from "lucide-react";
 import * as React from "react";
 import { useCategories } from "@/hooks/use-categories";
+import { useContacts } from "@/hooks/use-contacts";
+import { useWallets } from "@/hooks/use-wallets";
 
 interface ReviewTransactionFormProps {
   processedOcr: TypedProcessedOcr;
@@ -25,8 +27,12 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
   const [counterparty, setCounterparty] = React.useState("");
   const [upiId, setUpiId] = React.useState("");
   const [categoryId, setCategoryId] = React.useState<string>("none");
+  const [walletId, setWalletId] = React.useState<string>("none");
+  const [contactId, setContactId] = React.useState<string>("none");
 
   const { categories } = useCategories();
+  const { wallets } = useWallets();
+  const { contacts } = useContacts();
 
   React.useEffect(() => {
     if (processedOcr.doc_type === "GPAY") {
@@ -98,6 +104,14 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
 
     if (categoryId !== "none") {
       updatedData.category_id = categoryId;
+    }
+
+    if (walletId !== "none") {
+      updatedData.wallet_id = walletId;
+    }
+
+    if (contactId !== "none") {
+      updatedData.contact_id = contactId;
     }
 
     onConfirm({
@@ -200,18 +214,34 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
               </Select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="wallet">Account / Wallet</Label>
+              <div className="relative">
+                <WalletIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Select value={walletId} onValueChange={(val) => setWalletId(val || "none")}>
+                  <SelectTrigger className="pl-9 text-left w-full">
+                    <SelectValue placeholder="Select wallet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Wallet</SelectItem>
+                    {wallets?.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <div className="relative">
                 <TagIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "none")}>
-                  <SelectTrigger className="pl-9">
-                    {categoryId === "none" ? (
-                      <span className="text-muted-foreground">Select category</span>
-                    ) : (
-                      <span className="truncate">
-                        {categories?.find((c) => c.id === categoryId)?.name || "Unknown Category"}
-                      </span>
-                    )}
+                  <SelectTrigger className="pl-9 text-left w-full">
+                    <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Uncategorized</SelectItem>
@@ -224,17 +254,38 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
                 </Select>
               </div>
             </div>
-            <div className="space-y-2 lg:col-span-2">
-              <Label htmlFor="description">Personal Note</Label>
-              <Input
-                id="description"
-                name="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional tag or note"
-                autoComplete="off"
-              />
+
+            <div className="space-y-2">
+              <Label htmlFor="contact">Link to Person</Label>
+              <div className="relative">
+                <UserIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Select value={contactId} onValueChange={(val) => setContactId(val || "none")}>
+                  <SelectTrigger className="pl-9 text-left w-full">
+                    <SelectValue placeholder="Select contact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Contact</SelectItem>
+                    {contacts?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Personal Note</Label>
+            <Input
+              id="description"
+              name="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional tag or note"
+              autoComplete="off"
+            />
           </div>
         </CardContent>
         <CardFooter className="bg-muted/30 border-t p-4 flex justify-between gap-3">
