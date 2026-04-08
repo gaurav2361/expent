@@ -71,14 +71,14 @@ Endpoints managing the lifecycle of robust financial entries.
 - **UI Context**: Triggered via a trash icon or destructive buttons in the Transaction Details view.
 
 ### `POST /api/transactions/split`
-- **Purpose**: Split an otherwise isolated transaction into multiple debts.
+- **Purpose**: Split an otherwise isolated transaction into multiple debts, creating individual P2P requests for each split.
 - **Request Body**:
   | Field | Type | Required | Description |
   |-------|------|----------|-------------|
-  | `transaction_id` | `String` | Yes | ID of the source transaction |
-  | `splits` | `Vec<SplitDetail>` | Yes | Array defining fractional allocation for target users |
-- **Response**: Returns `200 OK` with an array of generated `P2PRequest` models.
-- **UI Context**: Used in the "Split Transaction" widget.
+  | `transaction_id` | `String` | Yes | ID of the source transaction that is being split. |
+  | `splits` | `Vec<SplitDetail>` | Yes | Array defining the fractional allocation for target users, where each `SplitDetail` specifies a recipient and the amount they owe. This structure directly informs the creation of `P2PRequest` models. |
+- **Response**: Returns `200 OK` with an array of generated `P2PRequest` models, each representing a portion of the split transaction.
+- **UI Context**: Used in the "Split Transaction" widget to break down a single expense among multiple participants.
 
 ---
 

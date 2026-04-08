@@ -54,7 +54,7 @@ Before allowing *any* bytes into storage or down the OCR pipeline dynamically, t
 ### Available Mappings (`FileCategory`)
 | Enum State | Handled Types | Post-Processing |
 |------------|--------------|-----------------|
-| `Image` | `.png`, `.jpeg`, `.webp`, `.heic` | Will convert *all* formats down reliably to lossless `PNG` if `normalize_images` is flagged true. |
+| `Image` | `.png`, `.jpeg`, `.webp`, `.heic` | Will convert *all* formats down reliably to lossless `PNG` if image normalization is enabled (e.g., via a configuration flag passed to the `UploadProcessor` or an environment variable). This ensures a consistent input format for downstream services like the OCR pipeline. |
 | `Pdf` | `application/pdf`, `%PDF` magic string | Ingested purely. Mapped towards PDF scraping flows. |
 | `Csv` | Text, `application/csv` | Ingested natively. Validates UTF-8 boundaries implicitly. |
 | `Unknown` | All other structures. | Explicitly flagged `Unknown` mitigating code injections. |

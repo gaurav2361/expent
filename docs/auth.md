@@ -23,11 +23,11 @@ The `adapter/` directory enforces strict CRUD operations passing seamlessly from
 - **`session.rs`**: Issues timed, IP-bound active session tokens into `db::entities::sessions`.
 - **`account.rs`**: Manages OAuth bindings natively into `db::entities::accounts`. 
 - **`verification.rs`**: Stores short-lived OTP/verification links tightly against `db::entities::verifications`.
-- **`others.rs`**: Implements required `better_auth` trait stubs for features not yet activated. All return `AuthError::NotImplemented` or empty results:
-  - `OrganizationOps` / `MemberOps` / `InvitationOps` — Multi-tenant org scaffolding.
-  - `TwoFactorOps` — TOTP/Backup code placeholders.
+- **`others.rs`**: Implements required `better_auth` trait stubs for features with partial or future activation. Features not yet fully implemented return `AuthError::NotImplemented` or empty results:
+  - `OrganizationOps` / `MemberOps` / `InvitationOps` — Placeholders for multi-tenant organization management. While the `users.role` field exists (referencing `GroupRole` enum for `ADMIN`/`MEMBER` status), this is currently leveraged for internal platform roles and group permissions, not a full multi-tenant organization scaffolding.
+  - `TwoFactorOps` — Placeholders for full TOTP/Backup code management. The `users.two_factor_enabled` field exists in the `users` table to track 2FA status (as detailed in `docs/database_schema.md`), indicating readiness for integration with external 2FA solutions or future `better_auth` plugin extensions.
   - `ApiKeyOps` — Programmatic API key management stubs.
-  - `PasskeyOps` — WebAuthn passkey storage stubs (client-side passkey *challenge* still works via the `@better-auth/passkey` JS plugin, but server-side persistence is not wired to DB yet).
+  - `PasskeyOps` — WebAuthn passkey server-side persistence stubs. Client-side passkey challenge flows are enabled via the `@better-auth/passkey` JS plugin in `apps/dashboard` (see `apps/dashboard/src/lib/auth-client.ts`), but server-side persistence for passkey credentials is not yet fully wired to the database. The `accounts` table is designed to support various providers, including potential future passkey integrations.
 
 ---
 

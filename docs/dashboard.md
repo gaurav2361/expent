@@ -40,7 +40,7 @@ The codebase is logically split in the `src/` directory to handle complex React 
 - **Libs Environment**: 
   - `query-client.ts`: Bootstraps global React Query logic, stale-times, and retry mechanisms.
   - `auth-client.ts`: Creates the `better-auth/react` client with `passkeyClient()` and `usernameClient()` plugins. Exports `signIn`, `signUp`, `useSession`, `signOut` hooks. Includes built-in `429` rate-limit interception logging `X-Retry-After` headers.
-  - `data-table-schema.ts`, `data-table-types.ts`, `data-table-utilities.ts`: Strictly isolate type-safe table column definitions, formatting utilities, and schema bindings outside of the main TSX views.
+  - `data-table-schema.ts`, `data-table-types.ts`, `data-table-utilities.ts`: Strictly isolate type-safe table column definitions, formatting utilities, and schema bindings. These types often leverage or are derived from the shared `@expent/types` package to maintain end-to-end type safety with the backend API.
 
 ---
 

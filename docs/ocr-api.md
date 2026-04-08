@@ -81,11 +81,12 @@ Maps to the `GPayExtraction` Pydantic class.
 | `google_transaction_id` | `String (Optional)` | GPay specific strings |
 
 #### Scenario B: `doc_type: "GENERIC"` (Standard Invoices / Receipts)
-Maps to the `OCRResponse` Pydantic class.
+Maps to the `OCRResponse` Pydantic class. This response is often used to populate the `purchase_imports` and subsequently `purchases` and `purchase_items` tables (see `docs/database_schema.md`).
 
 | Extracted Field | Output Type | Description |
 |-------|------|-------------|
 | `raw_text` | `String` | Fallback aggregate blob from EasyOCR + Gemini |
+| `vendor` | `String (Optional)` | Detected or user-specified vendor, often inferred from receipt headers/footers or explicit document classification. Used for `purchase_imports` (see `docs/database_schema.md`). |
 | `amount` | `Float (Optional)` | Total transaction mass/sum matched over the receipt lines |
 | `date` | `String (Optional)` | Receipt header dates |
 | `upi_id` | `String (Optional)` | Extracted if heavily noted in footers |
@@ -98,7 +99,7 @@ Maps to the `OCRResponse` Pydantic class.
 |-------|------|-------------|---------|
 | `name` | `String` | Recognizable item title | `required` |
 | `quantity` | `Integer` | Fallback to `1` natively if unset | `1` |
-| `price` | `Float` | The distinct unit price | `required` |
+| `sku` | `String (Optional)` | Stock Keeping Unit / barcode | `optional` |
 
 ---
 
