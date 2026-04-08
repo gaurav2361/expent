@@ -1,18 +1,71 @@
 use crate::entities;
 use crate::entities::enums::{TransactionDirection, TransactionSource, TransactionStatus};
-use crate::{GPayExtraction, OcrResult, OcrTransactionResponse, ProcessedOcr};
+use crate::{AppError, GPayExtraction, OcrResult, OcrTransactionResponse, ProcessedOcr};
 use chrono::{DateTime, FixedOffset, Utc};
 use rust_decimal::Decimal;
 use sea_orm::*;
+
+pub async fn create_ocr_job(
+    db: &DatabaseConnection,
+    user_id: &str,
+    r2_key: &str,
+) -> Result<entities::ocr_jobs::Model, AppError> {
+    let job = entities::ocr_jobs::ActiveModel {
+        id: Set(uuid::Uuid::now_v7().to_string()),
+        user_id: Set(user_id.to_string()),
+        status: Set("PENDING".to_string()),
+        r2_key: Set(r2_key.to_string()),
+        processed_data: Set(None),
+        error: Set(None),
+        created_at: Set(Utc::now().into()),
+        updated_at: Set(Utc::now().into()),
+    };
+
+    job.insert(db).await.map_err(AppError::from)
+}
+
+pub async fn get_ocr_job(
+    db: &DatabaseConnection,
+    user_id: &str,
+    job_id: &str,
+) -> Result<entities::ocr_jobs::Model, AppError> {
+    entities::ocr_jobs::Entity::find_by_id(job_id.to_string())
+        .filter(entities::ocr_jobs::Column::UserId.eq(user_id))
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::not_found("OCR Job not found"))
+}
+
+pub async fn update_ocr_job(
+    db: &DatabaseConnection,
+    job_id: &str,
+    status: &str,
+    processed_data: Option<serde_json::Value>,
+    error: Option<String>,
+) -> Result<entities::ocr_jobs::Model, AppError> {
+    let mut job: entities::ocr_jobs::ActiveModel =
+        entities::ocr_jobs::Entity::find_by_id(job_id.to_string())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::not_found("OCR Job not found"))?
+            .into();
+
+    job.status = Set(status.to_string());
+    job.processed_data = Set(processed_data);
+    job.error = Set(error);
+    job.updated_at = Set(Utc::now().into());
+
+    job.update(db).await.map_err(AppError::from)
+}
 
 /// Processes OCR data by either merging it with an existing transaction or creating a new one.
 pub async fn process_ocr(
     db: &DatabaseConnection,
     user_id: &str,
     processed: ProcessedOcr,
-) -> Result<OcrTransactionResponse, DbErr> {
+) -> Result<OcrTransactionResponse, AppError> {
     let user_id = user_id.to_string();
-    db.transaction::<_, OcrTransactionResponse, DbErr>(|txn_db| {
+    db.transaction::<_, OcrTransactionResponse, AppError>(|txn_db| {
         Box::pin(async move {
             let mut contact_id = processed
                 .data
@@ -28,7 +81,7 @@ pub async fn process_ocr(
 
             if processed.doc_type == "GPAY" {
                 let gpay: GPayExtraction = serde_json::from_value(processed.data.clone())
-                    .map_err(|e| DbErr::Custom(format!("Failed to parse GPay data: {}", e)))?;
+                    .map_err(|e| AppError::Generic(format!("Failed to parse GPay data: {}", e)))?;
 
                 // 2.6 Auto-Contact Creation Logic (only if contact_id was not explicitly provided)
                 if contact_id.is_none() {
@@ -119,12 +172,8 @@ pub async fn process_ocr(
                 let result = txn.insert(txn_db).await?;
 
                 // Adjust wallet balances
-                if let Some(sw_id) = source_wallet_id {
-                    super::wallets::adjust_balance(txn_db, &sw_id, -gpay.amount).await?;
-                }
-                if let Some(dw_id) = destination_wallet_id {
-                    super::wallets::adjust_balance(txn_db, &dw_id, gpay.amount).await?;
-                }
+                super::transactions::adjust_transaction_wallets(txn_db, None, Some(&result))
+                    .await?;
 
                 // 2.7 Store r2_file_url in transaction_sources
                 let source = entities::transaction_sources::ActiveModel {
@@ -179,8 +228,10 @@ pub async fn process_ocr(
                 })
             } else {
                 // Generic OCR path
-                let generic: OcrResult = serde_json::from_value(processed.data.clone())
-                    .map_err(|e| DbErr::Custom(format!("Failed to parse Generic data: {}", e)))?;
+                let generic: OcrResult =
+                    serde_json::from_value(processed.data.clone()).map_err(|e| {
+                        AppError::Generic(format!("Failed to parse Generic data: {}", e))
+                    })?;
 
                 let amount = generic.amount.unwrap_or(Decimal::ZERO);
 
@@ -204,10 +255,9 @@ pub async fn process_ocr(
 
                 let result = txn.insert(txn_db).await?;
 
-                // Adjust wallet balance
-                if let Some(sw_id) = wallet_id {
-                    super::wallets::adjust_balance(txn_db, &sw_id, -amount).await?;
-                }
+                // Adjust wallet balances
+                super::transactions::adjust_transaction_wallets(txn_db, None, Some(&result))
+                    .await?;
 
                 let source = entities::transaction_sources::ActiveModel {
                     id: Set(uuid::Uuid::now_v7().to_string()),
@@ -260,7 +310,7 @@ pub async fn process_ocr(
     })
     .await
     .map_err(|e| match e {
-        TransactionError::Connection(ce) => ce,
+        TransactionError::Connection(ce) => AppError::Db(ce),
         TransactionError::Transaction(te) => te,
     })
 }

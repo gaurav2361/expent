@@ -1,3 +1,4 @@
+use crate::AppError;
 use crate::entities;
 use crate::entities::enums::WalletType;
 use chrono::Utc;
@@ -7,11 +8,12 @@ use sea_orm::*;
 pub async fn list_wallets(
     db: &DatabaseConnection,
     user_id: &str,
-) -> Result<Vec<entities::wallets::Model>, DbErr> {
+) -> Result<Vec<entities::wallets::Model>, AppError> {
     entities::wallets::Entity::find()
         .filter(entities::wallets::Column::UserId.eq(user_id))
         .all(db)
         .await
+        .map_err(AppError::from)
 }
 
 pub async fn create_wallet(
@@ -20,7 +22,7 @@ pub async fn create_wallet(
     name: &str,
     wallet_type: WalletType,
     initial_balance: Decimal,
-) -> Result<entities::wallets::Model, DbErr> {
+) -> Result<entities::wallets::Model, AppError> {
     let wallet = entities::wallets::ActiveModel {
         id: Set(uuid::Uuid::now_v7().to_string()),
         user_id: Set(user_id.to_string()),
@@ -31,7 +33,7 @@ pub async fn create_wallet(
         updated_at: Set(Utc::now().into()),
     };
 
-    wallet.insert(db).await
+    wallet.insert(db).await.map_err(AppError::from)
 }
 
 pub async fn update_wallet(
@@ -40,13 +42,13 @@ pub async fn update_wallet(
     wallet_id: &str,
     name: Option<String>,
     balance: Option<Decimal>,
-) -> Result<entities::wallets::Model, DbErr> {
+) -> Result<entities::wallets::Model, AppError> {
     let mut wallet: entities::wallets::ActiveModel = entities::wallets::Entity::find()
         .filter(entities::wallets::Column::UserId.eq(user_id))
         .filter(entities::wallets::Column::Id.eq(wallet_id))
         .one(db)
         .await?
-        .ok_or(DbErr::Custom("Wallet not found".to_string()))?
+        .ok_or_else(|| AppError::not_found("Wallet not found"))?
         .into();
 
     if let Some(n) = name {
@@ -57,17 +59,17 @@ pub async fn update_wallet(
     }
     wallet.updated_at = Set(Utc::now().into());
 
-    wallet.update(db).await
+    wallet.update(db).await.map_err(AppError::from)
 }
 
-pub async fn adjust_balance<C>(db: &C, wallet_id: &str, amount: Decimal) -> Result<(), DbErr>
+pub async fn adjust_balance<C>(db: &C, wallet_id: &str, amount: Decimal) -> Result<(), AppError>
 where
     C: ConnectionTrait,
 {
     let wallet = entities::wallets::Entity::find_by_id(wallet_id.to_string())
         .one(db)
         .await?
-        .ok_or(DbErr::Custom("Wallet not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found("Wallet not found"))?;
 
     let mut wallet: entities::wallets::ActiveModel = wallet.into();
     wallet.balance = Set(wallet.balance.as_ref() + amount);
@@ -81,7 +83,7 @@ pub async fn delete_wallet(
     db: &DatabaseConnection,
     user_id: &str,
     wallet_id: &str,
-) -> Result<u64, DbErr> {
+) -> Result<u64, AppError> {
     let result = entities::wallets::Entity::delete_many()
         .filter(entities::wallets::Column::UserId.eq(user_id))
         .filter(entities::wallets::Column::Id.eq(wallet_id))

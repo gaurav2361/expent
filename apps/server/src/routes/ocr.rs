@@ -1,14 +1,16 @@
 use axum::Router;
-use axum::extract::{Json, State};
+use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
-use axum::routing::post;
-use serde::Deserialize;
+use axum::routing::{get, post};
+use serde::{Deserialize, Serialize};
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/process", post(process_image_ocr_handler))
+    Router::new()
+        .route("/process", post(process_image_ocr_handler))
+        .route("/status/{job_id}", get(get_ocr_job_status_handler))
 }
 
 #[derive(Deserialize)]
@@ -16,11 +18,16 @@ pub struct ProcessImageOcrRequest {
     pub key: String,
 }
 
+#[derive(Serialize)]
+pub struct OcrJobResponse {
+    pub job_id: String,
+}
+
 pub async fn process_image_ocr_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Json(payload): Json<ProcessImageOcrRequest>,
-) -> Result<Json<db::ProcessedOcr>, ApiError> {
+) -> Result<(StatusCode, Json<OcrJobResponse>), ApiError> {
     // Security check: Ensure the key starts with the user ID to prevent IDOR
     let user_id_prefix = format!("{}/", session.user.id);
     if !payload.key.starts_with(&user_id_prefix) {
@@ -34,44 +41,74 @@ pub async fn process_image_ocr_handler(
         ));
     }
 
-    let bytes = state
-        .upload_client
-        .get_file(&payload.key)
-        .await
-        .map_err(|e| ApiError::Internal(e.to_string()))?;
+    // 1. Create a record in ocr_jobs table (PENDING)
+    let job = db::SmartMerge::create_ocr_job(&state.db, &session.user.id, &payload.key).await?;
+    let job_id = job.id.clone();
 
-    // Determine filename and mime type from the key or payload
-    let filename = payload.key.split("/").last().unwrap_or("upload");
-    let mime_type = if filename.ends_with(".pdf") {
-        "application/pdf"
-    } else if filename.ends_with(".csv") {
-        "text/csv"
-    } else {
-        "image/png" // Default for screenshots
-    };
+    // 2. Spawn a background task
+    let state_clone = state.clone();
+    let key = payload.key.clone();
+    let job_id_clone = job_id.clone();
 
-    let ocr_json = state
-        .ocr_service
-        .process_file(&bytes, filename, mime_type)
-        .await
-        .map_err(|e| {
-            // Check if this is a reqwest error with a 429 status code
-            if let Some(re) = e.downcast_ref::<reqwest::Error>() {
-                if let Some(status) = re.status() {
-                    if status == StatusCode::TOO_MANY_REQUESTS {
-                        return ApiError::Internal(
-                            "Gemini API quota exceeded. Please try again later.".to_string(),
-                        );
-                    }
-                }
+    tokio::spawn(async move {
+        let process_res = async {
+            let bytes = state_clone.upload_client.get_file(&key).await?;
+
+            // Determine filename and mime type from the key
+            let filename = key.split("/").last().unwrap_or("upload");
+            let mime_type = if filename.ends_with(".pdf") {
+                "application/pdf"
+            } else if filename.ends_with(".csv") {
+                "text/csv"
+            } else {
+                "image/png" // Default for screenshots
+            };
+
+            let ocr_json = state_clone
+                .ocr_service
+                .process_file(&bytes, filename, mime_type)
+                .await?;
+
+            let mut processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json)?;
+            processed_ocr.r2_key = Some(key);
+
+            Ok::<db::ProcessedOcr, Box<dyn std::error::Error + Send + Sync>>(processed_ocr)
+        }
+        .await;
+
+        match process_res {
+            Ok(processed) => {
+                let _ = db::SmartMerge::update_ocr_job(
+                    &state_clone.db,
+                    &job_id_clone,
+                    "COMPLETED",
+                    Some(serde_json::to_value(processed).unwrap()),
+                    None,
+                )
+                .await;
             }
-            ApiError::Internal(e.to_string())
-        })?;
+            Err(e) => {
+                tracing::error!("❌ OCR Background Job failed: {}", e);
+                let _ = db::SmartMerge::update_ocr_job(
+                    &state_clone.db,
+                    &job_id_clone,
+                    "FAILED",
+                    None,
+                    Some(e.to_string()),
+                )
+                .await;
+            }
+        }
+    });
 
-    let mut processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json)
-        .map_err(|e| ApiError::Internal(format!("Failed to parse OCR response: {}", e)))?;
+    Ok((StatusCode::ACCEPTED, Json(OcrJobResponse { job_id })))
+}
 
-    processed_ocr.r2_key = Some(payload.key);
-
-    Ok(Json(processed_ocr))
+pub async fn get_ocr_job_status_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Path(job_id): Path<String>,
+) -> Result<Json<db::entities::ocr_jobs::Model>, ApiError> {
+    let job = db::SmartMerge::get_ocr_job(&state.db, &session.user.id, &job_id).await?;
+    Ok(Json(job))
 }

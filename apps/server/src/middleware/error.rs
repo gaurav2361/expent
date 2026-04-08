@@ -16,6 +16,8 @@ pub enum ApiError {
     BadRequest(String),
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
+    #[error("Database error: {0}")]
+    App(#[from] db::AppError),
 }
 
 impl IntoResponse for ApiError {
@@ -25,6 +27,19 @@ impl IntoResponse for ApiError {
             ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
             ApiError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
+            ApiError::App(app_err) => match app_err {
+                db::AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+                db::AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
+                db::AppError::Validation(msg) => (StatusCode::BAD_REQUEST, msg),
+                db::AppError::Ocr(msg) => (StatusCode::BAD_REQUEST, msg),
+                _ => {
+                    tracing::error!("Internal App Error: {:?}", app_err);
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "An internal error occurred".into(),
+                    )
+                }
+            },
         };
 
         let body = Json(json!({
@@ -39,12 +54,6 @@ use sea_orm::DbErr;
 
 impl From<DbErr> for ApiError {
     fn from(err: DbErr) -> Self {
-        match err {
-            DbErr::RecordNotFound(msg) => ApiError::NotFound(msg),
-            _ => {
-                tracing::error!("Database error: {:?}", err);
-                ApiError::Internal("A database error occurred. Please try again later.".into())
-            }
-        }
+        ApiError::App(db::AppError::Db(err))
     }
 }

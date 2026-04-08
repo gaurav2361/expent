@@ -13,6 +13,7 @@ export * from "./LedgerTab";
 export * from "./LedgerTabStatus";
 export * from "./LedgerTabType";
 export * from "./LineItem";
+export * from "./OcrJob";
 export * from "./OcrResult";
 export * from "./OcrTransactionResponse";
 export * from "./P2PRequest";

@@ -10,7 +10,10 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 pub mod entities;
+pub mod error;
 pub mod services;
+
+pub use error::AppError;
 
 /// Represents a single line item in a purchase, typically extracted via OCR.
 #[derive(Debug, Serialize, Deserialize, Clone, TS)]
@@ -146,8 +149,34 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         processed: ProcessedOcr,
-    ) -> Result<OcrTransactionResponse, DbErr> {
+    ) -> Result<OcrTransactionResponse, AppError> {
         services::ocr::process_ocr(db, user_id, processed).await
+    }
+
+    pub async fn create_ocr_job(
+        db: &DatabaseConnection,
+        user_id: &str,
+        r2_key: &str,
+    ) -> Result<entities::ocr_jobs::Model, AppError> {
+        services::ocr::create_ocr_job(db, user_id, r2_key).await
+    }
+
+    pub async fn get_ocr_job(
+        db: &DatabaseConnection,
+        user_id: &str,
+        job_id: &str,
+    ) -> Result<entities::ocr_jobs::Model, AppError> {
+        services::ocr::get_ocr_job(db, user_id, job_id).await
+    }
+
+    pub async fn update_ocr_job(
+        db: &DatabaseConnection,
+        job_id: &str,
+        status: &str,
+        processed_data: Option<serde_json::Value>,
+        error: Option<String>,
+    ) -> Result<entities::ocr_jobs::Model, AppError> {
+        services::ocr::update_ocr_job(db, job_id, status, processed_data, error).await
     }
 
     /// Creates a peer-to-peer (P2P) request for a given transaction.
@@ -156,7 +185,7 @@ impl SmartMerge {
         sender_id: &str,
         receiver_email: &str,
         txn_id: &str,
-    ) -> Result<entities::p2p_requests::Model, DbErr> {
+    ) -> Result<entities::p2p_requests::Model, AppError> {
         services::p2p::create_p2p_request(db, sender_id, receiver_email, txn_id).await
     }
 
@@ -166,7 +195,7 @@ impl SmartMerge {
         sender_id: &str,
         txn_id: &str,
         splits: Vec<SplitDetail>,
-    ) -> Result<Vec<entities::p2p_requests::Model>, DbErr> {
+    ) -> Result<Vec<entities::p2p_requests::Model>, AppError> {
         services::transactions::split_transaction(db, sender_id, txn_id, splits).await
     }
 
@@ -175,7 +204,7 @@ impl SmartMerge {
         db: &DatabaseConnection,
         receiver_id: &str,
         request_id: &str,
-    ) -> Result<entities::p2p_requests::Model, DbErr> {
+    ) -> Result<entities::p2p_requests::Model, AppError> {
         services::p2p::accept_p2p_request(db, receiver_id, request_id).await
     }
 
@@ -183,7 +212,7 @@ impl SmartMerge {
     pub async fn detect_subscriptions(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::subscriptions::Model>, DbErr> {
+    ) -> Result<Vec<entities::subscriptions::Model>, AppError> {
         services::subscriptions::detect_subscriptions(db, user_id).await
     }
 
@@ -192,14 +221,14 @@ impl SmartMerge {
         user_id: &str,
         limit: Option<u64>,
         offset: Option<u64>,
-    ) -> Result<Vec<TransactionWithDetail>, DbErr> {
+    ) -> Result<Vec<TransactionWithDetail>, AppError> {
         services::transactions::list_transactions(db, user_id, limit, offset).await
     }
 
     pub async fn list_contacts(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::contacts::Model>, DbErr> {
+    ) -> Result<Vec<entities::contacts::Model>, AppError> {
         services::contacts::list_contacts(db, user_id).await
     }
 
@@ -208,7 +237,7 @@ impl SmartMerge {
         user_id: &str,
         name: String,
         phone: Option<String>,
-    ) -> Result<entities::contacts::Model, DbErr> {
+    ) -> Result<entities::contacts::Model, AppError> {
         services::contacts::create_contact(db, user_id, name, phone).await
     }
 
@@ -219,7 +248,7 @@ impl SmartMerge {
         name: Option<String>,
         phone: Option<String>,
         is_pinned: Option<bool>,
-    ) -> Result<entities::contacts::Model, DbErr> {
+    ) -> Result<entities::contacts::Model, AppError> {
         services::contacts::update_contact(db, user_id, contact_id, name, phone, is_pinned).await
     }
 
@@ -227,7 +256,7 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         contact_id: &str,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), AppError> {
         services::contacts::delete_contact(db, user_id, contact_id).await
     }
 
@@ -241,7 +270,7 @@ impl SmartMerge {
             Vec<entities::contact_identifiers::Model>,
             Vec<entities::transactions::Model>,
         ),
-        DbErr,
+        AppError,
     > {
         services::contacts::get_contact_detail(db, user_id, contact_id).await
     }
@@ -252,14 +281,14 @@ impl SmartMerge {
         contact_id: &str,
         r#type: String,
         value: String,
-    ) -> Result<entities::contact_identifiers::Model, DbErr> {
+    ) -> Result<entities::contact_identifiers::Model, AppError> {
         services::contacts::add_contact_identifier(db, user_id, contact_id, r#type, value).await
     }
 
     pub async fn list_pending_p2p_requests(
         db: &DatabaseConnection,
         email: &str,
-    ) -> Result<Vec<P2PRequestWithSender>, DbErr> {
+    ) -> Result<Vec<P2PRequestWithSender>, AppError> {
         services::p2p::list_pending_p2p_requests(db, email).await
     }
 
@@ -268,7 +297,7 @@ impl SmartMerge {
         user_id: &str,
         name: &str,
         description: Option<String>,
-    ) -> Result<entities::groups::Model, DbErr> {
+    ) -> Result<entities::groups::Model, AppError> {
         services::groups::create_group(db, user_id, name, description).await
     }
 
@@ -277,21 +306,21 @@ impl SmartMerge {
         sender_id: &str,
         receiver_email: &str,
         group_id: &str,
-    ) -> Result<entities::p2p_requests::Model, DbErr> {
+    ) -> Result<entities::p2p_requests::Model, AppError> {
         services::groups::invite_to_group(db, sender_id, receiver_email, group_id).await
     }
 
     pub async fn list_groups(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::groups::Model>, DbErr> {
+    ) -> Result<Vec<entities::groups::Model>, AppError> {
         services::groups::list_groups(db, user_id).await
     }
 
     pub async fn list_group_transactions(
         db: &DatabaseConnection,
         group_id: &str,
-    ) -> Result<Vec<entities::transactions::Model>, DbErr> {
+    ) -> Result<Vec<entities::transactions::Model>, AppError> {
         services::groups::list_group_transactions(db, group_id).await
     }
 
@@ -300,7 +329,7 @@ impl SmartMerge {
         admin_id: &str,
         group_id: &str,
         target_user_id: &str,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), AppError> {
         services::groups::remove_group_member(db, admin_id, group_id, target_user_id).await
     }
 
@@ -310,7 +339,7 @@ impl SmartMerge {
         group_id: &str,
         target_user_id: &str,
         new_role: GroupRole,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), AppError> {
         services::groups::update_member_role(db, admin_id, group_id, target_user_id, new_role).await
     }
 
@@ -327,7 +356,7 @@ impl SmartMerge {
         source_wallet_id: Option<String>,
         destination_wallet_id: Option<String>,
         contact_id: Option<String>,
-    ) -> Result<entities::transactions::Model, DbErr> {
+    ) -> Result<entities::transactions::Model, AppError> {
         services::transactions::update_transaction(
             db,
             user_id,
@@ -349,7 +378,7 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         txn_id: &str,
-    ) -> Result<u64, DbErr> {
+    ) -> Result<u64, AppError> {
         services::transactions::delete_transaction(db, user_id, txn_id).await
     }
 
@@ -357,7 +386,7 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         txn_id: &str,
-    ) -> Result<entities::transactions::Model, DbErr> {
+    ) -> Result<entities::transactions::Model, AppError> {
         services::transactions::revert_transaction(db, user_id, txn_id).await
     }
 
@@ -367,7 +396,7 @@ impl SmartMerge {
         tab_id: &str,
         amount: Decimal,
         source_wallet_id: Option<String>,
-    ) -> Result<entities::transactions::Model, DbErr> {
+    ) -> Result<entities::transactions::Model, AppError> {
         services::p2p::register_repayment(db, user_id, tab_id, amount, source_wallet_id).await
     }
 
@@ -384,7 +413,7 @@ impl SmartMerge {
         destination_wallet_id: Option<String>,
         contact_id: Option<String>,
         notes: Option<String>,
-    ) -> Result<entities::transactions::Model, DbErr> {
+    ) -> Result<entities::transactions::Model, AppError> {
         services::transactions::create_transaction(
             db,
             user_id,
@@ -405,7 +434,7 @@ impl SmartMerge {
     pub async fn list_wallets(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::wallets::Model>, DbErr> {
+    ) -> Result<Vec<entities::wallets::Model>, AppError> {
         services::wallets::list_wallets(db, user_id).await
     }
 
@@ -415,7 +444,7 @@ impl SmartMerge {
         name: &str,
         wallet_type: WalletType,
         initial_balance: Decimal,
-    ) -> Result<entities::wallets::Model, DbErr> {
+    ) -> Result<entities::wallets::Model, AppError> {
         services::wallets::create_wallet(db, user_id, name, wallet_type, initial_balance).await
     }
 
@@ -425,7 +454,7 @@ impl SmartMerge {
         wallet_id: &str,
         name: Option<String>,
         balance: Option<Decimal>,
-    ) -> Result<entities::wallets::Model, DbErr> {
+    ) -> Result<entities::wallets::Model, AppError> {
         services::wallets::update_wallet(db, user_id, wallet_id, name, balance).await
     }
 
@@ -433,7 +462,7 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         wallet_id: &str,
-    ) -> Result<u64, DbErr> {
+    ) -> Result<u64, AppError> {
         services::wallets::delete_wallet(db, user_id, wallet_id).await
     }
 
@@ -445,7 +474,7 @@ impl SmartMerge {
         title: &str,
         description: Option<String>,
         target_amount: Decimal,
-    ) -> Result<entities::ledger_tabs::Model, DbErr> {
+    ) -> Result<entities::ledger_tabs::Model, AppError> {
         services::p2p::create_ledger_tab(
             db,
             creator_id,
@@ -464,18 +493,18 @@ impl SmartMerge {
         name: Option<String>,
         username: Option<String>,
         image: Option<String>,
-    ) -> Result<entities::users::Model, DbErr> {
+    ) -> Result<entities::users::Model, AppError> {
         services::users::update_profile(db, user_id, name, username, image).await
     }
 
     pub async fn list_categories(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::categories::Model>, DbErr> {
+    ) -> Result<Vec<entities::categories::Model>, AppError> {
         services::categories::list_categories(db, user_id).await
     }
 
-    pub async fn ensure_system_categories(db: &DatabaseConnection) -> Result<(), DbErr> {
+    pub async fn ensure_system_categories(db: &DatabaseConnection) -> Result<(), AppError> {
         services::categories::ensure_system_categories(db).await
     }
 
@@ -485,7 +514,7 @@ impl SmartMerge {
         name: String,
         icon: Option<String>,
         color: Option<String>,
-    ) -> Result<entities::categories::Model, DbErr> {
+    ) -> Result<entities::categories::Model, AppError> {
         services::categories::create_category(db, user_id, name, icon, color).await
     }
 
@@ -493,14 +522,14 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         category_id: &str,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), AppError> {
         services::categories::delete_category(db, user_id, category_id).await
     }
 
     pub async fn list_user_upi(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::user_upi_ids::Model>, DbErr> {
+    ) -> Result<Vec<entities::user_upi_ids::Model>, AppError> {
         services::users::list_user_upi(db, user_id).await
     }
 
@@ -509,7 +538,7 @@ impl SmartMerge {
         user_id: &str,
         upi_id: String,
         label: Option<String>,
-    ) -> Result<entities::user_upi_ids::Model, DbErr> {
+    ) -> Result<entities::user_upi_ids::Model, AppError> {
         services::users::add_user_upi(db, user_id, upi_id, label).await
     }
 
@@ -517,7 +546,7 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         upi_id: &str,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), AppError> {
         services::users::make_primary_upi(db, user_id, upi_id).await
     }
 
@@ -525,14 +554,14 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         request_id: &str,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), AppError> {
         services::p2p::reject_p2p_request(db, user_id, request_id).await
     }
 
     pub async fn list_confirmed_subscriptions(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::subscriptions::Model>, DbErr> {
+    ) -> Result<Vec<entities::subscriptions::Model>, AppError> {
         services::subscriptions::list_confirmed_subscriptions(db, user_id).await
     }
 
@@ -545,7 +574,7 @@ impl SmartMerge {
         start_date: DateTime<FixedOffset>,
         next_charge_date: DateTime<FixedOffset>,
         keywords: Option<serde_json::Value>,
-    ) -> Result<entities::subscriptions::Model, DbErr> {
+    ) -> Result<entities::subscriptions::Model, AppError> {
         services::subscriptions::confirm_subscription(
             db,
             user_id,
@@ -563,7 +592,7 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         sub_id: &str,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), AppError> {
         services::subscriptions::stop_tracking_subscription(db, user_id, sub_id).await
     }
 
@@ -572,7 +601,7 @@ impl SmartMerge {
         sub_id: &str,
         days_before: i32,
         channel: String,
-    ) -> Result<entities::sub_alerts::Model, DbErr> {
+    ) -> Result<entities::sub_alerts::Model, AppError> {
         services::subscriptions::configure_subscription_alert(db, sub_id, days_before, channel)
             .await
     }
@@ -584,7 +613,7 @@ impl SmartMerge {
         description: String,
         amount: Decimal,
         raw_data: Option<serde_json::Value>,
-    ) -> Result<entities::bank_statement_rows::Model, DbErr> {
+    ) -> Result<entities::bank_statement_rows::Model, AppError> {
         services::reconciliation::upload_statement(db, user_id, date, description, amount, raw_data)
             .await
     }
@@ -592,7 +621,7 @@ impl SmartMerge {
     pub async fn list_unmatched_rows(
         db: &DatabaseConnection,
         user_id: &str,
-    ) -> Result<Vec<entities::bank_statement_rows::Model>, DbErr> {
+    ) -> Result<Vec<entities::bank_statement_rows::Model>, AppError> {
         services::reconciliation::list_unmatched_rows(db, user_id).await
     }
 
@@ -600,7 +629,7 @@ impl SmartMerge {
         db: &DatabaseConnection,
         user_id: &str,
         row_id: &str,
-    ) -> Result<Vec<(entities::transactions::Model, i32)>, DbErr> {
+    ) -> Result<Vec<(entities::transactions::Model, i32)>, AppError> {
         services::reconciliation::get_row_matches(db, user_id, row_id).await
     }
 
@@ -610,7 +639,7 @@ impl SmartMerge {
         row_id: &str,
         txn_id: &str,
         confidence: i32,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), AppError> {
         services::reconciliation::confirm_match(db, user_id, row_id, txn_id, confidence).await
     }
 }

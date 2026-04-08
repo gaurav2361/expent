@@ -8,6 +8,7 @@ pub use super::contact_links::Entity as ContactLinks;
 pub use super::contacts::Entity as Contacts;
 pub use super::groups::Entity as Groups;
 pub use super::ledger_tabs::Entity as LedgerTabs;
+pub use super::ocr_jobs::Entity as OcrJobs;
 pub use super::p2p_requests::Entity as P2pRequests;
 pub use super::p2p_transfers::Entity as P2pTransfers;
 pub use super::purchase_imports::Entity as PurchaseImports;

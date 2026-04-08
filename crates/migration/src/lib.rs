@@ -11,6 +11,7 @@ pub mod m20260404_000002_add_notes_to_transactions;
 pub mod m20260404_000003_add_description_to_ledger_tabs;
 pub mod m20260404_000004_fix_reconciliation_schema;
 pub mod m20260404_000005_add_category_to_transactions;
+pub mod m20260408_000001_create_ocr_jobs;
 
 pub struct Migrator;
 
@@ -29,6 +30,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260404_000003_add_description_to_ledger_tabs::Migration),
             Box::new(m20260404_000004_fix_reconciliation_schema::Migration),
             Box::new(m20260404_000005_add_category_to_transactions::Migration),
+            Box::new(m20260408_000001_create_ocr_jobs::Migration),
         ]
     }
 }
