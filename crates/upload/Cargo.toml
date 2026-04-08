@@ -1,21 +1,22 @@
 [package]
-name    = "upload"
-version = "0.1.0"
-edition = "2024"
+name              = "upload"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
-anyhow                 = "1.0"
-aws-config             = "1.5"
-aws-sdk-s3             = "1.73"
+anyhow.workspace     = true
+aws-config.workspace = true
+aws-sdk-s3.workspace = true
+chrono.workspace     = true
+serde.workspace      = true
+thiserror.workspace  = true
+tokio.workspace      = true
+tracing.workspace    = true
+uuid.workspace       = true
+
 aws-smithy-runtime-api = "1.7"
 bytes                  = "1.0"
-chrono                 = "0.4"
 image                  = "0.25"
 infer                  = "0.16"
 mime_guess             = "2.0"
-serde                  = { features = [ "derive" ], version = "1.0" }
 serde_bytes            = "0.11"
-thiserror              = "2.0"
-tokio                  = { features = [ "full" ], version = "1.0" }
-tracing                = "0.1"
-uuid                   = { features = [ "v4", "serde" ], version = "1.10" }

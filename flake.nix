@@ -97,6 +97,7 @@
 
                 # Utilities
                 just
+                taplo
                 tesseract
               ]
               ++ lib.optionals stdenv.isDarwin [

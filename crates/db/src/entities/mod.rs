@@ -7,7 +7,6 @@ pub mod contact_identifiers;
 pub mod contact_links;
 pub mod contacts;
 pub mod enums;
-pub mod enums;
 pub mod groups;
 pub mod ledger_tabs;
 pub mod ocr_jobs;

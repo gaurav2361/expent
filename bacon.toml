@@ -119,7 +119,7 @@ need_stdout    = true
 [jobs.dev]
 allow_warnings     = true
 background         = false
-command            = [ "cargo", "run", "--bin", "server", "--color", "always" ]
+command            = [ "cargo", "run", "--bin", "api", "--color", "always" ]
 env.RUST_LOG       = "info"
 need_stdout        = true
 on_change_strategy = "kill_then_restart"

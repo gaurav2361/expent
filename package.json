@@ -10,7 +10,7 @@
     "format": "biome format --write --no-errors-on-unmatched",
     "typecheck": "dotenv -- turbo typecheck",
     "test": "dotenv -- turbo test",
-    "format-all": "cargo fmt && uv format && pnpm format",
+    "format-all": "cargo fmt && uv format && pnpm format && taplo fmt",
     "bacon:dev": "bacon dev",
     "bacon:lint": "bacon clippy-all",
     "bacon:check": "bacon check-all",
