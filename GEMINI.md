@@ -9,15 +9,15 @@ The instructions in this file are foundational and take absolute precedence over
 1. **Security First**: Protect `.env`, `.git`, and system configs. Never commit secrets.
 2. **Context Efficiency**: Combine tool calls. Use `wait_for_previous: true` only when necessary.
 3. **Engineering Integrity**: Adhere to existing patterns. Use `SmartMerge` for DB operations.
-4. **Validation**: Run `cargo check -p server`, `cd apps/dashboard && pnpm tsc`, or `uv run pytest` after changes.
+4. **Validation**: Run `cargo check -p server`, `cd apps/dashboard && pnpm tsc`, `vitest run`, or `uv run pytest` after changes.
 
-## Test-Driven Development (TDD)
+## Testing Strategy & TDD
 
 - **TDD Cycle**: Mandatory Red-Green-Refactor cycle for all new development.
-- **Function Coverage**: Create comprehensive tests for EVERY new function.
-- **Legacy Integrity**: Write tests for existing functions to formalize intended behavior.
-- **Continuous Validation**: Execute relevant tests every few minutes during development.
-- **Verification First**: Code is NOT complete until verified by exhaustive automated tests.
+- **API-Heavy Philosophy**: Prioritize testing backend logic over frontend UI.
+  - **Rust Backend**: Heavy emphasis on core logic unit testing (`expent_core`) and API endpoint integration testing using `rstest`. Parameterize edge cases for all financial math.
+  - **TypeScript Frontend**: Use `vitest` strictly for headless utility functions, state, and complex hooks in `apps/dashboard`. Do NOT write UI component tests or browser-based E2E tests unless explicitly requested.
+- **Function Coverage**: Create comprehensive tests for EVERY new backend function before it is considered complete.
 
 ## Performance Optimization
 
