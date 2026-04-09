@@ -82,7 +82,7 @@ pub struct ProcessedFile {
     pub key: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UploadClient {
     s3_client: S3Client,
     bucket_name: String,

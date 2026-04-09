@@ -3,6 +3,7 @@ use reqwest::multipart;
 use serde_json::Value;
 use tracing::info;
 
+#[derive(Debug)]
 pub struct OcrService {
     worker_url: String,
     client: reqwest::Client,

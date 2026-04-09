@@ -16,18 +16,20 @@ pub async fn process_ocr(
         Box::pin(async move {
             let mut contact_id = processed
                 .data
+                .0
                 .get("contact_id")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
             let wallet_id = processed
                 .data
+                .0
                 .get("wallet_id")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
             let mut contact_created = false;
 
             if processed.doc_type == "GPAY" {
-                let gpay: GPayExtraction = serde_json::from_value(processed.data.clone())
+                let gpay: GPayExtraction = serde_json::from_value(processed.data.0.clone())
                     .map_err(|e| AppError::Generic(format!("Failed to parse GPay data: {}", e)))?;
 
                 // 2.6 Auto-Contact Creation Logic (only if contact_id was not explicitly provided)
@@ -91,7 +93,7 @@ pub async fn process_ocr(
                     Utc::now().into()
                 };
 
-                let (source_wallet_id, destination_wallet_id) =
+                let (source_wallet_id, destination_wallet_id): (Option<String>, Option<String>) =
                     if direction == TransactionDirection::In {
                         (None, wallet_id.clone())
                     } else {
@@ -132,7 +134,7 @@ pub async fn process_ocr(
                     transaction_id: Set(result.id.clone()),
                     source_type: Set("GPAY_OCR".to_string()),
                     r2_file_url: Set(processed.r2_key),
-                    raw_metadata: Set(Some(processed.data)),
+                    raw_metadata: Set(Some(processed.data.0.clone())),
                 };
                 source.insert(txn_db).await?;
 
@@ -180,7 +182,7 @@ pub async fn process_ocr(
             } else {
                 // Generic OCR path
                 let generic: OcrResult =
-                    serde_json::from_value(processed.data.clone()).map_err(|e| {
+                    serde_json::from_value(processed.data.0.clone()).map_err(|e| {
                         AppError::Generic(format!("Failed to parse Generic data: {}", e))
                     })?;
 
@@ -219,7 +221,7 @@ pub async fn process_ocr(
                     transaction_id: Set(result.id.clone()),
                     source_type: Set("GENERIC_OCR".to_string()),
                     r2_file_url: Set(processed.r2_key),
-                    raw_metadata: Set(Some(processed.data)),
+                    raw_metadata: Set(Some(processed.data.0)),
                 };
                 source.insert(txn_db).await?;
 
