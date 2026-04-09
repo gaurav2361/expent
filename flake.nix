@@ -8,11 +8,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # React Native build environment (Android SDK, NDK, Emulator)
-    android-nixpkgs = {
-      url = "github:tadfisher/android-nixpkgs";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+
   };
 
   outputs =
@@ -65,12 +61,7 @@
           # Select Python Version
           python = pkgs.python313;
 
-          # Uncomment this block to load React Native configuration
-          reactNativeEnv = import ./nix/react-native.nix {
-            inherit pkgs;
-            system = pkgs.stdenv.hostPlatform.system;
-            android-nixpkgs = inputs.android-nixpkgs;
-          };
+
         in
         {
           default = pkgs.mkShell {
@@ -98,13 +89,10 @@
                 # Utilities
                 just
                 taplo
-                tesseract
               ]
               ++ lib.optionals stdenv.isDarwin [
                 libiconv
-              ]
-              # Uncomment the following line to append React Native packages (Android SDK, Watchman, CocoaPods, etc.)
-              ++ reactNativeEnv.packages;
+              ];
 
             env = {
               # Required by rust-analyzer
@@ -115,9 +103,7 @@
 
               # Tell pip (if used inside uv) not to check for updates
               PIP_DISABLE_PIP_VERSION_CHECK = "1";
-            }
-            # Uncomment the following line to merge React Native environment variables (ANDROID_HOME, JAVA_HOME, etc.)
-            // reactNativeEnv.env;
+            };
 
             # Automatically creates/activates the uv venv
             shellHook = ''
@@ -143,8 +129,6 @@
               echo "  node:   $(node --version)"
               echo "  pnpm:   $(pnpm --version)"
 
-              # Uncomment the line below to show the React Native startup message
-              ${reactNativeEnv.shellHook}
             '';
           };
         }
