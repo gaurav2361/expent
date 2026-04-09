@@ -15,12 +15,9 @@ edition = "2024"
 version = "0.1.0"
 
 [workspace.dependencies]
-# Internal crates
-api         = { path = "apps/api", version = "0.1.0" }
 auth        = { path = "crates/auth", version = "0.1.0" }
 db          = { path = "crates/db", version = "0.1.0" }
 expent_core = { path = "crates/expent_core", version = "0.1.0" }
-migration   = { path = "crates/migration", version = "0.1.0" }
 ocr         = { path = "crates/ocr", version = "0.1.0" }
 upload      = { path = "crates/upload", version = "0.1.0" }
 
@@ -40,6 +37,7 @@ sea-orm = { features = [
   "sqlx-postgres",
   "runtime-tokio-native-tls",
   "macros",
+  "sqlx-sqlite", # Add this feature
 ], version = "1.1.19" }
 sea-orm-migration = { features = [
   "runtime-tokio-native-tls",
