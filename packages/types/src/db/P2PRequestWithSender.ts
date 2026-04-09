@@ -3,4 +3,4 @@
 /**
  * P2P request with sender's name.
  */
-export type P2PRequestWithSender = { sender_name: string | null, id: string, sender_user_id: string, receiver_email: string, transaction_data: any, status: string, linked_txn_id: string | null, };
+export type P2PRequestWithSender = { sender_name: string | null, id: string, sender_user_id: string, receiver_email: string, transaction_data: import('./JsonValue').JsonValue, status: string, linked_txn_id: string | null, };

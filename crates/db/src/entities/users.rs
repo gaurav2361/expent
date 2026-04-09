@@ -35,7 +35,7 @@ pub struct Model {
     pub two_factor_enabled: Option<bool>,
     pub phone_number: Option<String>,
     pub phone_number_verified: Option<bool>,
-    #[ts(type = "any")]
+    #[ts(type = "import('./JsonValue').JsonValue")]
     pub metadata: Option<Json>,
     pub associated_contact_id: Option<String>,
 }

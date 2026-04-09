@@ -19,7 +19,7 @@ pub struct Model {
     pub transaction_id: String,
     pub source_type: String,
     pub r2_file_url: Option<String>,
-    #[ts(type = "any")]
+    #[ts(type = "import('./JsonValue').JsonValue")]
     pub raw_metadata: Option<Json>,
 }
 

@@ -23,7 +23,7 @@ pub struct Model {
     pub cycle: String,
     pub start_date: DateTimeWithTimeZone,
     pub next_charge_date: DateTimeWithTimeZone,
-    #[ts(type = "any")]
+    #[ts(type = "import('./JsonValue').JsonValue")]
     pub detection_keywords: Option<Json>,
 }
 

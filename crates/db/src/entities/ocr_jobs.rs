@@ -15,6 +15,7 @@ pub struct Model {
     pub user_id: String,
     pub status: String, // "PENDING", "COMPLETED", "FAILED"
     pub r2_key: String,
+    #[ts(type = "import('./JsonValue').JsonValue")]
     pub processed_data: Option<Json>,
     pub error: Option<String>,
     pub created_at: DateTimeWithTimeZone,

@@ -72,11 +72,24 @@ pub struct GPayExtraction {
     export_to = "../../../packages/types/src/db/ProcessedOcr.ts"
 )]
 pub struct ProcessedOcr {
-    pub doc_type: String, // "GPAY" or "GENERIC"
-    #[ts(type = "any")]
-    pub data: serde_json::Value,
+    pub doc_type: String,        // "GPAY" or "GENERIC"
+    pub data: ExportedJsonValue, // Use ExportedJsonValue instead of serde_json::Value
     pub r2_key: Option<String>,
 }
+
+/// A type alias for serde_json::Value to control its TypeScript export location.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(
+    export,
+    rename = "JsonValue",
+    export_to = "../../../packages/types/src/db/JsonValue.ts"
+)]
+pub struct ExportedJsonValue(
+    #[ts(
+        type = "number | string | boolean | Array<JsonValue> | { [key: string]: JsonValue } | null"
+    )]
+    pub serde_json::Value,
+);
 
 /// Details for splitting a transaction among multiple users.
 #[derive(Debug, Serialize, Deserialize, TS)]

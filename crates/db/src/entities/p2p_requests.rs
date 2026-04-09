@@ -18,7 +18,7 @@ pub struct Model {
     pub id: String,
     pub sender_user_id: String,
     pub receiver_email: String,
-    #[ts(type = "any")]
+    #[ts(type = "import('./JsonValue').JsonValue")]
     pub transaction_data: Json,
     pub status: String,
     pub linked_txn_id: Option<String>,

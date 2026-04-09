@@ -9,6 +9,7 @@ export * from "./GPayExtraction";
 export * from "./Group";
 export * from "./GroupRole";
 export * from "./IdentifierType";
+export * from "./JsonValue";
 export * from "./LedgerTab";
 export * from "./LedgerTabStatus";
 export * from "./LedgerTabType";
