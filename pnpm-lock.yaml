@@ -24,6 +24,8 @@ importers:
         specifier: 6.0.2
         version: 6.0.2
 
+  apps/api: {}
+
   apps/app:
     dependencies:
       '@expo-google-fonts/inter':
@@ -378,8 +380,6 @@ importers:
         version: 4.3.6
 
   apps/ocr: {}
-
-  apps/server: {}
 
   apps/web:
     dependencies:
