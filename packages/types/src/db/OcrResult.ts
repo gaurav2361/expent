@@ -4,4 +4,4 @@ import type { LineItem } from "./LineItem";
 /**
  * The result of an OCR process, containing raw text and extracted transaction details.
  */
-export type OcrResult = { raw_text: string, vendor: string | null, amount: string | null, date: string | null, upi_id: string | null, items: Array<LineItem>, };
+export type OcrResult = { raw_text: string, vendor: string | null, amount: string | null, date: string | null, upi_id: string | null, category_id: string | null, wallet_id: string | null, contact_id: string | null, items: Array<LineItem>, };

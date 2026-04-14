@@ -14,23 +14,15 @@ pub async fn process_ocr(
     let user_id = user_id.to_string();
     db.transaction::<_, OcrTransactionResponse, AppError>(|txn_db| {
         Box::pin(async move {
-            let mut contact_id = processed
-                .data
-                .0
-                .get("contact_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
-            let wallet_id = processed
-                .data
-                .0
-                .get("wallet_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
             let mut contact_created = false;
 
             if processed.doc_type == "GPAY" {
                 let gpay: GPayExtraction = serde_json::from_value(processed.data.0.clone())
                     .map_err(|e| AppError::Generic(format!("Failed to parse GPay data: {}", e)))?;
+
+                let mut contact_id = gpay.contact_id.clone();
+                let wallet_id = gpay.wallet_id.clone();
+                let category_id = gpay.category_id.clone();
 
                 // 2.6 Auto-Contact Creation Logic (only if contact_id was not explicitly provided)
                 if contact_id.is_none() {
@@ -108,7 +100,7 @@ pub async fn process_ocr(
                     date: Set(date),
                     source: Set(TransactionSource::Ocr),
                     status: Set(TransactionStatus::Completed),
-                    category_id: Set(None),
+                    category_id: Set(category_id),
                     purpose_tag: Set(None),
                     group_id: Set(None),
                     source_wallet_id: Set(source_wallet_id.clone()),
@@ -186,6 +178,10 @@ pub async fn process_ocr(
                         AppError::Generic(format!("Failed to parse Generic data: {}", e))
                     })?;
 
+                let contact_id = generic.contact_id.clone();
+                let wallet_id = generic.wallet_id.clone();
+                let category_id = generic.category_id.clone();
+
                 let amount = generic.amount.unwrap_or(Decimal::ZERO);
 
                 let txn = entities::transactions::ActiveModel {
@@ -196,7 +192,7 @@ pub async fn process_ocr(
                     date: Set(generic.date.unwrap_or_else(|| Utc::now().into())),
                     source: Set(TransactionSource::Ocr),
                     status: Set(TransactionStatus::Completed),
-                    category_id: Set(None),
+                    category_id: Set(category_id),
                     purpose_tag: Set(generic.vendor.clone()),
                     group_id: Set(None),
                     source_wallet_id: Set(wallet_id.clone()),
