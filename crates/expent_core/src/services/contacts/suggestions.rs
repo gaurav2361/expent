@@ -1,6 +1,10 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{DatabaseConnection, QueryFilter, QuerySelect, EntityTrait, JoinType, ColumnTrait, RelationTrait, ColumnTypeTrait, ActiveModelBehavior, Iterable, Iden, ActiveEnum, ActiveModelTrait};
+use sea_orm::{
+    ActiveEnum, ActiveModelBehavior, ActiveModelTrait, ColumnTrait, ColumnTypeTrait,
+    DatabaseConnection, EntityTrait, Iden, Iterable, JoinType, QueryFilter, QuerySelect,
+    RelationTrait,
+};
 use serde::{Deserialize, Serialize};
 use strsim::jaro_winkler;
 
@@ -40,7 +44,11 @@ pub async fn get_merge_suggestions(
 
     for (i, c1) in contacts.iter().enumerate() {
         for c2 in contacts.iter().skip(i + 1) {
-            let pair_id = format!("{}-{}", c1.id.clone().min(c2.id.clone()), c1.id.clone().max(c2.id.clone()));
+            let pair_id = format!(
+                "{}-{}",
+                c1.id.clone().min(c2.id.clone()),
+                c1.id.clone().max(c2.id.clone())
+            );
             if processed_pairs.contains(&pair_id) {
                 continue;
             }
@@ -49,14 +57,22 @@ pub async fn get_merge_suggestions(
 
             // 1. Check exact phone match
             if let (Some(p1), Some(p2)) = (&c1.phone, &c2.phone)
-                && !p1.trim().is_empty() && p1 == p2 {
-                    match_reason = Some("Same phone number".to_string());
-                }
+                && !p1.trim().is_empty()
+                && p1 == p2
+            {
+                match_reason = Some("Same phone number".to_string());
+            }
 
             // 2. Check identifier overlap (UPI, Bank Acc)
             if match_reason.is_none() {
-                let id1s: Vec<_> = identifiers.iter().filter(|id| id.contact_id == c1.id).collect();
-                let id2s: Vec<_> = identifiers.iter().filter(|id| id.contact_id == c2.id).collect();
+                let id1s: Vec<_> = identifiers
+                    .iter()
+                    .filter(|id| id.contact_id == c1.id)
+                    .collect();
+                let id2s: Vec<_> = identifiers
+                    .iter()
+                    .filter(|id| id.contact_id == c2.id)
+                    .collect();
 
                 'outer: for id1 in &id1s {
                     for id2 in &id2s {

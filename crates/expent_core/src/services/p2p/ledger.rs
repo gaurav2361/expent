@@ -3,7 +3,7 @@ use db::AppError;
 use db::entities;
 use db::entities::enums::{LedgerTabStatus, LedgerTabType};
 use rust_decimal::Decimal;
-use sea_orm::{DatabaseConnection, Set, Iden, EntityTrait, ActiveModelTrait};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set};
 
 pub async fn create_ledger_tab(
     db: &DatabaseConnection,

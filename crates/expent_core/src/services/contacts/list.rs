@@ -1,6 +1,9 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{DatabaseConnection, QueryFilter, QuerySelect, EntityTrait, JoinType, ColumnTrait, RelationTrait, ColumnTypeTrait};
+use sea_orm::{
+    ColumnTrait, ColumnTypeTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter,
+    QuerySelect, RelationTrait,
+};
 
 pub async fn list_contacts(
     db: &DatabaseConnection,

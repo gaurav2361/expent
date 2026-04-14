@@ -1,10 +1,10 @@
-pub mod merge;
-pub mod suggestions;
 pub mod create;
 pub mod delete;
 pub mod get;
 pub mod identifiers;
 pub mod list;
+pub mod merge;
+pub mod suggestions;
 pub mod update;
 
 pub use create::create_contact;
@@ -12,6 +12,6 @@ pub use delete::delete_contact;
 pub use get::get_contact_detail;
 pub use identifiers::add_contact_identifier;
 pub use list::list_contacts;
-pub use update::update_contact;
 pub use merge::merge_contacts;
-pub use suggestions::{get_merge_suggestions, MergeSuggestion};
+pub use suggestions::{MergeSuggestion, get_merge_suggestions};
+pub use update::update_contact;

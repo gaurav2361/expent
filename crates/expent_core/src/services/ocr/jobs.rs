@@ -1,7 +1,9 @@
 use chrono::Utc;
 use db::AppError;
 use db::entities;
-use sea_orm::{DatabaseConnection, Set, Iden, EntityTrait, ActiveModelTrait, QueryFilter, ColumnTrait};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, QueryFilter, Set,
+};
 
 pub async fn create_ocr_job(
     db: &DatabaseConnection,

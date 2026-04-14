@@ -1,6 +1,6 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{DatabaseConnection, EntityTrait, Iden, Set, ActiveModelTrait};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set};
 
 pub async fn ensure_system_categories(db: &DatabaseConnection) -> Result<(), AppError> {
     // Ensure a "system" user exists so the FK constraint is satisfied

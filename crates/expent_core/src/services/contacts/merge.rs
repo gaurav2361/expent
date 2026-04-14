@@ -1,7 +1,10 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{DatabaseConnection, EntityTrait, Iden, TransactionTrait, QueryFilter, ColumnTrait, Iterable, Set, ActiveModelTrait};
 use sea_orm::prelude::Expr;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, Iterable, QueryFilter,
+    Set, TransactionTrait,
+};
 
 pub async fn merge_contacts(
     db: &DatabaseConnection,
@@ -14,15 +17,19 @@ pub async fn merge_contacts(
     }
 
     // Verify both contacts belong to the user
-    let _primary_link = entities::contact_links::Entity::find_by_id((user_id.to_string(), primary_id.to_string()))
-        .one(db)
-        .await?
-        .ok_or_else(|| AppError::not_found("Primary contact not found or access denied"))?;
+    let _primary_link =
+        entities::contact_links::Entity::find_by_id((user_id.to_string(), primary_id.to_string()))
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::not_found("Primary contact not found or access denied"))?;
 
-    let _secondary_link = entities::contact_links::Entity::find_by_id((user_id.to_string(), secondary_id.to_string()))
-        .one(db)
-        .await?
-        .ok_or_else(|| AppError::not_found("Secondary contact not found or access denied"))?;
+    let _secondary_link = entities::contact_links::Entity::find_by_id((
+        user_id.to_string(),
+        secondary_id.to_string(),
+    ))
+    .one(db)
+    .await?
+    .ok_or_else(|| AppError::not_found("Secondary contact not found or access denied"))?;
 
     // Transaction for safety
     let txn = db.begin().await?;
@@ -68,11 +75,12 @@ pub async fn merge_contacts(
     }
 
     // 3. Move the phone number if primary doesn't have one and secondary does
-    let mut primary_contact: entities::contacts::ActiveModel = entities::contacts::Entity::find_by_id(primary_id.to_string())
-        .one(&txn)
-        .await?
-        .unwrap()
-        .into();
+    let mut primary_contact: entities::contacts::ActiveModel =
+        entities::contacts::Entity::find_by_id(primary_id.to_string())
+            .one(&txn)
+            .await?
+            .unwrap()
+            .into();
 
     let secondary_contact = entities::contacts::Entity::find_by_id(secondary_id.to_string())
         .one(&txn)
