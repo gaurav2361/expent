@@ -81,7 +81,7 @@ pub async fn upload_avatar_handler(
                 field
                     .bytes()
                     .await
-                    .map_err(|e| ApiError::Internal(e.to_string()))?,
+                    .map_err(|e| ApiError::Internal(format!("Failed to read multipart bytes: {:?}", e)))?,
             );
             break;
         }
@@ -101,10 +101,7 @@ pub async fn upload_avatar_handler(
             CompressOptions::avatar(),
         )
         .await
-        .map_err(|e| {
-            tracing::error!("❌ Avatar upload failed: {:?}", e);
-            ApiError::Internal(e.to_string())
-        })?;
+        .map_err(|e| ApiError::Internal(format!("Avatar upload failed: {:?}", e)))?;
 
     let r2_public_url = std::env::var("R2_PUBLIC_URL")
         .unwrap_or_else(|_| "https://pub-3e637dff099d43faa282edc2702dbf2c.r2.dev".to_string());
@@ -119,7 +116,7 @@ pub async fn upload_avatar_handler(
         Some(avatar_url.clone()),
     )
     .await
-    .map_err(|e| ApiError::Internal(e.to_string()))?;
+    .map_err(|e| ApiError::Internal(format!("Failed to save avatar URL to DB: {:?}", e)))?;
 
     tracing::info!(
         "✅ Avatar uploaded for user {}: {}",
