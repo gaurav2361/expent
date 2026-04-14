@@ -2,7 +2,7 @@ use chrono::Utc;
 use db::AppError;
 use db::entities;
 use rust_decimal::Decimal;
-use sea_orm::*;
+use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait, ActiveEnum, Set, ActiveModelTrait};
 
 pub async fn update_wallet(
     db: &DatabaseConnection,

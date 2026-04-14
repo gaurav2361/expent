@@ -1,6 +1,6 @@
 use db::AppError;
 use db::entities;
-use sea_orm::*;
+use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait};
 
 pub async fn delete_wallet(
     db: &DatabaseConnection,

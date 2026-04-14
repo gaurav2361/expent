@@ -4,7 +4,7 @@ use db::entities;
 use db::entities::enums::TransactionStatus;
 use rust_decimal::Decimal;
 use sea_orm::prelude::DateTimeWithTimeZone;
-use sea_orm::*;
+use sea_orm::{DatabaseConnection, Iden, TransactionTrait, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionError};
 
 pub async fn update_transaction(
     db: &DatabaseConnection,
@@ -40,7 +40,7 @@ pub async fn update_transaction(
                 if amt != old_amount {
                     let edit = entities::transaction_edits::ActiveModel {
                         id: Set(uuid::Uuid::now_v7().to_string()),
-                        transaction_id: Set(txn.id.as_ref().to_string()),
+                        transaction_id: Set(txn.id.as_ref().clone()),
                         old_amount: Set(old_amount),
                         new_amount: Set(amt),
                         edited_at: Set(Utc::now().into()),

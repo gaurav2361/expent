@@ -61,6 +61,39 @@ export function useContacts() {
   };
 }
 
+export function useMergeContacts() {
+  const session = useSession();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["contacts-suggestions"],
+    queryFn: () => apiClient<{ contacts: Contact[]; reason: string }[]>("/api/contacts/suggestions"),
+    enabled: !!session.data,
+  });
+
+  const mergeMutation = useMutation({
+    mutationFn: (data: { primary_id: string; secondary_id: string }) =>
+      apiClient<Contact>("/api/contacts/merge", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts-suggestions"] });
+      queryClient.invalidateQueries({ queryKey: ["contact-detail", variables.primary_id] });
+      toast.success("Contacts merged successfully");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return {
+    suggestions: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+    mergeMutation,
+  };
+}
+
 export function useContactDetail(id: string) {
   const queryClient = useQueryClient();
 

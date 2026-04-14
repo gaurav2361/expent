@@ -13,6 +13,8 @@ use crate::{AppState, AuthSession};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_contacts_handler).post(create_contact_handler))
+        .route("/suggestions", get(get_merge_suggestions_handler))
+        .route("/merge", post(merge_contacts_handler))
         .route(
             "/{id}",
             get(get_contact_detail_handler)
@@ -131,5 +133,28 @@ pub async fn add_contact_identifier_handler(
         payload.value,
     )
     .await?;
+    Ok(Json(result))
+}
+
+pub async fn get_merge_suggestions_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+) -> Result<Json<Vec<contacts::MergeSuggestion>>, ApiError> {
+    let result = contacts::get_merge_suggestions(&state.core.db, &session.user.id).await?;
+    Ok(Json(result))
+}
+
+#[derive(Deserialize, Validate)]
+pub struct MergeContactsRequest {
+    pub primary_id: String,
+    pub secondary_id: String,
+}
+
+pub async fn merge_contacts_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    ValidatedJson(payload): ValidatedJson<MergeContactsRequest>,
+) -> Result<Json<db::entities::contacts::Model>, ApiError> {
+    let result = contacts::merge_contacts(&state.core.db, &session.user.id, &payload.primary_id, &payload.secondary_id).await?;
     Ok(Json(result))
 }

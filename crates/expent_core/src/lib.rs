@@ -57,13 +57,13 @@ impl Core {
         // Initialize Auth
         let auth = auth::init_auth(db.clone())
             .await
-            .map_err(|e| anyhow::anyhow!("Auth init failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Auth init failed: {e}"))?;
 
         // Initialize OCR
         let ocr_service = Arc::new(
             OcrService::new()
                 .await
-                .map_err(|e| anyhow::anyhow!("OCR init failed: {}", e))?,
+                .map_err(|e| anyhow::anyhow!("OCR init failed: {e}"))?,
         );
 
         // S3/R2 Setup

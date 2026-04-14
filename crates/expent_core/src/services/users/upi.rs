@@ -1,7 +1,7 @@
 use db::AppError;
 use db::entities;
 use sea_orm::prelude::Expr;
-use sea_orm::*;
+use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait, Set, Iden, ActiveModelTrait};
 
 pub async fn list_user_upi(
     db: &DatabaseConnection,

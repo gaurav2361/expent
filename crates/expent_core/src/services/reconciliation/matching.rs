@@ -2,7 +2,7 @@ use chrono::{Duration, Utc};
 use db::AppError;
 use db::entities;
 use rust_decimal::Decimal;
-use sea_orm::*;
+use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait, Iden, ActiveModelBehavior, Set, ActiveModelTrait};
 
 pub async fn list_unmatched_rows(
     db: &DatabaseConnection,
@@ -51,11 +51,10 @@ pub async fn get_row_matches(
         }
 
         // Check narration/description
-        if let Some(tag) = &txn.purpose_tag {
-            if row.description.to_lowercase().contains(&tag.to_lowercase()) {
+        if let Some(tag) = &txn.purpose_tag
+            && row.description.to_lowercase().contains(&tag.to_lowercase()) {
                 score += 10;
             }
-        }
 
         matches.push((txn, score.min(100)));
     }

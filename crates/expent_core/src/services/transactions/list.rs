@@ -1,6 +1,6 @@
 use db::entities;
 use db::{AppError, TransactionWithDetail};
-use sea_orm::*;
+use sea_orm::{DatabaseConnection, QueryOrder, QueryFilter, EntityTrait, ColumnTrait, QuerySelect, ActiveModelBehavior, ActiveEnum};
 
 pub async fn list_transactions(
     db: &DatabaseConnection,
@@ -27,23 +27,21 @@ pub async fn list_transactions(
         let mut source_name = None;
         let mut dest_name = None;
 
-        if let Some(sw_id) = &txn.source_wallet_id {
-            if let Some(w) = entities::wallets::Entity::find_by_id(sw_id.clone())
+        if let Some(sw_id) = &txn.source_wallet_id
+            && let Some(w) = entities::wallets::Entity::find_by_id(sw_id.clone())
                 .one(db)
                 .await?
             {
                 source_name = Some(w.name);
             }
-        }
 
-        if let Some(dw_id) = &txn.destination_wallet_id {
-            if let Some(w) = entities::wallets::Entity::find_by_id(dw_id.clone())
+        if let Some(dw_id) = &txn.destination_wallet_id
+            && let Some(w) = entities::wallets::Entity::find_by_id(dw_id.clone())
                 .one(db)
                 .await?
             {
                 dest_name = Some(w.name);
             }
-        }
 
         let mut contact_name = None;
         let mut contact_id = None;
@@ -53,17 +51,14 @@ pub async fn list_transactions(
             .filter(entities::txn_parties::Column::Role.eq("COUNTERPARTY"))
             .one(db)
             .await?
-        {
-            if let Some(c_id) = party.contact_id {
-                if let Some(c) = entities::contacts::Entity::find_by_id(c_id.clone())
+            && let Some(c_id) = party.contact_id
+                && let Some(c) = entities::contacts::Entity::find_by_id(c_id.clone())
                     .one(db)
                     .await?
                 {
                     contact_name = Some(c.name);
                     contact_id = Some(c_id);
                 }
-            }
-        }
 
         final_results.push(TransactionWithDetail {
             transaction: txn,

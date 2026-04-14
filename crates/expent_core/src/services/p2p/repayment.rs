@@ -5,7 +5,7 @@ use db::entities::enums::{
     LedgerTabStatus, TransactionDirection, TransactionSource, TransactionStatus,
 };
 use rust_decimal::Decimal;
-use sea_orm::*;
+use sea_orm::{DatabaseConnection, Iden, TransactionTrait, EntityTrait, Set, ActiveModelTrait, ColumnTrait, Iterable, QueryFilter, TransactionError};
 
 pub async fn register_repayment(
     db: &DatabaseConnection,
@@ -25,7 +25,7 @@ pub async fn register_repayment(
 
             let txn = entities::transactions::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
-                user_id: Set(user_id.to_string()),
+                user_id: Set(user_id.clone()),
                 amount: Set(amount),
                 direction: Set(TransactionDirection::In),
                 date: Set(Utc::now().into()),

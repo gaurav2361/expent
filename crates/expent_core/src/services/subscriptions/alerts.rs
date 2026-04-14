@@ -1,6 +1,6 @@
 use db::AppError;
 use db::entities;
-use sea_orm::*;
+use sea_orm::{DatabaseConnection, Set, Iden, EntityTrait, ActiveModelTrait};
 
 pub async fn configure_subscription_alert(
     db: &DatabaseConnection,
