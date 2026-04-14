@@ -72,7 +72,8 @@ export function UserMenu() {
           size="lg"
           className="h-16 justify-start gap-3 rounded-none rounded-b-md px-3 sm:h-14"
           onPress={() => {
-            // TODO: Navigate to add account screen
+            popoverTriggerRef.current?.close();
+            router.push("/(auth)/sign-in" as any);
           }}
         >
           <View className="size-10 items-center justify-center">
