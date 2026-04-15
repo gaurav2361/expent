@@ -23,7 +23,13 @@ pub enum ApiError {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            ApiError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            ApiError::Internal(msg) => {
+                tracing::error!("Internal Server Error: {}", msg);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "An internal error occurred".into(),
+                )
+            }
             ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
             ApiError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),

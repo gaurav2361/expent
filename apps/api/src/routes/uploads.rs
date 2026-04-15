@@ -43,7 +43,7 @@ pub async fn get_presigned_url_handler(
             Duration::from_secs(3600),
         )
         .await
-        .map_err(|e| ApiError::Internal(e.to_string()))?;
+        .map_err(|e| ApiError::Internal(format!("Failed to get presigned URL: {:?}", e)))?;
 
     Ok(Json(PresignedUrlResponse { url, key }))
 }
@@ -59,8 +59,7 @@ pub async fn direct_upload_handler(
     let mut content_type = String::new();
 
     while let Some(field) = multipart.next_field().await.map_err(|e| {
-        tracing::error!("❌ Multipart next_field error: {:?}", e);
-        ApiError::BadRequest(e.to_string())
+        ApiError::BadRequest(format!("Multipart next_field error: {:?}", e))
     })? {
         let name = field.name().unwrap_or_default().to_string();
         tracing::debug!("📦 Processing multipart field: {}", name);
@@ -76,8 +75,7 @@ pub async fn direct_upload_handler(
                 content_type
             );
             file_data = Some(field.bytes().await.map_err(|e| {
-                tracing::error!("❌ Multipart bytes extraction error: {:?}", e);
-                ApiError::Internal(e.to_string())
+                ApiError::Internal(format!("Multipart bytes extraction error: {:?}", e))
             })?);
             break;
         }
@@ -106,10 +104,7 @@ pub async fn direct_upload_handler(
             CompressOptions::receipt(),
         )
         .await
-        .map_err(|e| {
-            tracing::error!("❌ UploadClient upload failed: {:?}", e);
-            ApiError::Internal(e.to_string())
-        })?;
+        .map_err(|e| ApiError::Internal(format!("UploadClient upload failed: {:?}", e)))?;
 
     tracing::info!("✅ Upload successful, key: {}", processed.key);
     let r2_public_url = std::env::var("R2_PUBLIC_URL")
