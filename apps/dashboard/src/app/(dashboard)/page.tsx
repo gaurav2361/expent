@@ -396,14 +396,16 @@ export default function DashboardPage() {
                       title={req.status === "GROUP_INVITE" ? "Group Invitation" : "Transaction Split"}
                       description={
                         req.status === "GROUP_INVITE"
-                          ? `Join "${req.transaction_data.group_name}"`
+                          ? `Join "${(req.transaction_data as { group_name?: string })?.group_name || "a group"}"`
                           : `${req.sender_name || req.sender_user_id.substring(0, 8)} shared an expense with you.`
                       }
                       icon={req.status === "GROUP_INVITE" ? "users" : "receipt"}
                       metadata={[
                         {
                           key: "Amount",
-                          value: `₹${parseFloat(req.transaction_data.amount || "0").toLocaleString()}`,
+                          value: `₹${parseFloat(
+                            (req.transaction_data as { amount?: string })?.amount || "0",
+                          ).toLocaleString()}`,
                         },
                         {
                           key: "From",

@@ -91,34 +91,34 @@ export function ReviewTransactionForm({ processedOcr, onConfirm, onCancel, isSub
     e.preventDefault();
 
     // We send back the modified ProcessedOcr structure but updated
-    const updatedData: any = { ...processedOcr.data };
-    updatedData.amount = amount;
-    updatedData.direction = direction;
+    const commonFields = {
+      amount,
+      category_id: categoryId !== "none" ? categoryId : null,
+      wallet_id: walletId !== "none" ? walletId : null,
+      contact_id: contactId !== "none" ? contactId : null,
+    };
 
     if (processedOcr.doc_type === "GPAY") {
-      updatedData.counterparty_name = counterparty;
-      updatedData.counterparty_upi_id = upiId;
+      onConfirm({
+        ...processedOcr,
+        data: {
+          ...processedOcr.data,
+          ...commonFields,
+          direction,
+          counterparty_name: counterparty,
+          counterparty_upi_id: upiId,
+        },
+      });
     } else {
-      updatedData.vendor = counterparty;
+      onConfirm({
+        ...processedOcr,
+        data: {
+          ...processedOcr.data,
+          ...commonFields,
+          vendor: counterparty,
+        },
+      });
     }
-
-    if (categoryId !== "none") {
-      updatedData.category_id = categoryId;
-    }
-
-    if (walletId !== "none") {
-      updatedData.wallet_id = walletId;
-    }
-
-    if (contactId !== "none") {
-      updatedData.contact_id = contactId;
-    }
-
-    onConfirm({
-      doc_type: processedOcr.doc_type as any,
-      data: updatedData,
-      r2_key: (processedOcr as any).r2_key,
-    });
   };
 
   return (
