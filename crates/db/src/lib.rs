@@ -37,6 +37,9 @@ pub struct OcrResult {
     pub amount: Option<Decimal>,
     pub date: Option<DateTime<FixedOffset>>,
     pub upi_id: Option<String>,
+    pub category_id: Option<String>,
+    pub wallet_id: Option<String>,
+    pub contact_id: Option<String>,
     #[serde(default)]
     pub items: Vec<LineItem>,
 }
@@ -62,6 +65,9 @@ pub struct GPayExtraction {
     pub upi_transaction_id: Option<String>,
     pub google_transaction_id: Option<String>,
     pub source_bank_account: Option<String>,
+    pub category_id: Option<String>,
+    pub wallet_id: Option<String>,
+    pub contact_id: Option<String>,
 }
 
 /// Unified OCR data from the Python worker.

@@ -3,4 +3,4 @@
 /**
  * Specialized extraction for Google Pay screenshots.
  */
-export type GPayExtraction = { amount: string, direction: string, datetime_str: string | null, status: string | null, counterparty_name: string, counterparty_phone: string | null, counterparty_upi_id: string | null, is_merchant: boolean, upi_transaction_id: string | null, google_transaction_id: string | null, source_bank_account: string | null, };
+export type GPayExtraction = { amount: string, direction: string, datetime_str: string | null, status: string | null, counterparty_name: string, counterparty_phone: string | null, counterparty_upi_id: string | null, is_merchant: boolean, upi_transaction_id: string | null, google_transaction_id: string | null, source_bank_account: string | null, category_id: string | null, wallet_id: string | null, contact_id: string | null, };

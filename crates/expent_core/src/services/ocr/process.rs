@@ -35,6 +35,10 @@ pub async fn process_ocr(
                 let gpay: GPayExtraction = serde_json::from_value(processed.data.0.clone())
                     .map_err(|e| AppError::Generic(format!("Failed to parse GPay data: {e}")))?;
 
+                let mut contact_id = gpay.contact_id.clone();
+                let wallet_id = gpay.wallet_id.clone();
+                let category_id = gpay.category_id.clone();
+
                 // 2.6 Auto-Contact Creation Logic (only if contact_id was not explicitly provided)
                 if contact_id.is_none()
                     && let Some(upi_id) = &gpay.counterparty_upi_id
@@ -111,7 +115,7 @@ pub async fn process_ocr(
                     date: Set(date),
                     source: Set(TransactionSource::Ocr),
                     status: Set(TransactionStatus::Completed),
-                    category_id: Set(None),
+                    category_id: Set(category_id),
                     purpose_tag: Set(None),
                     group_id: Set(None),
                     source_wallet_id: Set(source_wallet_id.clone()),
@@ -187,6 +191,10 @@ pub async fn process_ocr(
                 let generic: OcrResult = serde_json::from_value(processed.data.0.clone())
                     .map_err(|e| AppError::Generic(format!("Failed to parse Generic data: {e}")))?;
 
+                let contact_id = generic.contact_id.clone();
+                let wallet_id = generic.wallet_id.clone();
+                let category_id = generic.category_id.clone();
+
                 let amount = generic.amount.unwrap_or(Decimal::ZERO);
 
                 let txn = entities::transactions::ActiveModel {
@@ -197,7 +205,7 @@ pub async fn process_ocr(
                     date: Set(generic.date.unwrap_or_else(|| Utc::now().into())),
                     source: Set(TransactionSource::Ocr),
                     status: Set(TransactionStatus::Completed),
-                    category_id: Set(None),
+                    category_id: Set(category_id),
                     purpose_tag: Set(generic.vendor.clone()),
                     group_id: Set(None),
                     source_wallet_id: Set(wallet_id.clone()),
