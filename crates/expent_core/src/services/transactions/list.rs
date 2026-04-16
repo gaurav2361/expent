@@ -1,9 +1,6 @@
 use db::entities;
 use db::{AppError, TransactionWithDetail};
-use sea_orm::{
-    ActiveEnum, ActiveModelBehavior, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder, QuerySelect,
-};
+use sea_orm::{DatabaseConnection, QueryOrder, QueryFilter, EntityTrait, ColumnTrait, QuerySelect, ActiveModelBehavior, ActiveEnum};
 
 pub async fn list_transactions(
     db: &DatabaseConnection,
@@ -34,17 +31,17 @@ pub async fn list_transactions(
             && let Some(w) = entities::wallets::Entity::find_by_id(sw_id.clone())
                 .one(db)
                 .await?
-        {
-            source_name = Some(w.name);
-        }
+            {
+                source_name = Some(w.name);
+            }
 
         if let Some(dw_id) = &txn.destination_wallet_id
             && let Some(w) = entities::wallets::Entity::find_by_id(dw_id.clone())
                 .one(db)
                 .await?
-        {
-            dest_name = Some(w.name);
-        }
+            {
+                dest_name = Some(w.name);
+            }
 
         let mut contact_name = None;
         let mut contact_id = None;
@@ -55,13 +52,13 @@ pub async fn list_transactions(
             .one(db)
             .await?
             && let Some(c_id) = party.contact_id
-            && let Some(c) = entities::contacts::Entity::find_by_id(c_id.clone())
-                .one(db)
-                .await?
-        {
-            contact_name = Some(c.name);
-            contact_id = Some(c_id);
-        }
+                && let Some(c) = entities::contacts::Entity::find_by_id(c_id.clone())
+                    .one(db)
+                    .await?
+                {
+                    contact_name = Some(c.name);
+                    contact_id = Some(c_id);
+                }
 
         final_results.push(TransactionWithDetail {
             transaction: txn,

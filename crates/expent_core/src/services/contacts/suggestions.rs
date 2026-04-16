@@ -1,12 +1,9 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{
-    ActiveEnum, ActiveModelBehavior, ActiveModelTrait, ColumnTrait, ColumnTypeTrait,
-    DatabaseConnection, EntityTrait, Iden, Iterable, JoinType, QueryFilter, QuerySelect,
-    RelationTrait,
-};
+use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait};
 use serde::{Deserialize, Serialize};
 use strsim::jaro_winkler;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MergeSuggestion {
@@ -14,68 +11,78 @@ pub struct MergeSuggestion {
     pub reason: String,
 }
 
+// Read similarity threshold from env, default to 0.88 if not provided or invalid
+fn get_similarity_threshold() -> f64 {
+    std::env::var("CONTACT_MERGE_SIMILARITY_THRESHOLD")
+        .unwrap_or_else(|_| "0.88".to_string())
+        .parse()
+        .unwrap_or(0.88)
+}
+
 pub async fn get_merge_suggestions(
     db: &DatabaseConnection,
     user_id: &str,
 ) -> Result<Vec<MergeSuggestion>, AppError> {
-    // Fetch all user contacts
-    let contacts = entities::contacts::Entity::find()
-        .join(
-            JoinType::InnerJoin,
-            entities::contacts::Relation::ContactLinks.def(),
-        )
+    // 1. Fetch user's contact links
+    let links = entities::contact_links::Entity::find()
         .filter(entities::contact_links::Column::UserId.eq(user_id))
         .all(db)
         .await?;
 
-    if contacts.len() < 2 {
+    if links.len() < 2 {
         return Ok(vec![]);
     }
 
-    // Fetch identifiers for all these contacts
-    let contact_ids: Vec<String> = contacts.iter().map(|c| c.id.clone()).collect();
+    let contact_ids: Vec<String> = links.into_iter().map(|link| link.contact_id).collect();
+
+    // 2. Fetch the actual contacts
+    let contacts = entities::contacts::Entity::find()
+        .filter(entities::contacts::Column::Id.is_in(contact_ids.clone()))
+        .all(db)
+        .await?;
+
+    // 3. Fetch identifiers for these contacts
     let identifiers = entities::contact_identifiers::Entity::find()
         .filter(entities::contact_identifiers::Column::ContactId.is_in(contact_ids))
         .all(db)
         .await?;
 
+    // Pre-process identifiers into a HashMap for O(1) average-case lookups
+    let mut identifiers_map: HashMap<String, Vec<entities::contact_identifiers::Model>> = HashMap::with_capacity(identifiers.len());
+    for id in identifiers {
+        identifiers_map.entry(id.contact_id.clone()).or_default().push(id);
+    }
+
     let mut suggestions: Vec<MergeSuggestion> = Vec::new();
-    let mut processed_pairs = std::collections::HashSet::new();
+    let mut processed_pairs = HashSet::new();
+    let similarity_threshold = get_similarity_threshold();
 
     for (i, c1) in contacts.iter().enumerate() {
         for c2 in contacts.iter().skip(i + 1) {
-            let pair_id = format!(
-                "{}-{}",
-                c1.id.clone().min(c2.id.clone()),
-                c1.id.clone().max(c2.id.clone())
-            );
+            let min_id = if c1.id < c2.id { &c1.id } else { &c2.id };
+            let max_id = if c1.id < c2.id { &c2.id } else { &c1.id };
+            let pair_id = format!("{}-{}", min_id, max_id);
             if processed_pairs.contains(&pair_id) {
                 continue;
             }
 
-            let mut match_reason = None;
+            let mut match_reason: Option<String> = None;
 
             // 1. Check exact phone match
-            if let (Some(p1), Some(p2)) = (&c1.phone, &c2.phone)
-                && !p1.trim().is_empty()
-                && p1 == p2
-            {
-                match_reason = Some("Same phone number".to_string());
+            if let (Some(p1), Some(p2)) = (&c1.phone, &c2.phone) {
+                if !p1.trim().is_empty() && p1 == p2 {
+                    match_reason = Some("Same phone number".to_string());
+                }
             }
 
             // 2. Check identifier overlap (UPI, Bank Acc)
             if match_reason.is_none() {
-                let id1s: Vec<_> = identifiers
-                    .iter()
-                    .filter(|id| id.contact_id == c1.id)
-                    .collect();
-                let id2s: Vec<_> = identifiers
-                    .iter()
-                    .filter(|id| id.contact_id == c2.id)
-                    .collect();
+                let empty_vec: Vec<entities::contact_identifiers::Model> = Vec::new();
+                let id1s = identifiers_map.get(c1.id.as_str()).unwrap_or(&empty_vec);
+                let id2s = identifiers_map.get(c2.id.as_str()).unwrap_or(&empty_vec);
 
-                'outer: for id1 in &id1s {
-                    for id2 in &id2s {
+                'outer: for id1 in id1s {
+                    for id2 in id2s {
                         if id1.r#type == id2.r#type && id1.value == id2.value {
                             match_reason = Some(format!("Shared {} identifier", id1.r#type));
                             break 'outer;
@@ -84,11 +91,11 @@ pub async fn get_merge_suggestions(
                 }
             }
 
-            // 3. Check fuzzy name match (jaro winkler > 0.85 is usually a good match)
+            // 3. Check fuzzy name match
             if match_reason.is_none() {
                 let name1 = c1.name.to_lowercase();
                 let name2 = c2.name.to_lowercase();
-                if jaro_winkler(&name1, &name2) > 0.88 {
+                if jaro_winkler(&name1, &name2) > similarity_threshold {
                     match_reason = Some("Similar name".to_string());
                 }
             }

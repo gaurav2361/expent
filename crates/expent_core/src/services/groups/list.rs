@@ -1,6 +1,6 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait};
 
 pub async fn list_groups(
     db: &DatabaseConnection,

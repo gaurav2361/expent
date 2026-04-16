@@ -16,6 +16,7 @@ import {
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
+import type { UseMutationResult } from "@tanstack/react-query";
 import {
   AlertCircleIcon,
   ChevronRightIcon,
@@ -231,14 +232,14 @@ function MergeSuggestionsBanner({
   mergeMutation,
 }: {
   suggestions: { contacts: Contact[]; reason: string }[];
-  // biome-ignore lint/suspicious/noExplicitAny: complex react query mutation type
-  mergeMutation: any;
+  mergeMutation: UseMutationResult<Contact, Error, { primary_id: string; secondary_id: string }, unknown>;
 }) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = React.useState<{ contacts: Contact[]; reason: string } | null>(
     null,
   );
   const [primaryId, setPrimaryId] = React.useState<string>("");
+  const [showAll, setShowAll] = React.useState(false);
 
   const handleOpenMerge = (suggestion: { contacts: Contact[]; reason: string }) => {
     setSelectedSuggestion(suggestion);
@@ -272,7 +273,7 @@ function MergeSuggestionsBanner({
           We found duplicate or similar contacts. Merging them keeps your transactions clean.
         </span>
         <div className="flex gap-2 flex-wrap">
-          {suggestions.slice(0, 2).map((s, _idx) => (
+          {suggestions.slice(0, showAll ? suggestions.length : 2).map((s, _idx) => (
             <Button
               key={`${s.contacts[0].id}-${s.contacts[1].id}`}
               variant="outline"
@@ -284,6 +285,11 @@ function MergeSuggestionsBanner({
               Merge "{s.contacts[0].name}"
             </Button>
           ))}
+          {suggestions.length > 2 && !showAll && (
+            <Button variant="ghost" size="sm" onClick={() => setShowAll(true)} className="text-primary text-xs">
+              View {suggestions.length - 2} more...
+            </Button>
+          )}
         </div>
       </AlertDescription>
 
@@ -303,7 +309,12 @@ function MergeSuggestionsBanner({
                 <Label>Primary Contact to Keep</Label>
                 <Select value={primaryId} onValueChange={setPrimaryId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select primary contact" />
+                    <SelectValue placeholder="Select primary contact">
+                      {selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.name}{" "}
+                      {selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.phone
+                        ? `(${selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.phone})`
+                        : ""}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {selectedSuggestion.contacts.map((c: Contact) => (

@@ -5,10 +5,7 @@ use db::entities::enums::{
 };
 use db::{AppError, P2PRequestWithSender};
 use rust_decimal::Decimal;
-use sea_orm::{
-    ActiveEnum, ActiveModelTrait, ColIdx, ColumnTrait, DatabaseConnection, EntityTrait, Iden,
-    IdenStatic, QueryFilter, Set,
-};
+use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait, ActiveEnum, Iden, Set, ActiveModelTrait, ColIdx, IdenStatic};
 use std::str::FromStr;
 
 pub async fn list_pending_p2p_requests(
@@ -106,17 +103,13 @@ pub async fn accept_p2p_request(
         direction: Set(TransactionDirection::In),
         date: Set(original_txn["date"]
             .as_str()
-            .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-            .map_or_else(
-                || Utc::now().into(),
-                |d| d.with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()),
-            )),
+            .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()).map_or_else(|| Utc::now().into(), |d| {
+                d.with_timezone(&chrono::FixedOffset::east_opt(0).unwrap())
+            })),
         source: Set(TransactionSource::P2p),
         status: Set(TransactionStatus::Completed),
         category_id: Set(None),
-        purpose_tag: Set(original_txn["purpose"]
-            .as_str()
-            .map(std::string::ToString::to_string)),
+        purpose_tag: Set(original_txn["purpose"].as_str().map(std::string::ToString::to_string)),
         group_id: Set(None),
         source_wallet_id: Set(None),
         destination_wallet_id: Set(None),

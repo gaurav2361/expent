@@ -4,10 +4,7 @@ use db::entities;
 use db::entities::enums::TransactionStatus;
 use rust_decimal::Decimal;
 use sea_orm::prelude::DateTimeWithTimeZone;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, QueryFilter, Set,
-    TransactionError, TransactionTrait,
-};
+use sea_orm::{DatabaseConnection, Iden, TransactionTrait, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionError};
 
 pub async fn update_transaction(
     db: &DatabaseConnection,

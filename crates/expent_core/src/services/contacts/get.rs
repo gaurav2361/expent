@@ -1,9 +1,6 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{
-    ColumnTrait, ColumnTypeTrait, DatabaseConnection, EntityTrait, Iden, JoinType, QueryFilter,
-    QueryOrder, QuerySelect, RelationTrait,
-};
+use sea_orm::{DatabaseConnection, EntityTrait, Iden, QueryFilter, ColumnTrait, QueryOrder, QuerySelect, JoinType, RelationTrait, ColumnTypeTrait};
 
 pub async fn get_contact_detail(
     db: &DatabaseConnection,

@@ -2,9 +2,7 @@ use chrono::{DateTime, FixedOffset};
 use db::AppError;
 use db::entities;
 use rust_decimal::Decimal;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, QueryFilter, Set,
-};
+use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait, Set, Iden, ActiveModelTrait};
 
 pub async fn list_confirmed_subscriptions(
     db: &DatabaseConnection,

@@ -1,10 +1,7 @@
 use chrono::Utc;
 use db::AppError;
 use db::entities;
-use sea_orm::{
-    ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set, TransactionError,
-    TransactionTrait,
-};
+use sea_orm::{DatabaseConnection, Iden, TransactionTrait, EntityTrait, Set, ActiveModelTrait, TransactionError};
 
 pub async fn delete_transaction(
     db: &DatabaseConnection,

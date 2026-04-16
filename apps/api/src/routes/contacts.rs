@@ -146,7 +146,9 @@ pub async fn get_merge_suggestions_handler(
 
 #[derive(Deserialize, Validate)]
 pub struct MergeContactsRequest {
+    #[validate(length(min = 1, max = 255))]
     pub primary_id: String,
+    #[validate(length(min = 1, max = 255))]
     pub secondary_id: String,
 }
 
@@ -155,12 +157,6 @@ pub async fn merge_contacts_handler(
     session: AuthSession,
     ValidatedJson(payload): ValidatedJson<MergeContactsRequest>,
 ) -> Result<Json<db::entities::contacts::Model>, ApiError> {
-    let result = contacts::merge_contacts(
-        &state.core.db,
-        &session.user.id,
-        &payload.primary_id,
-        &payload.secondary_id,
-    )
-    .await?;
+    let result = contacts::merge_contacts(&state.core.db, &session.user.id, &payload.primary_id, &payload.secondary_id).await?;
     Ok(Json(result))
 }

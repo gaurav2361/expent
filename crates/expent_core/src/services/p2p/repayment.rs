@@ -5,10 +5,7 @@ use db::entities::enums::{
     LedgerTabStatus, TransactionDirection, TransactionSource, TransactionStatus,
 };
 use rust_decimal::Decimal;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, Iterable, QueryFilter,
-    Set, TransactionError, TransactionTrait,
-};
+use sea_orm::{DatabaseConnection, Iden, TransactionTrait, EntityTrait, Set, ActiveModelTrait, ColumnTrait, Iterable, QueryFilter, TransactionError};
 
 pub async fn register_repayment(
     db: &DatabaseConnection,
