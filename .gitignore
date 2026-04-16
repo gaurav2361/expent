@@ -37,6 +37,8 @@ dist
 pnpm-debug.log*
 
 # Misc
+.agents
+.claude
 .content-collections
 .DS_Store
 *.pem

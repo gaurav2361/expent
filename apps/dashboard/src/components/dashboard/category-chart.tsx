@@ -1,8 +1,8 @@
 "use client";
 
-import type { TransactionWithDetail } from "@expent/types";
 import * as React from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { useTransactionSummary } from "@/hooks/use-transactions";
 
 const COLORS = [
   "#3b82f6",
@@ -17,27 +17,20 @@ const COLORS = [
   "#14b8a6",
 ];
 
-interface CategoryChartProps {
-  transactions: TransactionWithDetail[] | undefined;
-}
+export function CategoryChart() {
+  const { summary, isLoading } = useTransactionSummary();
 
-export function CategoryChart({ transactions }: CategoryChartProps) {
   const data = React.useMemo(() => {
-    if (!transactions) return [];
-    const map = new Map<string, number>();
+    if (!summary) return [];
+    return summary.category_distribution.map((c) => ({
+      name: c.category_name,
+      value: Math.round(parseFloat(c.amount as any)),
+    }));
+  }, [summary]);
 
-    transactions.forEach((txn) => {
-      if (txn.direction === "OUT") {
-        const cat = ((txn as Record<string, unknown>).category_name as string) || "Uncategorized";
-        map.set(cat, (map.get(cat) || 0) + parseFloat(txn.amount));
-      }
-    });
-
-    return Array.from(map.entries())
-      .map(([name, value]) => ({ name, value: Math.round(value) }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8);
-  }, [transactions]);
+  if (isLoading) {
+    return <div className="h-[300px] w-full animate-pulse bg-muted rounded-xl" />;
+  }
 
   if (data.length === 0) {
     return (
@@ -61,8 +54,8 @@ export function CategoryChart({ transactions }: CategoryChartProps) {
           label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
           labelLine={false}
         >
-          {data.map((entry) => (
-            <Cell key={entry.name} fill={COLORS[data.indexOf(entry) % COLORS.length]} />
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}-${entry.name}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip contentStyle={{ borderRadius: "8px" }} />

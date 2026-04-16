@@ -34,12 +34,13 @@ import { Overview } from "@/components/dashboard/overview";
 import { DataTable } from "@/components/data-table/data-table";
 import { ApprovalCard } from "@/components/tool-ui/approval-card";
 import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
+import { DashboardSkeleton } from "@/components/ui-elements/dashboard-skeleton";
 import { ManualTransactionDialog } from "@/components/transactions/manual-transaction-dialog";
 import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
 import { useP2P } from "@/hooks/use-p2p";
-import { useTransactions } from "@/hooks/use-transactions";
+import { useTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 import { apiClient } from "@/lib/api-client";
 import type { Column } from "@/lib/data-table-types";
 
@@ -65,7 +66,8 @@ export default function DashboardPage() {
     [router, searchParams],
   );
 
-  const { transactions, isLoading: isTxnsLoading, updateMutation, deleteMutation } = useTransactions();
+  const { transactions, isLoading: isTxnsLoading, updateMutation, deleteMutation } = useTransactions({ limit: 5 });
+  const { summary, isLoading: isSummaryLoading } = useTransactionSummary();
   const { p2pRequests, acceptMutation } = useP2P();
 
   const [file, setFile] = useState<File | null>(null);
@@ -79,31 +81,12 @@ export default function DashboardPage() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
 
-  const { totalBalance, monthlySpend } = useMemo(() => {
-    if (!transactions) return { totalBalance: 0, monthlySpend: 0 };
+  if (isSummaryLoading && !summary) {
+    return <DashboardSkeleton />;
+  }
 
-    let bal = 0;
-    let spend = 0;
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    transactions.forEach((txn: TransactionWithDetail) => {
-      const amount = parseFloat(txn.amount);
-      if (txn.direction === "IN") {
-        bal += amount;
-      } else {
-        bal -= amount;
-
-        const txnDate = new Date(txn.date);
-        if (txnDate.getMonth() === currentMonth && txnDate.getFullYear() === currentYear) {
-          spend += amount;
-        }
-      }
-    });
-
-    return { totalBalance: bal, monthlySpend: spend };
-  }, [transactions]);
+  const totalBalance = summary?.total_balance ? parseFloat(summary.total_balance as any) : 0;
+  const monthlySpend = summary?.monthly_spend ? parseFloat(summary.monthly_spend as any) : 0;
 
   const triggerSplit = useCallback((id: string, amount: string) => {
     setSelectedTxn({ id, amount });
@@ -293,40 +276,36 @@ export default function DashboardPage() {
 
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-                  <WalletIcon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {totalBalance < 0 ? "-₹" : "₹"}
-                    {Math.abs(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Based on global transactions</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Monthly Spend</CardTitle>
-                  <CreditCardIcon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    ₹{monthlySpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Total expenses this month</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-                  <ActivityIcon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{p2pRequests?.length || 0}</div>
+              <StatsCard
+                title="Total Balance"
+                value={totalBalance}
+                icon={<WalletIcon className="h-4 w-4" />}
+                description="Across all accounts"
+              />
+              <StatsCard
+                title="Monthly Spend"
+                value={monthlySpend}
+                icon={<CreditCardIcon className="h-4 w-4" />}
+                trend={
+                  summary?.monthly_spend && summary?.monthly_income
+                    ? {
+                        label: "vs income",
+                        value:
+                          (
+                            (parseFloat(summary.monthly_spend as any) / parseFloat(summary.monthly_income as any)) *
+                            100
+                          ).toFixed(0) + "%",
+                        inverse: true,
+                      }
+                    : undefined
+                }
+              />
+              <StatsCard
+                title="Pending Approvals"
+                value={p2pRequests?.length || 0}
+                isCurrency={false}
+                icon={<ActivityIcon className="h-4 w-4" />}
+                action={
                   <Button
                     variant="link"
                     size="sm"
@@ -335,18 +314,14 @@ export default function DashboardPage() {
                   >
                     View Requests &rarr;
                   </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-primary/5 dark:bg-primary/10 border-primary/20">
+                }
+              />
+              <Card className="bg-primary/5 dark:bg-primary/10 border-primary/20 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-primary">Quick Receive/Upload</CardTitle>
                   <FileTextIcon className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent className="mt-1">
-                  <Label htmlFor="quick-upload" className="sr-only">
-                    Quick Upload
-                  </Label>
                   <div className="flex gap-2">
                     <Input
                       id="quick-upload"
@@ -354,9 +329,8 @@ export default function DashboardPage() {
                       accept="image/*,application/pdf,text/csv"
                       onChange={(e) => setFile(e.target.files?.[0] || null)}
                       className="h-8 text-xs bg-background"
-                      aria-label="Select file to upload"
                     />
-                    <Button onClick={handleUpload} disabled={!file || isUploading} size="sm" aria-label="Upload file">
+                    <Button onClick={handleUpload} disabled={!file || isUploading} size="sm">
                       {isUploading ? "…" : "Go"}
                     </Button>
                   </div>
@@ -463,7 +437,7 @@ export default function DashboardPage() {
                   <CardTitle>Income vs Expense</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <IncomeExpenseChart transactions={transactions} />
+                  <IncomeExpenseChart />
                 </CardContent>
               </Card>
               <Card className="col-span-1 lg:col-span-3">
@@ -471,7 +445,7 @@ export default function DashboardPage() {
                   <CardTitle>Spending by Category</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CategoryChart transactions={transactions} />
+                  <CategoryChart />
                 </CardContent>
               </Card>
             </div>
@@ -493,5 +467,57 @@ export default function DashboardPage() {
 
       <ManualTransactionDialog open={manualDialogOpen} onOpenChange={setManualDialogOpen} />
     </>
+  );
+}
+
+function StatsCard({
+  title,
+  value,
+  icon,
+  description,
+  trend,
+  isCurrency = true,
+  action,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  description?: string;
+  trend?: { value: string; label: string; inverse?: boolean };
+  isCurrency?: boolean;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Card className="hover:shadow-md transition-shadow duration-300">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className="p-2 bg-muted/50 rounded-lg text-muted-foreground">{icon}</div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold tracking-tight">
+          {isCurrency && (value < 0 ? "-₹" : "₹")}
+          {isCurrency ? Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2 }) : value}
+        </div>
+        <div className="flex items-center justify-between mt-1">
+          {description && <p className="text-xs text-muted-foreground">{description}</p>}
+          {trend && (
+            <div
+              className={`flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                trend.inverse
+                  ? parseFloat(trend.value) > 100
+                    ? "bg-red-100 text-red-700"
+                    : "bg-green-100 text-green-700"
+                  : parseFloat(trend.value) > 0
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+              }`}
+            >
+              {trend.value} {trend.label}
+            </div>
+          )}
+          {action && action}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

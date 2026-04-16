@@ -14,6 +14,7 @@ use validator::Validate;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_transactions_handler))
+        .route("/summary", get(get_summary_handler))
         .route("/manual", post(create_manual_transaction_handler))
         .route("/from-ocr", post(create_from_ocr_handler))
         .route("/{id}", patch(update_transaction_handler))
@@ -77,7 +78,7 @@ pub async fn list_transactions_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Query(params): Query<PaginationParams>,
-) -> Result<Json<Vec<db::TransactionWithDetail>>, ApiError> {
+) -> Result<Json<db::PaginatedTransactions>, ApiError> {
     let result = transactions::list_transactions(
         &state.core.db,
         &session.user.id,
@@ -85,6 +86,14 @@ pub async fn list_transactions_handler(
         params.offset,
     )
     .await?;
+    Ok(Json(result))
+}
+
+pub async fn get_summary_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+) -> Result<Json<db::DashboardSummary>, ApiError> {
+    let result = transactions::get_dashboard_summary(&state.core.db, &session.user.id).await?;
     Ok(Json(result))
 }
 

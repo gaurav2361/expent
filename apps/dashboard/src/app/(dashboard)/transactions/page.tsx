@@ -18,6 +18,7 @@ import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@expent/ui/components/table";
 import { Tabs, TabsList, TabsTrigger } from "@expent/ui/components/tabs";
+import { Skeleton } from "@expent/ui/components/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef, ColumnFiltersState, SortingState, VisibilityState } from "@tanstack/react-table";
 import {
@@ -52,13 +53,34 @@ import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
 import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
-import { useTransactions } from "@/hooks/use-transactions";
+import { useTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 import { apiClient } from "@/lib/api-client";
 
 // Route Component
 export default function TransactionsPage() {
   const queryClient = useQueryClient();
-  const { transactions: rawTransactions, updateMutation, deleteMutation } = useTransactions();
+
+  // Table State
+  const [rowSelection, setRowSelection] = React.useState({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>([{ id: "date", desc: true }]);
+  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 15 });
+  const [activeTab, setActiveTab] = React.useState("all");
+
+  const {
+    transactions: rawTransactions,
+    totalCount,
+    isLoading: isTxnsLoading,
+    isFetching: isTxnsFetching,
+    updateMutation,
+    deleteMutation,
+  } = useTransactions({
+    limit: pagination.pageSize,
+    offset: pagination.pageIndex * pagination.pageSize,
+  });
+
+  const { summary, isLoading: isSummaryLoading } = useTransactionSummary();
 
   // Selected Txn for Split Action
   const [splitDialogOpen, setSplitDialogOpen] = React.useState(false);
@@ -71,37 +93,15 @@ export default function TransactionsPage() {
   const [processedOcr, setProcessedOcr] = React.useState<TypedProcessedOcr | null>(null);
   const [isSavingOcr, setIsSavingOcr] = React.useState(false);
 
-  // Table State
-  const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [sorting, setSorting] = React.useState<SortingState>([{ id: "date", desc: true }]);
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 15 });
-  const [activeTab, setActiveTab] = React.useState("all");
-
   const data = React.useMemo<TransactionWithDetail[]>(() => {
     if (!rawTransactions) return [];
-
-    // Apply tab filtering manually before the table logic
-    if (activeTab === "income") return rawTransactions.filter((t: TransactionWithDetail) => t.direction === "IN");
-    if (activeTab === "expense") return rawTransactions.filter((t: TransactionWithDetail) => t.direction === "OUT");
-
     return rawTransactions;
-  }, [rawTransactions, activeTab]);
+  }, [rawTransactions]);
 
-  // Derived Metrics
-  const { totalIncome, totalExpense, netBalance } = React.useMemo(() => {
-    let income = 0;
-    let expense = 0;
-
-    (data || []).forEach((txn: TransactionWithDetail) => {
-      const amount = parseFloat(txn.amount);
-      if (txn.direction === "IN") income += amount;
-      else expense += amount;
-    });
-
-    return { totalIncome: income, totalExpense: expense, netBalance: income - expense };
-  }, [data]);
+  // Derived Metrics from Summary
+  const totalIncome = summary?.monthly_income ? parseFloat(summary.monthly_income as any) : 0;
+  const totalExpense = summary?.monthly_spend ? parseFloat(summary.monthly_spend as any) : 0;
+  const netBalance = summary?.total_balance ? parseFloat(summary.total_balance as any) : 0;
 
   const triggerSplit = React.useCallback((id: string, amount: string) => {
     setSelectedTxn({ id, amount });
@@ -358,6 +358,8 @@ export default function TransactionsPage() {
       pagination,
     },
     enableRowSelection: true,
+    manualPagination: true,
+    rowCount: totalCount,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -454,9 +456,13 @@ export default function TransactionsPage() {
               <ArrowUpIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tight text-green-700 dark:text-green-400">
-                ₹{totalIncome.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </div>
+              {isSummaryLoading && !summary ? (
+                <Skeleton className="h-8 w-32" />
+              ) : (
+                <div className="text-3xl font-bold tracking-tight text-green-700 dark:text-green-400">
+                  ₹{totalIncome.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -466,9 +472,13 @@ export default function TransactionsPage() {
               <ArrowDownIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tight text-red-700 dark:text-red-400">
-                ₹{totalExpense.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </div>
+              {isSummaryLoading && !summary ? (
+                <Skeleton className="h-8 w-32" />
+              ) : (
+                <div className="text-3xl font-bold tracking-tight text-red-700 dark:text-red-400">
+                  ₹{totalExpense.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -478,9 +488,14 @@ export default function TransactionsPage() {
               <ScaleIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tight text-blue-700 dark:text-blue-400">
-                {netBalance < 0 ? "-" : ""}₹{Math.abs(netBalance).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </div>
+              {isSummaryLoading && !summary ? (
+                <Skeleton className="h-8 w-32" />
+              ) : (
+                <div className="text-3xl font-bold tracking-tight text-blue-700 dark:text-blue-400">
+                  {netBalance < 0 ? "-" : ""}₹
+                  {Math.abs(netBalance).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -573,7 +588,15 @@ export default function TransactionsPage() {
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {table.getRowModel().rows?.length ? (
+                  {isTxnsLoading && !rawTransactions ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={columns.length} className="p-0">
+                          <Skeleton className="h-12 w-full" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : table.getRowModel().rows?.length ? (
                     table.getRowModel().rows.map((row) => (
                       <TableRow
                         key={row.id}

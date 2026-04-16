@@ -32,10 +32,12 @@ import {
   UsersIcon,
   WalletIcon,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
+import { startTransition, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { LogoIcon } from "@/components/ui-elements/logo";
+import { apiClient } from "@/lib/api-client";
 
 export type SidebarNavItem = {
   title: string;
@@ -123,8 +125,33 @@ const navSections: SidebarSection[] = [
 import { NavUser } from "@/components/layout/nav-user";
 
 function SidebarNavItemComponent({ item, pathname }: { item: SidebarNavItem; pathname: string }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const isItemActive = item.isActive || pathname === item.url || item.items?.some((i) => pathname.startsWith(i.url));
   const [isOpen, setIsOpen] = useState(isItemActive);
+
+  const navigate = (url: string) => {
+    startTransition(() => {
+      if (typeof (React as any).addTransitionType === "function") {
+        (React as any).addTransitionType("nav-forward");
+      }
+      router.push(url);
+    });
+  };
+
+  const prefetch = (url: string) => {
+    if (url === "/") {
+      queryClient.prefetchQuery({
+        queryKey: ["transaction-summary"],
+        queryFn: () => apiClient("/api/transactions/summary"),
+      });
+    } else if (url === "/transactions") {
+      queryClient.prefetchQuery({
+        queryKey: ["transactions", { limit: 15, offset: 0 }],
+        queryFn: () => apiClient("/api/transactions?limit=15&offset=0"),
+      });
+    }
+  };
 
   return (
     <Collapsible key={item.title} open={isOpen} onOpenChange={setIsOpen} render={<SidebarMenuItem />}>
@@ -138,7 +165,8 @@ function SidebarNavItemComponent({ item, pathname }: { item: SidebarNavItem; pat
         <SidebarMenuButton
           isActive={item.isActive || pathname === item.url || (item.url !== "/" && pathname.startsWith(item.url))}
           tooltip={item.title}
-          render={<Link href={item.url} />}
+          onClick={() => navigate(item.url)}
+          onMouseEnter={() => prefetch(item.url)}
         >
           {item.icon}
           <span>{item.title}</span>
@@ -151,7 +179,8 @@ function SidebarNavItemComponent({ item, pathname }: { item: SidebarNavItem; pat
               <SidebarMenuSubItem key={subItem.title}>
                 <SidebarMenuSubButton
                   isActive={pathname === subItem.url || pathname.startsWith(subItem.url)}
-                  render={<Link href={subItem.url} />}
+                  onClick={() => navigate(subItem.url)}
+                  onMouseEnter={() => prefetch(subItem.url)}
                 >
                   {subItem.icon}
                   <span>{subItem.title}</span>
@@ -167,6 +196,16 @@ function SidebarNavItemComponent({ item, pathname }: { item: SidebarNavItem; pat
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const navigateHome = () => {
+    startTransition(() => {
+      if (typeof (React as any).addTransitionType === "function") {
+        (React as any).addTransitionType("nav-back");
+      }
+      router.push("/");
+    });
+  };
 
   return (
     <Sidebar
@@ -180,7 +219,7 @@ export function AppSidebar() {
       style={{ viewTransitionName: "persistent-sidebar" }}
     >
       <SidebarHeader className="h-14 justify-center border-b px-2">
-        <SidebarMenuButton render={<Link href="/" />}>
+        <SidebarMenuButton onClick={navigateHome}>
           <LogoIcon />
           <span className="font-medium">Expent</span>
         </SidebarMenuButton>
