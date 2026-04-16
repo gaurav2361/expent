@@ -3,7 +3,7 @@ use db::AppError;
 use db::entities;
 use db::entities::enums::WalletType;
 use rust_decimal::Decimal;
-use sea_orm::*;
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set};
 
 pub async fn create_wallet(
     db: &DatabaseConnection,

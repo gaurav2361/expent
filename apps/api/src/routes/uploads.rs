@@ -58,9 +58,11 @@ pub async fn direct_upload_handler(
     let mut file_name = String::new();
     let mut content_type = String::new();
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
-        ApiError::BadRequest(format!("Multipart next_field error: {:?}", e))
-    })? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| ApiError::BadRequest(format!("Multipart next_field error: {:?}", e)))?
+    {
         let name = field.name().unwrap_or_default().to_string();
         tracing::debug!("📦 Processing multipart field: {}", name);
         if name == "file" {

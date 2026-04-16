@@ -2,7 +2,7 @@ use chrono::Utc;
 use db::AppError;
 use db::entities;
 use db::entities::enums::GroupRole;
-use sea_orm::*;
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set};
 
 pub async fn create_group(
     db: &DatabaseConnection,

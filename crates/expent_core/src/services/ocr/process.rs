@@ -3,7 +3,10 @@ use db::entities;
 use db::entities::enums::{TransactionDirection, TransactionSource, TransactionStatus};
 use db::{AppError, GPayExtraction, OcrResult, OcrTransactionResponse, ProcessedOcr};
 use rust_decimal::Decimal;
-use sea_orm::*;
+use sea_orm::{
+    ActiveEnum, ActiveModelTrait, ColIdx, ColumnTrait, DatabaseConnection, EntityTrait, Iden,
+    IdenStatic, ModelTrait, QueryFilter, Set, TransactionError, TransactionTrait,
+};
 
 /// Processes OCR data by either merging it with an existing transaction or creating a new one.
 pub async fn process_ocr(
@@ -18,52 +21,52 @@ pub async fn process_ocr(
 
             if processed.doc_type == "GPAY" {
                 let gpay: GPayExtraction = serde_json::from_value(processed.data.0.clone())
-                    .map_err(|e| AppError::Generic(format!("Failed to parse GPay data: {}", e)))?;
+                    .map_err(|e| AppError::Generic(format!("Failed to parse GPay data: {e}")))?;
 
                 let mut contact_id = gpay.contact_id.clone();
                 let wallet_id = gpay.wallet_id.clone();
                 let category_id = gpay.category_id.clone();
 
                 // 2.6 Auto-Contact Creation Logic (only if contact_id was not explicitly provided)
-                if contact_id.is_none() {
-                    if let Some(upi_id) = &gpay.counterparty_upi_id {
-                        // Check if identifier exists
-                        let identifier = entities::contact_identifiers::Entity::find()
-                            .filter(entities::contact_identifiers::Column::Value.eq(upi_id))
-                            .one(txn_db)
-                            .await?;
+                if contact_id.is_none()
+                    && let Some(upi_id) = &gpay.counterparty_upi_id
+                {
+                    // Check if identifier exists
+                    let identifier = entities::contact_identifiers::Entity::find()
+                        .filter(entities::contact_identifiers::Column::Value.eq(upi_id))
+                        .one(txn_db)
+                        .await?;
 
-                        if let Some(ident) = identifier {
-                            contact_id = Some(ident.contact_id);
-                        } else {
-                            // Create new contact
-                            let new_contact = entities::contacts::ActiveModel {
-                                id: Set(uuid::Uuid::now_v7().to_string()),
-                                name: Set(gpay.counterparty_name.clone()),
-                                phone: Set(gpay.counterparty_phone.clone()),
-                                is_pinned: Set(false),
-                            };
-                            let c_result = new_contact.insert(txn_db).await?;
-                            contact_id = Some(c_result.id.clone());
-                            contact_created = true;
+                    if let Some(ident) = identifier {
+                        contact_id = Some(ident.contact_id);
+                    } else {
+                        // Create new contact
+                        let new_contact = entities::contacts::ActiveModel {
+                            id: Set(uuid::Uuid::now_v7().to_string()),
+                            name: Set(gpay.counterparty_name.clone()),
+                            phone: Set(gpay.counterparty_phone.clone()),
+                            is_pinned: Set(false),
+                        };
+                        let c_result = new_contact.insert(txn_db).await?;
+                        contact_id = Some(c_result.id.clone());
+                        contact_created = true;
 
-                            // Create identifier
-                            let new_ident = entities::contact_identifiers::ActiveModel {
-                                id: Set(uuid::Uuid::now_v7().to_string()),
-                                contact_id: Set(c_result.id.clone()),
-                                r#type: Set("UPI".to_string()),
-                                value: Set(upi_id.clone()),
-                                linked_user_id: Set(None),
-                            };
-                            new_ident.insert(txn_db).await?;
+                        // Create identifier
+                        let new_ident = entities::contact_identifiers::ActiveModel {
+                            id: Set(uuid::Uuid::now_v7().to_string()),
+                            contact_id: Set(c_result.id.clone()),
+                            r#type: Set("UPI".to_string()),
+                            value: Set(upi_id.clone()),
+                            linked_user_id: Set(None),
+                        };
+                        new_ident.insert(txn_db).await?;
 
-                            // Create link for user
-                            let new_link = entities::contact_links::ActiveModel {
-                                user_id: Set(user_id.to_string()),
-                                contact_id: Set(c_result.id),
-                            };
-                            new_link.insert(txn_db).await?;
-                        }
+                        // Create link for user
+                        let new_link = entities::contact_links::ActiveModel {
+                            user_id: Set(user_id.clone()),
+                            contact_id: Set(c_result.id),
+                        };
+                        new_link.insert(txn_db).await?;
                     }
                 }
 
@@ -94,7 +97,7 @@ pub async fn process_ocr(
 
                 let txn = entities::transactions::ActiveModel {
                     id: Set(uuid::Uuid::now_v7().to_string()),
-                    user_id: Set(user_id.to_string()),
+                    user_id: Set(user_id.clone()),
                     amount: Set(gpay.amount),
                     direction: Set(direction),
                     date: Set(date),
@@ -173,10 +176,8 @@ pub async fn process_ocr(
                 })
             } else {
                 // Generic OCR path
-                let generic: OcrResult =
-                    serde_json::from_value(processed.data.0.clone()).map_err(|e| {
-                        AppError::Generic(format!("Failed to parse Generic data: {}", e))
-                    })?;
+                let generic: OcrResult = serde_json::from_value(processed.data.0.clone())
+                    .map_err(|e| AppError::Generic(format!("Failed to parse Generic data: {e}")))?;
 
                 let contact_id = generic.contact_id.clone();
                 let wallet_id = generic.wallet_id.clone();
@@ -186,7 +187,7 @@ pub async fn process_ocr(
 
                 let txn = entities::transactions::ActiveModel {
                     id: Set(uuid::Uuid::now_v7().to_string()),
-                    user_id: Set(user_id.to_string()),
+                    user_id: Set(user_id.clone()),
                     amount: Set(amount),
                     direction: Set(TransactionDirection::Out),
                     date: Set(generic.date.unwrap_or_else(|| Utc::now().into())),

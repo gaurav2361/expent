@@ -77,12 +77,9 @@ pub async fn upload_avatar_handler(
                 ));
             }
 
-            file_data = Some(
-                field
-                    .bytes()
-                    .await
-                    .map_err(|e| ApiError::Internal(format!("Failed to read multipart bytes: {:?}", e)))?,
-            );
+            file_data = Some(field.bytes().await.map_err(|e| {
+                ApiError::Internal(format!("Failed to read multipart bytes: {:?}", e))
+            })?);
             break;
         }
     }

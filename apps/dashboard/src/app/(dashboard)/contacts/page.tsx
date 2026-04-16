@@ -1,6 +1,7 @@
 "use client";
 
 import type { Contact } from "@expent/types";
+import { Alert, AlertDescription, AlertTitle } from "@expent/ui/components/alert";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import {
@@ -14,10 +15,21 @@ import {
 } from "@expent/ui/components/dialog";
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
-import { ChevronRightIcon, PhoneIcon, PinIcon, PlusIcon, SearchIcon, UserIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
+import type { UseMutationResult } from "@tanstack/react-query";
+import {
+  AlertCircleIcon,
+  ChevronRightIcon,
+  GitMergeIcon,
+  PhoneIcon,
+  PinIcon,
+  PlusIcon,
+  SearchIcon,
+  UserIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { useContacts } from "@/hooks/use-contacts";
+import { useContacts, useMergeContacts } from "@/hooks/use-contacts";
 
 export default function ContactsPage() {
   const router = useRouter();
@@ -27,6 +39,7 @@ export default function ContactsPage() {
   const [newPhone, setNewPhone] = React.useState("");
 
   const { contacts, isLoading, createMutation, updateMutation } = useContacts();
+  const { suggestions, mergeMutation } = useMergeContacts();
 
   const handleCreate = () => {
     createMutation.mutate(
@@ -108,6 +121,10 @@ export default function ContactsPage() {
           onChange={(e) => setSearchSearchQuery(e.target.value)}
         />
       </div>
+
+      {suggestions && suggestions.length > 0 && (
+        <MergeSuggestionsBanner suggestions={suggestions} mergeMutation={mergeMutation} />
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -207,5 +224,120 @@ function ContactCard({ contact, onPin, onClick }: { contact: Contact; onPin: () 
         </div>
       </CardHeader>
     </Card>
+  );
+}
+
+function MergeSuggestionsBanner({
+  suggestions,
+  mergeMutation,
+}: {
+  suggestions: { contacts: Contact[]; reason: string }[];
+  mergeMutation: UseMutationResult<Contact, Error, { primary_id: string; secondary_id: string }, unknown>;
+}) {
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = React.useState<{ contacts: Contact[]; reason: string } | null>(
+    null,
+  );
+  const [primaryId, setPrimaryId] = React.useState<string | null>(null);
+  const [showAll, setShowAll] = React.useState(false);
+
+  const handleOpenMerge = (suggestion: { contacts: Contact[]; reason: string }) => {
+    setSelectedSuggestion(suggestion);
+    setPrimaryId(suggestion.contacts[0].id);
+    setIsDialogOpen(true);
+  };
+
+  const handleMerge = () => {
+    if (!selectedSuggestion || !primaryId) return;
+
+    const secondaryId = selectedSuggestion.contacts.find((c: Contact) => c.id !== primaryId)?.id;
+    if (!secondaryId) return;
+
+    mergeMutation.mutate(
+      { primary_id: primaryId, secondary_id: secondaryId },
+      {
+        onSuccess: () => {
+          setIsDialogOpen(false);
+          setSelectedSuggestion(null);
+        },
+      },
+    );
+  };
+
+  return (
+    <Alert className="bg-primary/5 border-primary/20">
+      <AlertCircleIcon className="h-4 w-4 text-primary" />
+      <AlertTitle className="text-primary font-medium">Merge Contacts ({suggestions.length})</AlertTitle>
+      <AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <span className="text-sm">
+          We found duplicate or similar contacts. Merging them keeps your transactions clean.
+        </span>
+        <div className="flex gap-2 flex-wrap">
+          {suggestions.slice(0, showAll ? suggestions.length : 2).map((s, _idx) => (
+            <Button
+              key={`${s.contacts[0].id}-${s.contacts[1].id}`}
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenMerge(s)}
+              className="gap-2 bg-background"
+            >
+              <GitMergeIcon className="h-3 w-3" />
+              Merge "{s.contacts[0].name}"
+            </Button>
+          ))}
+          {suggestions.length > 2 && !showAll && (
+            <Button variant="ghost" size="sm" onClick={() => setShowAll(true)} className="text-primary text-xs">
+              View {suggestions.length - 2} more...
+            </Button>
+          )}
+        </div>
+      </AlertDescription>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Merge Contacts</DialogTitle>
+            <DialogDescription>
+              Reason: {selectedSuggestion?.reason}. Choose which contact to keep as the primary. The other will be
+              merged into it and deleted. All transactions and identifiers will be preserved.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedSuggestion && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Primary Contact to Keep</Label>
+                <Select value={primaryId} onValueChange={setPrimaryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select primary contact">
+                      {selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.name}{" "}
+                      {selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.phone
+                        ? `(${selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.phone})`
+                        : ""}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedSuggestion.contacts.map((c: Contact) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} {c.phone ? `(${c.phone})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleMerge} disabled={!primaryId || mergeMutation.isPending}>
+              {mergeMutation.isPending ? "Merging..." : "Accept & Merge"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Alert>
   );
 }

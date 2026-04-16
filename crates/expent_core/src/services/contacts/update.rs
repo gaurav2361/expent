@@ -1,6 +1,6 @@
 use db::AppError;
 use db::entities;
-use sea_orm::*;
+use sea_orm::{ActiveEnum, ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set};
 
 pub async fn update_contact(
     db: &DatabaseConnection,

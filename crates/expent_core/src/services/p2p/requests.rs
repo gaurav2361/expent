@@ -5,7 +5,10 @@ use db::entities::enums::{
 };
 use db::{AppError, P2PRequestWithSender};
 use rust_decimal::Decimal;
-use sea_orm::*;
+use sea_orm::{
+    ActiveEnum, ActiveModelTrait, ColIdx, ColumnTrait, DatabaseConnection, EntityTrait, Iden,
+    IdenStatic, QueryFilter, Set,
+};
 use std::str::FromStr;
 
 pub async fn list_pending_p2p_requests(
@@ -40,7 +43,7 @@ pub async fn create_p2p_request(
         .ok_or_else(|| AppError::not_found("Transaction not found"))?;
 
     let txn_json = serde_json::to_value(&txn)
-        .map_err(|e| AppError::Generic(format!("Failed to serialize transaction: {}", e)))?;
+        .map_err(|e| AppError::Generic(format!("Failed to serialize transaction: {e}")))?;
 
     let request = entities::p2p_requests::ActiveModel {
         id: Set(uuid::Uuid::now_v7().to_string()),
@@ -72,7 +75,7 @@ pub async fn accept_p2p_request(
 
     if request.status == P2PRequestStatus::GroupInvite.to_string() {
         let metadata: serde_json::Value = serde_json::from_value(request.transaction_data.clone())
-            .map_err(|e| AppError::Generic(format!("Failed to parse invite data: {}", e)))?;
+            .map_err(|e| AppError::Generic(format!("Failed to parse invite data: {e}")))?;
 
         let group_id = metadata["group_id"]
             .as_str()
@@ -91,7 +94,7 @@ pub async fn accept_p2p_request(
     }
 
     let original_txn: serde_json::Value = serde_json::from_value(request.transaction_data.clone())
-        .map_err(|e| AppError::Generic(format!("Failed to parse transaction data: {}", e)))?;
+        .map_err(|e| AppError::Generic(format!("Failed to parse transaction data: {e}")))?;
 
     let mirrored_txn = entities::transactions::ActiveModel {
         id: Set(uuid::Uuid::now_v7().to_string()),
@@ -104,15 +107,16 @@ pub async fn accept_p2p_request(
         date: Set(original_txn["date"]
             .as_str()
             .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-            .map(|d| {
-                d.with_timezone(&chrono::FixedOffset::east_opt(0).unwrap())
-                    .into()
-            })
-            .unwrap_or_else(|| Utc::now().into())),
+            .map_or_else(
+                || Utc::now().into(),
+                |d| d.with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()),
+            )),
         source: Set(TransactionSource::P2p),
         status: Set(TransactionStatus::Completed),
         category_id: Set(None),
-        purpose_tag: Set(original_txn["purpose"].as_str().map(|s| s.to_string())),
+        purpose_tag: Set(original_txn["purpose"]
+            .as_str()
+            .map(std::string::ToString::to_string)),
         group_id: Set(None),
         source_wallet_id: Set(None),
         destination_wallet_id: Set(None),

@@ -1,7 +1,7 @@
 use db::AppError;
 use db::entities;
 use db::entities::enums::TransactionStatus;
-use sea_orm::*;
+use sea_orm::ConnectionTrait;
 
 /// Adjusts wallet balances based on a transaction's change.
 /// This reverses the effect of the old transaction (if any) and applies the effect of the new transaction (if any).

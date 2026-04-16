@@ -2,7 +2,7 @@ use chrono::{DateTime, FixedOffset};
 use db::AppError;
 use db::entities;
 use rust_decimal::Decimal;
-use sea_orm::*;
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set};
 
 pub async fn upload_statement(
     db: &DatabaseConnection,
@@ -21,7 +21,7 @@ pub async fn upload_statement(
     let row = entities::bank_statement_rows::ActiveModel {
         id: Set(uuid::Uuid::now_v7().to_string()),
         user_id: Set(user_id.to_string()),
-        date: Set(date.into()),
+        date: Set(date),
         description: Set(description),
         debit: Set(debit),
         credit: Set(credit),
