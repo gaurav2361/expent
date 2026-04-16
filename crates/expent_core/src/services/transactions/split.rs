@@ -1,7 +1,7 @@
 use db::entities;
 use db::entities::enums::P2PRequestStatus;
 use db::{AppError, SplitDetail};
-use sea_orm::{DatabaseConnection, EntityTrait, Iden, ActiveModelBehavior, Set, ActiveModelTrait};
+use sea_orm::{ActiveModelBehavior, ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set};
 
 /// Splits a transaction among multiple receivers.
 pub async fn split_transaction(

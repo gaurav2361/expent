@@ -238,7 +238,7 @@ function MergeSuggestionsBanner({
   const [selectedSuggestion, setSelectedSuggestion] = React.useState<{ contacts: Contact[]; reason: string } | null>(
     null,
   );
-  const [primaryId, setPrimaryId] = React.useState<string>("");
+  const [primaryId, setPrimaryId] = React.useState<string | null>(null);
   const [showAll, setShowAll] = React.useState(false);
 
   const handleOpenMerge = (suggestion: { contacts: Contact[]; reason: string }) => {

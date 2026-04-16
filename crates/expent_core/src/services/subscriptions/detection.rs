@@ -3,7 +3,9 @@ use db::AppError;
 use db::entities;
 use db::entities::enums::SubscriptionCycle;
 use rust_decimal::Decimal;
-use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait, ActiveModelBehavior, Iden};
+use sea_orm::{
+    ActiveModelBehavior, ColumnTrait, DatabaseConnection, EntityTrait, Iden, QueryFilter,
+};
 use std::collections::HashMap;
 
 pub async fn detect_subscriptions(

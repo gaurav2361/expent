@@ -3,7 +3,10 @@ use db::AppError;
 use db::entities;
 use db::entities::enums::{TransactionDirection, TransactionSource, TransactionStatus};
 use rust_decimal::Decimal;
-use sea_orm::{DatabaseConnection, Iden, TransactionTrait, Set, EntityTrait, ActiveModelTrait, TransactionError};
+use sea_orm::{
+    ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set, TransactionError,
+    TransactionTrait,
+};
 
 pub async fn create_transaction(
     db: &DatabaseConnection,

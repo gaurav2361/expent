@@ -2,7 +2,7 @@ use chrono::Utc;
 use db::AppError;
 use db::entities;
 use rust_decimal::Decimal;
-use sea_orm::{ConnectionTrait, EntityTrait, Iden, Set, ActiveModelTrait};
+use sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait, Iden, Set};
 
 pub async fn adjust_balance<C>(db: &C, wallet_id: &str, amount: Decimal) -> Result<(), AppError>
 where

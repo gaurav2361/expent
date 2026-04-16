@@ -1,9 +1,9 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{DatabaseConnection, QueryFilter, EntityTrait, ColumnTrait};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
-use strsim::jaro_winkler;
 use std::collections::{HashMap, HashSet};
+use strsim::jaro_winkler;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MergeSuggestion {
@@ -48,9 +48,13 @@ pub async fn get_merge_suggestions(
         .await?;
 
     // Pre-process identifiers into a HashMap for O(1) average-case lookups
-    let mut identifiers_map: HashMap<String, Vec<entities::contact_identifiers::Model>> = HashMap::with_capacity(identifiers.len());
+    let mut identifiers_map: HashMap<String, Vec<entities::contact_identifiers::Model>> =
+        HashMap::with_capacity(identifiers.len());
     for id in identifiers {
-        identifiers_map.entry(id.contact_id.clone()).or_default().push(id);
+        identifiers_map
+            .entry(id.contact_id.clone())
+            .or_default()
+            .push(id);
     }
 
     let mut suggestions: Vec<MergeSuggestion> = Vec::new();
