@@ -11,6 +11,7 @@ export function useCategories() {
     queryKey: ["categories"],
     queryFn: () => apiClient<Category[]>("/api/categories"),
     enabled: !!session.data,
+    staleTime: 1000 * 60 * 60, // 1 hour
   });
 
   const createMutation = useMutation({
