@@ -1,4 +1,4 @@
-import type { Transaction, TransactionWithDetail } from "@expent/types";
+import type { PaginatedTransactions, Transaction, TransactionWithDetail, DashboardSummary } from "@expent/types";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
@@ -15,7 +15,7 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
       if (params.limit) searchParams.append("limit", params.limit.toString());
       if (params.offset) searchParams.append("offset", params.offset.toString());
       const queryString = searchParams.toString();
-      return apiClient<TransactionWithDetail[]>(`/api/transactions${queryString ? `?${queryString}` : ""}`);
+      return apiClient<PaginatedTransactions>(`/api/transactions${queryString ? `?${queryString}` : ""}`);
     },
     enabled: !!session.data,
   });
@@ -39,6 +39,7 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-summary"] });
       toast.success("Transaction updated");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -52,16 +53,38 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-summary"] });
       toast.success("Transaction deleted");
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   return {
-    transactions: query.data,
+    transactions: query.data?.items,
+    totalCount: query.data?.total_count || 0,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     error: query.error,
     updateMutation,
     deleteMutation,
+  };
+}
+
+export function useTransactionSummary() {
+  const session = useSession();
+
+  const query = useQuery({
+    queryKey: ["transaction-summary"],
+    queryFn: () => apiClient<DashboardSummary>("/api/transactions/summary"),
+    enabled: !!session.data,
+    staleTime: 1000 * 60, // 1 minute
+  });
+
+  return {
+    summary: query.data,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error,
+    refetch: query.refetch,
   };
 }

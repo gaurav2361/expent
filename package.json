@@ -21,6 +21,7 @@
     "app:android": "pnpm --filter @expent/app android",
     "app:emulator": "pnpm --filter @expent/app emulator",
     "db:seed": "uv run --with requests python scripts/seed.py",
+    "skills:install": "pnpm dlx skills experimental_install",
     "prepare": "husky"
   },
   "devDependencies": {

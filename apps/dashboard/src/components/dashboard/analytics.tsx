@@ -1,100 +1,48 @@
 "use client";
 
-import type { TransactionWithDetail } from "@expent/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expent/ui/components/card";
 import { BarChart3Icon, TrendingDownIcon, TrendingUpIcon, WalletIcon } from "lucide-react";
 import * as React from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useTransactions } from "@/hooks/use-transactions";
+import { useTransactionSummary } from "@/hooks/use-transactions";
 
 export function Analytics() {
-  const { transactions } = useTransactions();
+  const { summary, isLoading } = useTransactionSummary();
 
   // Weekly income + expense area chart (last 7 days)
   const weeklyData = React.useMemo(() => {
-    if (!transactions) return [];
-    const now = new Date();
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const map = new Map<string, { income: number; expense: number }>();
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      map.set(days[d.getDay()], { income: 0, expense: 0 });
-    }
-
-    transactions.forEach((txn: TransactionWithDetail) => {
-      const d = new Date(txn.date);
-      const daysSince = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSince >= 0 && daysSince < 7) {
-        const key = days[d.getDay()];
-        const entry = map.get(key);
-        if (entry) {
-          const amt = parseFloat(txn.amount);
-          if (txn.direction === "IN") entry.income += amt;
-          else entry.expense += amt;
-        }
-      }
-    });
-
-    return Array.from(map.entries()).map(([name, vals]) => ({
-      name,
-      income: Math.round(vals.income),
-      expense: Math.round(vals.expense),
+    if (!summary) return [];
+    return summary.weekly_trends.map((t) => ({
+      name: t.month,
+      income: parseFloat(t.income as any),
+      expense: parseFloat(t.expense as any),
     }));
-  }, [transactions]);
+  }, [summary]);
 
-  // Summary metrics
-  const metrics = React.useMemo(() => {
-    if (!transactions) return { totalIncome: 0, totalExpense: 0, txnCount: 0, avgTxn: 0 };
-    let totalIncome = 0;
-    let totalExpense = 0;
+  if (isLoading) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="h-[400px] bg-muted rounded-xl" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-muted rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-    transactions.forEach((txn: TransactionWithDetail) => {
-      const amt = parseFloat(txn.amount);
-      if (txn.direction === "IN") totalIncome += amt;
-      else totalExpense += amt;
-    });
+  if (!summary) return null;
 
-    return {
-      totalIncome,
-      totalExpense,
-      txnCount: transactions.length,
-      avgTxn: transactions.length > 0 ? (totalIncome + totalExpense) / transactions.length : 0,
-    };
-  }, [transactions]);
-
-  // Top expense sources (by contact or description)
-  const topExpenses = React.useMemo(() => {
-    if (!transactions) return [];
-    const map = new Map<string, number>();
-    transactions.forEach((txn: TransactionWithDetail) => {
-      if (txn.direction === "OUT") {
-        const key = ((txn as Record<string, unknown>).contact_name as string) || txn.source || "Unknown";
-        map.set(key, (map.get(key) || 0) + parseFloat(txn.amount));
-      }
-    });
-    return Array.from(map.entries())
-      .map(([name, value]) => ({ name, value: Math.round(value) }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
-  }, [transactions]);
-
-  // Top income sources
-  const topIncome = React.useMemo(() => {
-    if (!transactions) return [];
-    const map = new Map<string, number>();
-    transactions.forEach((txn: TransactionWithDetail) => {
-      if (txn.direction === "IN") {
-        const key = ((txn as Record<string, unknown>).contact_name as string) || txn.source || "Unknown";
-        map.set(key, (map.get(key) || 0) + parseFloat(txn.amount));
-      }
-    });
-    return Array.from(map.entries())
-      .map(([name, value]) => ({ name, value: Math.round(value) }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
-  }, [transactions]);
+  const metrics = {
+    totalIncome: parseFloat(summary.monthly_income as any),
+    totalExpense: parseFloat(summary.monthly_spend as any),
+    txnCount: summary.total_transactions,
+    avgTxn:
+      summary.total_transactions > 0
+        ? (parseFloat(summary.monthly_income as any) + parseFloat(summary.monthly_spend as any)) / 10
+        : 0,
+  };
 
   return (
     <div className="space-y-4">
@@ -146,48 +94,48 @@ export function Analytics() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+            <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
             <TrendingUpIcon className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">
               ₹{metrics.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-muted-foreground">All time earnings</p>
+            <p className="text-xs text-muted-foreground">Earnings this month</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
             <TrendingDownIcon className="h-4 w-4 text-rose-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-rose-600">
               ₹{metrics.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-muted-foreground">All time spending</p>
+            <p className="text-xs text-muted-foreground">Spending this month</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
             <BarChart3Icon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.txnCount}</div>
-            <p className="text-xs text-muted-foreground">Total recorded</p>
+            <p className="text-xs text-muted-foreground">Lifetime recorded</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Transaction</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
             <WalletIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{metrics.avgTxn.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ₹{parseFloat(summary.total_balance as any).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-muted-foreground">Mean value per transaction</p>
+            <p className="text-xs text-muted-foreground">Across all wallets</p>
           </CardContent>
         </Card>
       </div>
@@ -197,11 +145,11 @@ export function Analytics() {
         <Card className="col-span-1 lg:col-span-4">
           <CardHeader>
             <CardTitle>Top Expenses</CardTitle>
-            <CardDescription>Highest spending contacts/sources</CardDescription>
+            <CardDescription>Highest spending contacts</CardDescription>
           </CardHeader>
           <CardContent>
             <SimpleBarList
-              items={topExpenses}
+              items={summary.top_expenses.map((e) => ({ name: e.name, value: parseFloat(e.amount as any) }))}
               barClass="bg-rose-500"
               valueFormatter={(n) => `₹${n.toLocaleString()}`}
             />
@@ -210,11 +158,11 @@ export function Analytics() {
         <Card className="col-span-1 lg:col-span-3">
           <CardHeader>
             <CardTitle>Top Income</CardTitle>
-            <CardDescription>Highest earning contacts/sources</CardDescription>
+            <CardDescription>Highest earning contacts</CardDescription>
           </CardHeader>
           <CardContent>
             <SimpleBarList
-              items={topIncome}
+              items={summary.top_income.map((e) => ({ name: e.name, value: parseFloat(e.amount as any) }))}
               barClass="bg-emerald-500"
               valueFormatter={(n) => `₹${n.toLocaleString()}`}
             />
@@ -242,10 +190,10 @@ function SimpleBarList({
 
   return (
     <ul className="space-y-3">
-      {items.map((i) => {
+      {items.map((i, index) => {
         const width = `${Math.round((i.value / max) * 100)}%`;
         return (
-          <li key={i.name} className="flex items-center justify-between gap-3">
+          <li key={`bar-${index}-${i.name}`} className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="mb-1 truncate text-xs text-muted-foreground">{i.name}</div>
               <div className="h-2.5 w-full rounded-full bg-muted">

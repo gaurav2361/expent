@@ -21,6 +21,7 @@
       "!**/.turbo",
       "!**/.vinxi",
       "!**/.nitro",
+      "!**/.agents",
       "!**/*/build",
       "!**/.agents",
       "!**/.tanstack",

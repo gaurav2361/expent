@@ -150,4 +150,68 @@ pub struct TransactionWithDetail {
     pub destination_wallet_name: Option<String>,
     pub contact_name: Option<String>,
     pub contact_id: Option<String>,
+    pub category_name: Option<String>,
+}
+
+/// Paginated response for transactions.
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "PaginatedTransactions",
+    export_to = "../../../packages/types/src/db/PaginatedTransactions.ts"
+)]
+pub struct PaginatedTransactions {
+    pub items: Vec<TransactionWithDetail>,
+    pub total_count: u64,
+}
+
+/// Trend data for a single month.
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "MonthlyTrend",
+    export_to = "../../../packages/types/src/db/MonthlyTrend.ts"
+)]
+pub struct MonthlyTrend {
+    pub month: String,
+    #[ts(type = "string")]
+    pub income: Decimal,
+    #[ts(type = "string")]
+    pub expense: Decimal,
+}
+
+/// Distribution of expenses by category or contact.
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "NamedAmount",
+    export_to = "../../../packages/types/src/db/NamedAmount.ts"
+)]
+pub struct NamedAmount {
+    pub name: String,
+    #[ts(type = "string")]
+    pub amount: Decimal,
+}
+
+/// Summary data for the dashboard.
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "DashboardSummary",
+    export_to = "../../../packages/types/src/db/DashboardSummary.ts"
+)]
+pub struct DashboardSummary {
+    #[ts(type = "string")]
+    pub total_balance: Decimal,
+    #[ts(type = "string")]
+    pub monthly_spend: Decimal,
+    #[ts(type = "string")]
+    pub monthly_income: Decimal,
+    pub pending_p2p_count: u64,
+    pub total_transactions: u64,
+    pub monthly_trends: Vec<MonthlyTrend>,
+    pub weekly_trends: Vec<MonthlyTrend>, // Reuse MonthlyTrend for weekly too
+    pub category_distribution: Vec<NamedAmount>,
+    pub top_expenses: Vec<NamedAmount>,
+    pub top_income: Vec<NamedAmount>,
 }
