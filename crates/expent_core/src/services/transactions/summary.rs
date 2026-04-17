@@ -37,6 +37,7 @@ pub async fn get_dashboard_summary(
     let now = Utc::now();
     let start_of_month = Utc
         .with_ymd_and_hms(now.year(), now.month(), 1, 0, 0, 0)
+        .latest()
         .expect("Valid start of month");
 
     #[derive(FromQueryResult)]
@@ -99,13 +100,16 @@ pub async fn get_dashboard_summary(
 
         let start = Utc
             .with_ymd_and_hms(year_offset, month_offset, 1, 0, 0, 0)
-            .expect("Valid month range");
+            .latest()
+            .expect("Valid start of month");
         let end = if month_offset == 12 {
             Utc.with_ymd_and_hms(year_offset + 1, 1, 1, 0, 0, 0)
-                .expect("Valid month range")
+                .latest()
+                .expect("Valid start of next year")
         } else {
             Utc.with_ymd_and_hms(year_offset, month_offset + 1, 1, 0, 0, 0)
-                .expect("Valid month range")
+                .latest()
+                .expect("Valid start of next month")
         };
 
         let inc: Option<Decimal> = entities::transactions::Entity::find()

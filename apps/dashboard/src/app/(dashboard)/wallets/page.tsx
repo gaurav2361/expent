@@ -52,6 +52,25 @@ export default function WalletsPage() {
   const [newBalance, setNewBalance] = React.useState("0");
 
   const { wallets, isLoading, createMutation, updateMutation, deleteMutation } = useWallets();
+  const { transactions } = useTransactions({ limit: 1000 });
+
+  const transactionsByWallet = React.useMemo(() => {
+    const map: Record<string, any[]> = {};
+    if (!transactions) return map;
+
+    for (const txn of transactions) {
+      if (txn.status === "CANCELLED") continue;
+      if (txn.source_wallet_id) {
+        if (!map[txn.source_wallet_id]) map[txn.source_wallet_id] = [];
+        map[txn.source_wallet_id].push(txn);
+      }
+      if (txn.destination_wallet_id) {
+        if (!map[txn.destination_wallet_id]) map[txn.destination_wallet_id] = [];
+        map[txn.destination_wallet_id].push(txn);
+      }
+    }
+    return map;
+  }, [transactions]);
 
   const handleCreate = () => {
     createMutation.mutate(
@@ -160,6 +179,7 @@ export default function WalletsPage() {
             <WalletCard
               key={wallet.id}
               wallet={wallet}
+              walletTransactions={transactionsByWallet[wallet.id] || []}
               onUpdate={(data) => updateMutation.mutate({ id: wallet.id, data })}
               onDelete={() => deleteMutation.mutate(wallet.id)}
             />
@@ -172,45 +192,37 @@ export default function WalletsPage() {
 
 function WalletCard({
   wallet,
+  walletTransactions,
   onUpdate,
   onDelete,
 }: {
   wallet: any;
+  walletTransactions: any[];
   onUpdate: (data: any) => void;
   onDelete: () => void;
 }) {
-  const { transactions } = useTransactions({ limit: 1000 });
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [editName, setEditName] = React.useState(wallet.name);
   const [editBalance, setEditBalance] = React.useState(wallet.balance.toString());
 
   const lastStats = React.useMemo(() => {
-    if (!transactions) return { lastIn: 0, lastOut: 0 };
-
-    const walletTxns = transactions.filter(
-      (txn) =>
-        (txn.source_wallet_id === wallet.id || txn.destination_wallet_id === wallet.id) && txn.status !== "CANCELLED",
-    );
-
-    const lastInTxn = walletTxns.find((txn) => txn.destination_wallet_id === wallet.id);
-    const lastOutTxn = walletTxns.find((txn) => txn.source_wallet_id === wallet.id);
+    const lastInTxn = walletTransactions.find((txn) => txn.destination_wallet_id === wallet.id);
+    const lastOutTxn = walletTransactions.find((txn) => txn.source_wallet_id === wallet.id);
 
     return {
       lastIn: lastInTxn ? parseFloat(lastInTxn.amount) : 0,
       lastOut: lastOutTxn ? parseFloat(lastOutTxn.amount) : 0,
     };
-  }, [transactions, wallet.id]);
+  }, [walletTransactions, wallet.id]);
 
   const calculatedNet = React.useMemo(() => {
-    if (!transactions) return 0;
-    return transactions.reduce((acc, txn) => {
-      if (txn.status === "CANCELLED") return acc;
+    return walletTransactions.reduce((acc, txn) => {
       const amount = parseFloat(txn.amount);
       if (txn.destination_wallet_id === wallet.id) return acc + amount;
       if (txn.source_wallet_id === wallet.id) return acc - amount;
       return acc;
     }, 0);
-  }, [transactions, wallet.id]);
+  }, [walletTransactions, wallet.id]);
 
   const handleEdit = () => {
     onUpdate({ name: editName, balance: parseFloat(editBalance) });

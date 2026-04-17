@@ -307,23 +307,25 @@ function MergeSuggestionsBanner({
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Primary Contact to Keep</Label>
-                <Select value={primaryId} onValueChange={setPrimaryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select primary contact">
-                      {selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.name}{" "}
-                      {selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.phone
-                        ? `(${selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.phone})`
-                        : ""}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedSuggestion.contacts.map((c: Contact) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name} {c.phone ? `(${c.phone})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {(() => {
+                  const primaryContact = selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId);
+                  return (
+                    <Select value={primaryId} onValueChange={setPrimaryId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select primary contact">
+                          {primaryContact?.name} {primaryContact?.phone ? `(${primaryContact.phone})` : ""}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedSuggestion.contacts.map((c: Contact) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} {c.phone ? `(${c.phone})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
             </div>
           )}

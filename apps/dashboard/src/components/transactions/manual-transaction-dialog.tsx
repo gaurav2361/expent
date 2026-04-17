@@ -56,6 +56,9 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
   const { contacts } = useContacts();
   const { categories } = useCategories();
 
+  const selectedWallet = React.useMemo(() => wallets?.find((w) => w.id === walletId), [wallets, walletId]);
+  const selectedContact = React.useMemo(() => contacts?.find((c) => c.id === contactId), [contacts, contactId]);
+
   const createMutation = useMutation({
     mutationFn: () =>
       apiClient("/api/transactions/manual", {
@@ -151,9 +154,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                     {walletId === "none" ? (
                       <span className="text-muted-foreground">Select wallet</span>
                     ) : (
-                      <span className="truncate">
-                        {wallets?.find((w) => w.id === walletId)?.name || "Unknown Wallet"}
-                      </span>
+                      <span className="truncate">{selectedWallet?.name || "Unknown Wallet"}</span>
                     )}
                   </SelectTrigger>
                   <SelectContent>
@@ -188,9 +189,7 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
                     {contactId === "none" ? (
                       <span className="text-muted-foreground">Select contact</span>
                     ) : (
-                      <span className="truncate">
-                        {contacts?.find((c) => c.id === contactId)?.name || "Unknown Contact"}
-                      </span>
+                      <span className="truncate">{selectedContact?.name || "Unknown Contact"}</span>
                     )}
                   </SelectTrigger>
                   <SelectContent>

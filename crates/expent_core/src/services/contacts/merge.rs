@@ -62,22 +62,39 @@ pub async fn merge_contacts(
         .all(&txn)
         .await?;
 
+    let mut to_delete = Vec::new();
+    let mut to_move = Vec::new();
+
     for sec_id in secondary_identifiers {
         let is_duplicate = primary_identifiers
             .iter()
             .any(|p| p.r#type == sec_id.r#type && p.value == sec_id.value);
 
         if is_duplicate {
-            // Delete the duplicate from secondary
-            entities::contact_identifiers::Entity::delete_by_id(sec_id.id)
-                .exec(&txn)
-                .await?;
+            to_delete.push(sec_id.id);
         } else {
-            // Move to primary
-            let mut active_model: entities::contact_identifiers::ActiveModel = sec_id.into();
-            active_model.contact_id = Set(primary_id_owned.clone());
-            active_model.update(&txn).await?;
+            to_move.push(sec_id.id);
         }
+    }
+
+    // Batch delete duplicates
+    if !to_delete.is_empty() {
+        entities::contact_identifiers::Entity::delete_many()
+            .filter(entities::contact_identifiers::Column::Id.is_in(to_delete))
+            .exec(&txn)
+            .await?;
+    }
+
+    // Batch move unique identifiers
+    if !to_move.is_empty() {
+        entities::contact_identifiers::Entity::update_many()
+            .filter(entities::contact_identifiers::Column::Id.is_in(to_move))
+            .col_expr(
+                entities::contact_identifiers::Column::ContactId,
+                Expr::value(primary_id_owned.clone()),
+            )
+            .exec(&txn)
+            .await?;
     }
 
     // 3. Move the phone number if primary doesn't have one and secondary does

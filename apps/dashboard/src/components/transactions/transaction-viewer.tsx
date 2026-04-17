@@ -51,14 +51,16 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
   const { wallets } = useWallets();
   const { contacts } = useContacts();
 
+  const selectedCategory = React.useMemo(() => categories?.find((c) => c.id === categoryId), [categories, categoryId]);
+  const selectedWallet = React.useMemo(() => wallets?.find((w) => w.id === walletId), [wallets, walletId]);
+  const selectedContact = React.useMemo(() => contacts?.find((c) => c.id === contactId), [contacts, contactId]);
+
   const title = source || "Transaction";
   const formattedDate = new Date(item.date).toLocaleDateString("en-IN", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
-
-  const selectedCategoryName = categories?.find((c) => c.id === categoryId)?.name || "Uncategorized";
 
   return (
     <Drawer direction={isMobile ? "bottom" : "right"} open={open} onOpenChange={onOpenChange}>
@@ -164,7 +166,9 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
                 <Label htmlFor="wallet">Wallet</Label>
                 <Select value={walletId} onValueChange={(val) => setWalletId(val || "none")}>
                   <SelectTrigger id="wallet" className="w-full">
-                    <SelectValue placeholder="Select wallet" />
+                    <SelectValue placeholder="Select wallet">
+                      {walletId === "none" ? "No Wallet" : selectedWallet?.name}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No Wallet</SelectItem>
@@ -180,7 +184,9 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
                 <Label htmlFor="contact">Person</Label>
                 <Select value={contactId} onValueChange={(val) => setContactId(val || "none")}>
                   <SelectTrigger id="contact" className="w-full">
-                    <SelectValue placeholder="Select contact" />
+                    <SelectValue placeholder="Select contact">
+                      {contactId === "none" ? "No Contact" : selectedContact?.name}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No Contact</SelectItem>
@@ -199,7 +205,9 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
                 <Label htmlFor="category">Category</Label>
                 <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "none")}>
                   <SelectTrigger id="category" className="w-full">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Select category">
+                      {categoryId === "none" ? "Uncategorized" : selectedCategory?.name}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Uncategorized</SelectItem>

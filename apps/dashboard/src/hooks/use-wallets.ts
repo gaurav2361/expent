@@ -12,6 +12,7 @@ export function useWallets() {
     queryKey: ["wallets"],
     queryFn: () => apiClient<Wallet[]>("/api/wallets"),
     enabled: !!session.data,
+    staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
   const createMutation = useMutation({
