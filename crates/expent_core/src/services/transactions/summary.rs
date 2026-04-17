@@ -37,7 +37,7 @@ pub async fn get_dashboard_summary(
     let now = Utc::now();
     let start_of_month = Utc
         .with_ymd_and_hms(now.year(), now.month(), 1, 0, 0, 0)
-        .unwrap();
+        .expect("Valid start of month");
 
     #[derive(FromQueryResult)]
     struct SumResult {
@@ -99,13 +99,13 @@ pub async fn get_dashboard_summary(
 
         let start = Utc
             .with_ymd_and_hms(year_offset, month_offset, 1, 0, 0, 0)
-            .unwrap();
+            .expect("Valid month range");
         let end = if month_offset == 12 {
             Utc.with_ymd_and_hms(year_offset + 1, 1, 1, 0, 0, 0)
-                .unwrap()
+                .expect("Valid month range")
         } else {
             Utc.with_ymd_and_hms(year_offset, month_offset + 1, 1, 0, 0, 0)
-                .unwrap()
+                .expect("Valid month range")
         };
 
         let inc: Option<Decimal> = entities::transactions::Entity::find()
@@ -146,11 +146,11 @@ pub async fn get_dashboard_summary(
     for i in (0..7).rev() {
         let start = (Utc::now() - Duration::days(i as i64))
             .with_hour(0)
-            .unwrap()
+            .expect("Valid hour")
             .with_minute(0)
-            .unwrap()
+            .expect("Valid minute")
             .with_second(0)
-            .unwrap();
+            .expect("Valid second");
         let end = start + Duration::days(1);
 
         let inc: Option<Decimal> = entities::transactions::Entity::find()
