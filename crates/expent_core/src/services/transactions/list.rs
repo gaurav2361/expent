@@ -2,7 +2,7 @@ use db::entities;
 use db::{AppError, PaginatedTransactions, TransactionWithDetail};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, JoinType, PaginatorTrait, QueryFilter,
-    QueryOrder, QuerySelect, RelationTrait,
+    QueryOrder, QuerySelect,
 };
 
 pub async fn list_transactions(

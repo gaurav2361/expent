@@ -12,6 +12,7 @@ export function useContacts() {
     queryKey: ["contacts"],
     queryFn: () => apiClient<Contact[]>("/api/contacts"),
     enabled: !!session.data,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const createMutation = useMutation({
@@ -106,6 +107,7 @@ export function useContactDetail(id: string) {
         transactions: Transaction[];
       }>(`/api/contacts/${id}`),
     enabled: !!id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const addIdentifierMutation = useMutation({

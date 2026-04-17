@@ -18,6 +18,7 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
       return apiClient<PaginatedTransactions>(`/api/transactions${queryString ? `?${queryString}` : ""}`);
     },
     enabled: !!session.data,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
   const updateMutation = useMutation({
@@ -77,7 +78,7 @@ export function useTransactionSummary() {
     queryKey: ["transaction-summary"],
     queryFn: () => apiClient<DashboardSummary>("/api/transactions/summary"),
     enabled: !!session.data,
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   return {

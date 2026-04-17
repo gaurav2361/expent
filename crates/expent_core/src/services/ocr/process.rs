@@ -4,8 +4,8 @@ use db::entities::enums::{TransactionDirection, TransactionSource, TransactionSt
 use db::{AppError, GPayExtraction, OcrResult, OcrTransactionResponse, ProcessedOcr};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveEnum, ActiveModelTrait, ColIdx, ColumnTrait, DatabaseConnection, EntityTrait, Iden,
-    IdenStatic, ModelTrait, QueryFilter, Set, TransactionError, TransactionTrait,
+    ActiveEnum, ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, QueryFilter,
+    Set, TransactionError, TransactionTrait,
 };
 
 /// Processes OCR data by either merging it with an existing transaction or creating a new one.
