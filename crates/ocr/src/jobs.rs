@@ -1,12 +1,10 @@
-use crate::OcrUpdate;
 use crate::OcrService;
+use crate::OcrUpdate;
 use chrono::Utc;
 use db::AppError;
 use db::entities;
 use rand::Rng;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
 use upload::UploadClient;
 
@@ -159,7 +157,9 @@ pub trait OcrProcessor: Send + Sync {
         db: &DatabaseConnection,
         user_id: &str,
         processed: db::ProcessedOcr,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<db::OcrTransactionResponse, AppError>> + Send>>;
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<db::OcrTransactionResponse, AppError>> + Send>,
+    >;
 }
 
 pub async fn process_job(
@@ -302,7 +302,10 @@ pub async fn process_job(
                 }
             }
 
-            match processor.process_ocr(db, &user_id, processed_ocr.clone()).await {
+            match processor
+                .process_ocr(db, &user_id, processed_ocr.clone())
+                .await
+            {
                 Ok(res) => {
                     transaction_id = Some(res.transaction.id);
                 }

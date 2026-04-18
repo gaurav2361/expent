@@ -7,6 +7,7 @@ use expent_core::ocr;
 use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
+use std::sync::Arc;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
@@ -26,7 +27,7 @@ pub async fn ocr_stream_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let mut rx = state.ocr_tx.subscribe();
+    let mut rx = state.core.ocr_manager.ocr_tx.subscribe();
     let user_id = session.user.id.clone();
 
     let stream = async_stream::stream! {
@@ -89,18 +90,20 @@ pub async fn process_image_ocr_handler(
     let auto_confirm = payload.auto_confirm.unwrap_or(false);
     let trace_id = uuid::Uuid::now_v7().to_string();
 
-    let job = ocr::create_ocr_job(
-        &state.core.db,
-        &session.user.id,
-        Some(trace_id),
-        &payload.key,
-        payload.raw_key,
-        payload.p_hash,
-        auto_confirm,
-        payload.wallet_id.clone(),
-        payload.category_id.clone(),
-    )
-    .await?;
+    let job = state
+        .core
+        .ocr_manager
+        .start_job(
+            &session.user.id,
+            Some(trace_id),
+            &payload.key,
+            payload.raw_key,
+            payload.p_hash,
+            auto_confirm,
+            payload.wallet_id.clone(),
+            payload.category_id.clone(),
+        )
+        .await?;
     let job_id = job.id.clone();
 
     // If the job is already COMPLETED (from pHash match), return early
@@ -114,22 +117,12 @@ pub async fn process_image_ocr_handler(
         ));
     }
 
-    // 2. Trigger processing immediately (the background worker will also pick it up if this fails)
-    let state_clone = state.clone();
-    let job_id_clone = job_id.clone();
-    tokio::spawn(async move {
-        if let Err(e) = ocr::process_job(
-            &state_clone.core.db,
-            state_clone.core.ocr_service.clone(),
-            &state_clone.core.upload_client,
-            state_clone.ocr_tx.clone(),
-            job_id_clone,
-        )
-        .await
-        {
-            tracing::error!("❌ Background job processing failed: {}", e);
-        }
-    });
+    // 2. Trigger processing immediately
+    state
+        .core
+        .ocr_manager
+        .process_immediately(Arc::new(state.core.clone()), job_id.clone())
+        .await;
 
     Ok((
         StatusCode::ACCEPTED,
@@ -170,6 +163,7 @@ pub async fn confirm_ocr_job_handler(
 ) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
     let result = ocr::confirm_ocr_job(
         &state.core.db,
+        Arc::new(state.core.clone()),
         &session.user.id,
         &job_id,
         payload.manual_data,
@@ -198,7 +192,15 @@ pub async fn bulk_confirm_ocr_jobs_handler(
     let mut failed = Vec::new();
 
     for job_id in payload.job_ids {
-        match ocr::confirm_ocr_job(&state.core.db, &session.user.id, &job_id, None).await {
+        match ocr::confirm_ocr_job(
+            &state.core.db,
+            Arc::new(state.core.clone()),
+            &session.user.id,
+            &job_id,
+            None,
+        )
+        .await
+        {
             Ok(_) => succeeded.push(job_id),
             Err(e) => failed.push((job_id, e.to_string())),
         }
@@ -220,6 +222,7 @@ pub async fn resolve_ocr_job_handler(
 ) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
     let result = ocr::resolve_contact_collision(
         &state.core.db,
+        Arc::new(state.core.clone()),
         &session.user.id,
         &job_id,
         &payload.contact_id,
