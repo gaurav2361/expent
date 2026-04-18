@@ -1,4 +1,4 @@
-pub mod services;
+pub mod bridge;
 
 pub use db::AppError;
 pub use db::GPayExtraction;
@@ -11,7 +11,7 @@ pub use db::SplitDetail;
 pub use db::TransactionWithDetail;
 
 pub mod ocr {
-    pub use crate::services::ocr_bridge::*;
+    pub use crate::bridge::*;
     pub use ::ocr::*;
 }
 
@@ -63,8 +63,9 @@ use ::transactions::TransactionsManager;
 use ::users::UsersManager;
 use ::wallets::WalletsManager;
 use auth::adapter::PostgresAdapter;
-use sea_orm::{Database, DatabaseConnection};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::sync::Arc;
+use std::time::Duration;
 use upload::UploadClient;
 
 #[derive(Clone)]
@@ -94,7 +95,8 @@ impl OcrProcessor for Core {
     > {
         let db = db.clone();
         let user_id = user_id.to_string();
-        Box::pin(async move { services::ocr_bridge::process_ocr(&db, &user_id, processed).await })
+        let contacts = self.contacts.clone();
+        Box::pin(async move { bridge::process_ocr(&db, contacts, &user_id, processed).await })
     }
 }
 
@@ -111,14 +113,43 @@ impl Core {
         config: CoreConfig,
         ocr_tx: tokio::sync::broadcast::Sender<::ocr::OcrUpdate>,
     ) -> Result<Self, anyhow::Error> {
-        let db = Database::connect(&config.database_url).await?;
+        // 1. Resilient Database Connection
+        let mut opt = ConnectOptions::new(config.database_url);
+        opt.max_connections(20)
+            .min_connections(5)
+            .connect_timeout(Duration::from_secs(10))
+            .idle_timeout(Duration::from_secs(10))
+            .max_lifetime(Duration::from_secs(30 * 60))
+            .sqlx_logging(true);
+
+        let mut retry_count = 0;
+        let db = loop {
+            match Database::connect(opt.clone()).await {
+                Ok(conn) => break conn,
+                Err(e) if retry_count < 3 => {
+                    retry_count += 1;
+                    tracing::warn!(
+                        "Database connection failed, retrying ({}/3): {}",
+                        retry_count,
+                        e
+                    );
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                }
+                Err(e) => {
+                    return Err(anyhow::anyhow!(
+                        "Database connection failed after 3 retries: {}",
+                        e
+                    ));
+                }
+            }
+        };
 
         // Initialize Auth
         let auth = auth::init_auth(db.clone())
             .await
             .map_err(|e| anyhow::anyhow!("Auth init failed: {e}"))?;
 
-        // Initialize OCR
+        // Initialize OCR Service
         let ocr_service = Arc::new(
             OcrService::new()
                 .await
