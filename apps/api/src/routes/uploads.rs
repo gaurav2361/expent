@@ -57,6 +57,13 @@ pub async fn direct_upload_handler(
     session: AuthSession,
     mut multipart: Multipart,
 ) -> Result<Json<PresignedUrlResponse>, ApiError> {
+    // Per-user rate limiting
+    if !state.ocr_limiter.check(&session.user.id) {
+        return Err(ApiError::BadRequest(
+            "Rate limit exceeded for upload requests. Please wait a moment.".to_string(),
+        ));
+    }
+
     tracing::debug!("📁 Received upload request for user: {}", session.user.id);
     let mut file_data = None;
     let mut file_name = String::new();

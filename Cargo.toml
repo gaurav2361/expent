@@ -31,8 +31,10 @@ aws-sdk-s3 = "1.73"
 axum = { features = [ "multipart" ], version = "0.8" }
 better-auth = { features = [ "axum", "derive" ], version = "0.9.0" }
 chrono = { features = [ "serde" ], version = "0.4" }
+dashmap = "6.1"
 dotenvy = "0.15"
 futures = "0.3"
+governor = "0.8"
 http = "1.2"
 rphonetic = "3.0"
 reqwest = { features = [ "json", "multipart" ], version = "0.12" }
