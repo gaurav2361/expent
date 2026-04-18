@@ -1,5 +1,6 @@
 use chrono::{DateTime, FixedOffset};
 use rust_decimal::Decimal;
+use sea_orm::FromQueryResult;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -161,6 +162,19 @@ pub struct TransactionWithDetail {
     pub contact_name: Option<String>,
     pub contact_id: Option<String>,
     pub category_name: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, TS, FromQueryResult)]
+#[ts(
+    export,
+    rename = "GroupMemberDetail",
+    export_to = "../../../packages/types/src/db/GroupMemberDetail.ts"
+)]
+pub struct GroupMemberDetail {
+    pub user_id: String,
+    pub name: String,
+    pub email: String,
+    pub role: String,
 }
 
 /// Paginated response for transactions.
