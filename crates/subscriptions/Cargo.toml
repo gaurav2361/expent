@@ -1,0 +1,20 @@
+[package]
+name              = "subscriptions"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+db.workspace = true
+
+anyhow.workspace       = true
+chrono.workspace       = true
+rust_decimal.workspace = true
+sea-orm.workspace      = true
+serde.workspace        = true
+serde_json.workspace   = true
+tracing.workspace      = true
+uuid.workspace         = true
+strsim = "0.11.1"
+
+[lints]
+workspace = true
