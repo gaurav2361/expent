@@ -14,8 +14,10 @@ reconciliation.workspace = true
 subscriptions.workspace  = true
 
 transactions.workspace = true
-upload.workspace       = true
-wallets.workspace      = true
+upload.workspace         = true
+users.workspace          = true
+wallets.workspace        = true
+
 
 any_ascii.workspace    = true
 anyhow.workspace       = true
