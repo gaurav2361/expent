@@ -48,7 +48,7 @@ pub async fn register_repayment(
 
             // Adjust wallet balance (Repayment is INFLOW)
             if let Some(w_id) = wallet_id {
-                crate::wallets::ops::adjust_balance(txn_db, &w_id, amount).await?;
+                crate::wallets::ops::adjust_balance(txn_db, &w_id, amount, true).await?;
             }
 
             let total_paid: Decimal = entities::transactions::Entity::find()

@@ -53,6 +53,10 @@ impl WalletsManager {
         ops::get_wallet(&self.db, user_id, wallet_id).await
     }
 
+    pub async fn get_balance(&self, wallet_id: &str) -> Result<Decimal, AppError> {
+        ops::get_balance(&self.db, wallet_id).await
+    }
+
     /// Atomically adjusts the balance of a wallet.
     /// Can accept either a DatabaseConnection or a DatabaseTransaction.
     pub async fn adjust_balance<C>(
@@ -60,10 +64,11 @@ impl WalletsManager {
         conn: &C,
         wallet_id: &str,
         amount: Decimal,
+        allow_negative: bool,
     ) -> Result<(), AppError>
     where
         C: ConnectionTrait,
     {
-        ops::adjust_balance(conn, wallet_id, amount).await
+        ops::adjust_balance(conn, wallet_id, amount, allow_negative).await
     }
 }
