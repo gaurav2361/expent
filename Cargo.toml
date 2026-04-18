@@ -22,10 +22,10 @@ edition = "2024"
 version = "0.1.0"
 
 [workspace.dependencies]
-auth     = { path = "crates/auth", version = "0.1.0" }
+auth       = { path = "crates/auth", version = "0.1.0" }
 categories = { path = "crates/categories", version = "0.1.0" }
-contacts = { path = "crates/contacts", version = "0.1.0" }
-db       = { path = "crates/db", version = "0.1.0" }
+contacts   = { path = "crates/contacts", version = "0.1.0" }
+db         = { path = "crates/db", version = "0.1.0" }
 
 expent_core    = { path = "crates/expent_core", version = "0.1.0" }
 groups         = { path = "crates/groups", version = "0.1.0" }
