@@ -3,7 +3,7 @@ use db::AppError;
 use db::entities;
 use rphonetic::{Encoder, Metaphone};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use strsim::jaro_winkler;
 
 #[derive(Debug, Default)]
@@ -21,7 +21,10 @@ pub struct ResolveParams {
     pub upi_id: Option<String>,
 }
 
+const MIN_CONFIDENCE_THRESHOLD: f32 = 0.3;
+
 /// Normalizes a name for fuzzy matching by transliterating and removing extra spaces/special chars.
+/// Explicitly preserves spaces between words for better phonetic encoding.
 fn normalize_name(name: &str) -> String {
     any_ascii(name)
         .to_lowercase()
@@ -53,7 +56,6 @@ where
     C: ConnectionTrait,
 {
     let mut matches = HashMap::new(); // contact_id -> score
-    let mut criteria_matches = HashMap::new(); // contact_id -> set of criteria matched
 
     // 1. UPI Match (Weight 0.5)
     if let Some(upi) = &params.upi_id {
@@ -66,10 +68,6 @@ where
         if let Some(ident) = identifier {
             let score = matches.entry(ident.contact_id.clone()).or_insert(0.0);
             *score += 0.5;
-            criteria_matches
-                .entry(ident.contact_id)
-                .or_insert_with(HashSet::new)
-                .insert("UPI");
         }
     }
 
@@ -85,10 +83,6 @@ where
         if let Some(c) = contact {
             let score = matches.entry(c.id.clone()).or_insert(0.0);
             *score += 0.3;
-            criteria_matches
-                .entry(c.id)
-                .or_insert_with(HashSet::new)
-                .insert("PHONE");
         }
     }
 
@@ -103,10 +97,6 @@ where
         if let Some(ident) = identifier {
             let score = matches.entry(ident.contact_id.clone()).or_insert(0.0);
             *score += 0.1;
-            criteria_matches
-                .entry(ident.contact_id)
-                .or_insert_with(HashSet::new)
-                .insert("EMAIL");
         }
     }
 
@@ -126,11 +116,9 @@ where
             let similarity = jaro_winkler(&normalized_input, &normalized_target) as f32;
 
             let mut match_score = 0.0;
-            let mut matched_criteria = HashSet::new();
 
             if similarity > 0.85 {
                 match_score += 0.05 * similarity;
-                matched_criteria.insert("NAME_FUZZY");
             }
 
             // Phonetic check
@@ -140,16 +128,11 @@ where
                 && phonetic_input == phonetic_target
             {
                 match_score += 0.05;
-                matched_criteria.insert("NAME_PHONETIC");
             }
 
             if match_score > 0.0 {
                 let score = matches.entry(c.id.clone()).or_insert(0.0);
                 *score += match_score;
-                criteria_matches
-                    .entry(c.id)
-                    .or_insert_with(HashSet::new)
-                    .extend(matched_criteria);
             }
         }
     }
@@ -163,10 +146,21 @@ where
 
     let (best_contact_id, best_score) = sorted_matches[0].clone();
 
-    // Collision detection
+    // 5. Confidence Threshold Check
+    if best_score < MIN_CONFIDENCE_THRESHOLD {
+        return Ok(ContactResolution {
+            contact_id: None,
+            confidence_score: best_score,
+            collision_candidates: Vec::new(),
+            is_collision: false,
+        });
+    }
+
+    // 6. Collision detection
     if sorted_matches.len() > 1 {
         let second_score = sorted_matches[1].1;
-        if second_score > 0.25 {
+        // If the gap between top two matches is small, mark as collision
+        if second_score > 0.25 && (best_score - second_score).abs() < 0.1 {
             let candidate_ids: Vec<String> = sorted_matches.into_iter().map(|(id, _)| id).collect();
             let candidates = entities::contacts::Entity::find()
                 .filter(entities::contacts::Column::Id.is_in(candidate_ids))

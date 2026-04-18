@@ -177,6 +177,18 @@ pub struct GroupMemberDetail {
     pub role: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "ContactDetail",
+    export_to = "../../../packages/types/src/db/ContactDetail.ts"
+)]
+pub struct ContactDetail {
+    pub contact: entities::contacts::Model,
+    pub identifiers: Vec<entities::contact_identifiers::Model>,
+    pub transactions: Vec<entities::transactions::Model>,
+}
+
 /// Paginated response for transactions.
 #[derive(Debug, Serialize, Deserialize, Clone, TS)]
 #[ts(

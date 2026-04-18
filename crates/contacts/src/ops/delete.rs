@@ -1,6 +1,6 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{DatabaseConnection, EntityTrait, Iden};
+use sea_orm::{DatabaseConnection, EntityTrait};
 
 pub async fn delete_contact(
     db: &DatabaseConnection,
