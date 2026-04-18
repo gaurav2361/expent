@@ -11,7 +11,6 @@ pub use db::SplitDetail;
 pub use db::TransactionWithDetail;
 
 pub use services::categories;
-pub use services::contacts;
 pub use services::users;
 
 pub mod ocr {
@@ -39,12 +38,17 @@ pub mod subscriptions {
     pub use ::subscriptions::*;
 }
 
+pub mod contacts {
+    pub use ::contacts::*;
+}
+
 // Re-export common crates so API doesn't need to depend on them directly
 pub use auth;
 pub use better_auth;
 pub use sea_orm;
 pub use upload;
 
+use ::contacts::ContactsManager;
 use ::groups::GroupsManager;
 use ::ocr::{OcrManager, OcrProcessor, OcrService};
 use ::reconciliation::ReconciliationManager;
@@ -67,6 +71,7 @@ pub struct Core {
     pub groups: Arc<GroupsManager>,
     pub reconciliation: Arc<ReconciliationManager>,
     pub subscriptions: Arc<SubscriptionsManager>,
+    pub contacts: Arc<ContactsManager>,
 }
 
 impl OcrProcessor for Core {
@@ -153,6 +158,7 @@ impl Core {
         ));
         let reconciliation = Arc::new(ReconciliationManager::new(db.clone()));
         let subscriptions = Arc::new(SubscriptionsManager::new(db.clone()));
+        let contacts = Arc::new(ContactsManager::new(db.clone()));
 
         let core = Self {
             db,
@@ -164,6 +170,7 @@ impl Core {
             groups,
             reconciliation,
             subscriptions,
+            contacts,
         };
 
         // Ensure system categories exist

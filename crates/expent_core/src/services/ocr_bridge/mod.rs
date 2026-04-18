@@ -51,10 +51,10 @@ pub async fn process_ocr(
 
                 // 2.6 Robust Contact Resolution
                 if contact_id.is_none() {
-                    let resolution = crate::services::contacts::resolve_contact(
+                    let resolution = crate::contacts::ops::resolve_contact(
                         txn_db,
                         &user_id,
-                        crate::services::contacts::ResolveParams {
+                        crate::contacts::ops::ResolveParams {
                             name: Some(gpay.counterparty_name.clone()),
                             phone: gpay.counterparty_phone.clone(),
                             email: None,
@@ -185,10 +185,10 @@ pub async fn process_ocr(
 
                 // 2.6 Robust Contact Resolution for Generic OCR
                 if contact_id.is_none() && generic.vendor.is_some() {
-                    let resolution = crate::services::contacts::resolve_contact(
+                    let resolution = crate::contacts::ops::resolve_contact(
                         txn_db,
                         &user_id,
-                        crate::services::contacts::ResolveParams {
+                        crate::contacts::ops::ResolveParams {
                             name: generic.vendor.clone(),
                             phone: None,
                             email: None,
