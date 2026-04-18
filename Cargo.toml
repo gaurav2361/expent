@@ -23,6 +23,8 @@ upload      = { path = "crates/upload", version = "0.1.0" }
 
 # External crates
 anyhow = "1.0"
+any_ascii = "0.1"
+async-stream = "0.3"
 async-trait = "0.1"
 aws-config = "1.5"
 aws-sdk-s3 = "1.73"
@@ -30,6 +32,7 @@ axum = { features = [ "multipart" ], version = "0.8" }
 better-auth = { features = [ "axum", "derive" ], version = "0.9.0" }
 chrono = { features = [ "serde" ], version = "0.4" }
 dotenvy = "0.15"
+futures = "0.3"
 http = "1.2"
 reqwest = { features = [ "json", "multipart" ], version = "0.12" }
 rust_decimal = { features = [ "serde-with-str" ], version = "1.41" }
@@ -50,6 +53,7 @@ strum = { features = [ "derive" ], version = "0.26" }
 strum_macros = "0.26"
 thiserror = "2.0"
 tokio = { features = [ "full" ], version = "1.44" }
+tokio-stream = "0.1"
 tower-http = { features = [ "cors", "fs", "trace" ], version = "0.6" }
 tower_governor = "0.8.0"
 tracing = "0.1"

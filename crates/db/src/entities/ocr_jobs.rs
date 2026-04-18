@@ -13,8 +13,14 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
     pub user_id: String,
-    pub status: String, // "PENDING", "COMPLETED", "FAILED"
+    pub status: String, // "QUEUED", "PROCESSING", "COMPLETED", "FAILED", "PENDING_REVIEW", "CONTACT_COLLISION", "DEAD_LETTER"
     pub r2_key: String,
+    pub p_hash: Option<String>,
+    pub auto_confirm: bool,
+    pub wallet_id: Option<String>,
+    pub category_id: Option<String>,
+    pub transaction_id: Option<String>,
+    pub started_at: Option<DateTimeWithTimeZone>,
     #[ts(type = "import('./JsonValue').JsonValue")]
     pub processed_data: Option<Json>,
     pub error: Option<String>,

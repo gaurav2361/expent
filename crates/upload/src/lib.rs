@@ -4,9 +4,14 @@ use bytes::Bytes;
 use image::ImageFormat;
 use image::imageops::FilterType;
 use std::path::Path;
+use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use uuid::Uuid;
+
+pub mod optimizer;
+
+pub use optimizer::ImageOptimizer;
 
 #[derive(Debug, Error)]
 pub enum UploadError {
@@ -80,12 +85,14 @@ pub struct ProcessedFile {
     #[serde(with = "serde_bytes")]
     pub data: Vec<u8>,
     pub key: String,
+    pub p_hash: Option<String>,
 }
 
 #[derive(Clone, Debug)]
 pub struct UploadClient {
     s3_client: S3Client,
     bucket_name: String,
+    pub optimizer: Arc<ImageOptimizer>,
 }
 
 impl UploadClient {
@@ -93,6 +100,7 @@ impl UploadClient {
         Self {
             s3_client,
             bucket_name,
+            optimizer: Arc::new(ImageOptimizer::new(4)),
         }
     }
 
@@ -131,28 +139,45 @@ impl UploadClient {
         data: Bytes,
         original_name: Option<String>,
         content_type: Option<String>,
-        normalize_images: bool,
+        optimize: bool,
     ) -> Result<ProcessedFile, UploadError> {
-        // If normalizing, use WebP compression instead of old PNG conversion
-        let compress_opts = if normalize_images {
-            Some(CompressOptions::default())
-        } else {
-            None
-        };
+        let mut final_data = data;
+        let mut final_content_type = content_type.clone();
+        let mut p_hash = None;
 
-        let processed = UploadProcessor::process(
-            data,
-            original_name.clone(),
-            content_type.clone(),
-            compress_opts,
-        )?;
+        let category = UploadProcessor::determine_category(
+            &final_data,
+            original_name.as_deref(),
+            content_type.as_deref(),
+        );
+
+        if optimize && category == FileCategory::Image {
+            let (optimized_data, content_type_str, hash) =
+                self.optimizer.optimize(final_data, 2048, false).await?;
+            final_data = optimized_data;
+            final_content_type = Some(content_type_str);
+            p_hash = Some(hash);
+        }
+
+        let processed =
+            UploadProcessor::process(final_data, original_name.clone(), final_content_type, None)?;
 
         let sanitized_name = original_name
             .as_deref()
             .and_then(|name| Path::new(name).file_name())
             .and_then(|n| n.to_str())
             .unwrap_or("unnamed");
-        let key = format!("{}/{}-{}", user_id, processed.id, sanitized_name);
+        let mut final_name = sanitized_name.to_string();
+        if optimize && category == FileCategory::Image {
+            // Force .webp extension if optimized
+            let base = Path::new(&final_name)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("unnamed");
+            final_name = format!("{}.webp", base);
+        }
+
+        let key = format!("{}/{}-{}", user_id, processed.id, final_name);
 
         self.s3_client
             .put_object()
@@ -171,6 +196,7 @@ impl UploadClient {
             content_type: processed.content_type,
             data: processed.data.to_vec(),
             key,
+            p_hash,
         })
     }
 
@@ -225,6 +251,7 @@ impl UploadClient {
             content_type: processed.content_type,
             data: processed.data.to_vec(),
             key,
+            p_hash: None,
         })
     }
 
