@@ -91,27 +91,9 @@ pub async fn list_group_members_handler(
     State(state): State<AppState>,
     _session: AuthSession,
     Path(id): Path<String>,
-) -> Result<Json<Vec<serde_json::Value>>, ApiError> {
-    use expent_core::sea_orm::{
-        ColumnTrait, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait,
-    };
-
-    // Join user_groups with users to get member details
-    let results = db::entities::user_groups::Entity::find()
-        .filter(db::entities::user_groups::Column::GroupId.eq(id))
-        .join(
-            JoinType::InnerJoin,
-            db::entities::user_groups::Relation::Users.def(),
-        )
-        .column_as(db::entities::users::Column::Name, "name")
-        .column_as(db::entities::users::Column::Email, "email")
-        .column_as(db::entities::user_groups::Column::UserId, "user_id")
-        .column_as(db::entities::user_groups::Column::Role, "role")
-        .into_model::<serde_json::Value>()
-        .all(&state.core.db)
-        .await?;
-
-    Ok(Json(results))
+) -> Result<Json<Vec<db::GroupMemberDetail>>, ApiError> {
+    let result = state.core.groups.list_group_members(&id).await?;
+    Ok(Json(result))
 }
 
 pub async fn remove_group_member_handler(
