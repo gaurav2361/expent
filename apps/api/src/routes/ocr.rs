@@ -52,6 +52,7 @@ pub async fn ocr_stream_handler(
 #[derive(Deserialize)]
 pub struct ProcessImageOcrRequest {
     pub key: String,
+    pub raw_key: Option<String>,
     pub p_hash: Option<String>,
     pub auto_confirm: Option<bool>,
     pub wallet_id: Option<String>,
@@ -88,6 +89,7 @@ pub async fn process_image_ocr_handler(
         &state.core.db,
         &session.user.id,
         &payload.key,
+        payload.raw_key,
         payload.p_hash,
         auto_confirm,
         payload.wallet_id.clone(),

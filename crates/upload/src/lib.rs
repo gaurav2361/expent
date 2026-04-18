@@ -85,6 +85,7 @@ pub struct ProcessedFile {
     #[serde(with = "serde_bytes")]
     pub data: Vec<u8>,
     pub key: String,
+    pub raw_key: Option<String>,
     pub p_hash: Option<String>,
 }
 
@@ -141,9 +142,10 @@ impl UploadClient {
         content_type: Option<String>,
         optimize: bool,
     ) -> Result<ProcessedFile, UploadError> {
-        let mut final_data = data;
+        let mut final_data = data.clone();
         let mut final_content_type = content_type.clone();
         let mut p_hash = None;
+        let mut raw_key = None;
 
         let category = UploadProcessor::determine_category(
             &final_data,
@@ -152,6 +154,31 @@ impl UploadClient {
         );
 
         if optimize && category == FileCategory::Image {
+            // Store raw copy
+            let raw_id = Uuid::now_v7();
+            let raw_ext = content_type
+                .as_ref()
+                .and_then(|ct| mime_guess::get_mime_extensions_str(ct))
+                .and_then(|exts| exts.first())
+                .unwrap_or(&"bin");
+            let raw_path = format!("{}/raw/{}-original.{}", user_id, raw_id, raw_ext);
+
+            self.s3_client
+                .put_object()
+                .bucket(&self.bucket_name)
+                .key(&raw_path)
+                .content_type(
+                    content_type
+                        .as_deref()
+                        .unwrap_or("application/octet-stream"),
+                )
+                .body(data.into())
+                .send()
+                .await
+                .map_err(|e| UploadError::S3Error(format!("{:#?}", e)))?;
+
+            raw_key = Some(raw_path);
+
             let (optimized_data, content_type_str, hash) =
                 self.optimizer.optimize(final_data, 2048, false).await?;
             final_data = optimized_data;
@@ -196,6 +223,7 @@ impl UploadClient {
             content_type: processed.content_type,
             data: processed.data.to_vec(),
             key,
+            raw_key,
             p_hash,
         })
     }
@@ -251,6 +279,7 @@ impl UploadClient {
             content_type: processed.content_type,
             data: processed.data.to_vec(),
             key,
+            raw_key: None,
             p_hash: None,
         })
     }

@@ -14,6 +14,7 @@ pub async fn create_ocr_job(
     db: &DatabaseConnection,
     user_id: &str,
     r2_key: &str,
+    raw_key: Option<String>,
     p_hash: Option<String>,
     auto_confirm: bool,
     wallet_id: Option<String>,
@@ -39,6 +40,7 @@ pub async fn create_ocr_job(
         user_id: Set(user_id.to_string()),
         status: Set("QUEUED".to_string()),
         r2_key: Set(r2_key.to_string()),
+        raw_key: Set(raw_key),
         p_hash: Set(p_hash),
         auto_confirm: Set(auto_confirm),
         wallet_id: Set(wallet_id),
@@ -47,6 +49,7 @@ pub async fn create_ocr_job(
         started_at: Set(None),
         scheduled_at: Set(None),
         retry_count: Set(0),
+        is_high_res: Set(false),
         last_error: Set(None),
         processed_data: Set(None),
         error: Set(None),
@@ -79,6 +82,7 @@ pub async fn update_ocr_job(
     started_at: Option<chrono::DateTime<chrono::Utc>>,
     scheduled_at: Option<chrono::DateTime<chrono::Utc>>,
     retry_count: Option<i32>,
+    is_high_res: Option<bool>,
     last_error: Option<String>,
 ) -> Result<entities::ocr_jobs::Model, AppError> {
     let mut job: entities::ocr_jobs::ActiveModel =
@@ -107,6 +111,9 @@ pub async fn update_ocr_job(
     if let Some(r_count) = retry_count {
         job.retry_count = Set(r_count);
     }
+    if let Some(high_res) = is_high_res {
+        job.is_high_res = Set(high_res);
+    }
     if let Some(l_err) = last_error {
         job.last_error = Set(Some(l_err));
     }
@@ -132,7 +139,13 @@ pub async fn process_job(
     }
 
     let user_id = job.user_id.clone();
-    let key = job.r2_key.clone();
+
+    // Use raw_key if it's already a high-res attempt or if we want to try high-res
+    let key = if job.is_high_res && job.raw_key.is_some() {
+        job.raw_key.clone().unwrap()
+    } else {
+        job.r2_key.clone()
+    };
 
     // 1. Update status to PROCESSING
     update_ocr_job(
@@ -143,6 +156,7 @@ pub async fn process_job(
         None,
         None,
         Some(chrono::Utc::now()),
+        None,
         None,
         None,
         None,
@@ -174,8 +188,37 @@ pub async fn process_job(
             .process_file(&bytes, filename, mime_type)
             .await?;
 
-        let mut processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json)?;
-        processed_ocr.r2_key = Some(key.clone());
+        let mut processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json.clone())?;
+        processed_ocr.r2_key = Some(job.r2_key.clone());
+        processed_ocr.is_high_res = job.is_high_res;
+
+        // Extract confidence from the inner data
+        let confidence_score = match processed_ocr.doc_type.as_str() {
+            "GPAY" => {
+                let gpay: db::GPayExtraction =
+                    serde_json::from_value(processed_ocr.data.0.clone())?;
+                gpay.confidence_score
+            }
+            "GENERIC" => {
+                let generic: db::OcrResult = serde_json::from_value(processed_ocr.data.0.clone())?;
+                generic.confidence_score
+            }
+            _ => 1.0,
+        };
+
+        // 3. Progressive Quality Fallback
+        // If confidence is low, not already high-res, and we have a raw original image
+        if confidence_score < 0.8 && !job.is_high_res && job.raw_key.is_some() {
+            tracing::info!(
+                "⚠️ Low confidence ({}) for job {}, triggering high-res retry",
+                confidence_score,
+                job_id
+            );
+            return Ok::<
+                (db::ProcessedOcr, String, Option<String>),
+                Box<dyn std::error::Error + Send + Sync>,
+            >((processed_ocr, "RETRY_HIGH_RES".to_string(), None));
+        }
 
         let mut transaction_id = None;
         let mut final_status = "COMPLETED";
@@ -231,25 +274,49 @@ pub async fn process_job(
 
     match process_res {
         Ok((processed, status, tx_id)) => {
-            update_ocr_job(
-                db,
-                &job_id,
-                &status,
-                Some(serde_json::to_value(processed).unwrap()),
-                None,
-                tx_id,
-                None,
-                None,
-                None,
-                None,
-            )
-            .await?;
+            if status == "RETRY_HIGH_RES" {
+                update_ocr_job(
+                    db,
+                    &job_id,
+                    "QUEUED",
+                    None,
+                    None,
+                    None,
+                    None,
+                    Some(chrono::Utc::now().into()),
+                    None,
+                    Some(true), // Mark as high-res for next attempt
+                    None,
+                )
+                .await?;
 
-            let _ = ocr_tx.send(OcrUpdate {
-                user_id,
-                job_id: job_id.clone(),
-                status: status.to_string(),
-            });
+                let _ = ocr_tx.send(OcrUpdate {
+                    user_id,
+                    job_id: job_id.clone(),
+                    status: "QUEUED".to_string(),
+                });
+            } else {
+                update_ocr_job(
+                    db,
+                    &job_id,
+                    &status,
+                    Some(serde_json::to_value(processed).unwrap()),
+                    None,
+                    tx_id,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+                .await?;
+
+                let _ = ocr_tx.send(OcrUpdate {
+                    user_id,
+                    job_id: job_id.clone(),
+                    status: status.to_string(),
+                });
+            }
         }
         Err(e) => {
             tracing::error!("❌ OCR Background Job {} failed: {}", job_id, e);
@@ -258,11 +325,11 @@ pub async fn process_job(
             let max_retries = 5;
 
             if new_retry_count < max_retries {
-                // Exponential backoff: base * 2^attempt + jitter
-                let base_delay = 10; // 10 seconds
+                let base_delay = 10;
                 let backoff_secs = base_delay * (2_i64.pow(new_retry_count as u32));
                 let jitter = rand::thread_rng().gen_range(0..5);
-                let next_run = chrono::Utc::now() + chrono::Duration::seconds(backoff_secs + jitter);
+                let next_run =
+                    chrono::Utc::now() + chrono::Duration::seconds(backoff_secs + jitter);
 
                 update_ocr_job(
                     db,
@@ -274,6 +341,7 @@ pub async fn process_job(
                     None,
                     Some(next_run.into()),
                     Some(new_retry_count),
+                    None,
                     Some(e.to_string()),
                 )
                 .await?;
@@ -294,6 +362,7 @@ pub async fn process_job(
                     None,
                     None,
                     Some(new_retry_count),
+                    None,
                     Some(e.to_string()),
                 )
                 .await?;

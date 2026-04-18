@@ -18,4 +18,4 @@ class OCRResponse(BaseModel):
 
     # Extra metadata for classification
     document_type: str = Field(description="payment_receipt | invoice | bank_statement | other")
-    confidence: str = Field(description="high | medium | low")
+    confidence_score: float = Field(default=1.0, description="Confidence score from 0.0 to 1.0")

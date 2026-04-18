@@ -34,6 +34,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260417_000001_enhance_ocr_jobs::Migration),
             Box::new(m20260417_000002_add_ocr_retries::Migration),
             Box::new(m20260417_000003_add_ocr_scheduled_at::Migration),
+            Box::new(m20260417_000004_add_ocr_raw_key::Migration),
         ]
     }
 }
@@ -41,3 +42,4 @@ impl MigratorTrait for Migrator {
 pub mod m20260417_000001_enhance_ocr_jobs;
 pub mod m20260417_000002_add_ocr_retries;
 pub mod m20260417_000003_add_ocr_scheduled_at;
+pub mod m20260417_000004_add_ocr_raw_key;

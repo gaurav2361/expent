@@ -41,13 +41,14 @@ async fn process_queued_jobs(
     ocr_tx: tokio::sync::broadcast::Sender<OcrUpdate>,
 ) -> Result<(), anyhow::Error> {
     let now = Utc::now();
-    
+
     // Find jobs in QUEUED status that are scheduled for now or in the past
     let queued_jobs = entities::ocr_jobs::Entity::find()
         .filter(entities::ocr_jobs::Column::Status.eq("QUEUED"))
         .filter(
-            entities::ocr_jobs::Column::ScheduledAt.is_null()
-            .or(entities::ocr_jobs::Column::ScheduledAt.lte(now))
+            entities::ocr_jobs::Column::ScheduledAt
+                .is_null()
+                .or(entities::ocr_jobs::Column::ScheduledAt.lte(now)),
         )
         .all(db)
         .await?;

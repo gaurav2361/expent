@@ -21,3 +21,4 @@ class GPayExtraction(BaseModel):
     upi_transaction_id: Optional[str] = None
     google_transaction_id: Optional[str] = None
     source_bank_account: Optional[str] = Field(description="E.g., 'ICICI Bank 0972'")
+    confidence_score: float = Field(default=1.0, description="Confidence score from 0.0 to 1.0")

@@ -15,6 +15,7 @@ pub struct Model {
     pub user_id: String,
     pub status: String, // "QUEUED", "PROCESSING", "COMPLETED", "FAILED", "PENDING_REVIEW", "CONTACT_COLLISION", "DEAD_LETTER"
     pub r2_key: String,
+    pub raw_key: Option<String>,
     pub p_hash: Option<String>,
     pub auto_confirm: bool,
     pub wallet_id: Option<String>,
@@ -23,6 +24,7 @@ pub struct Model {
     pub started_at: Option<DateTimeWithTimeZone>,
     pub scheduled_at: Option<DateTimeWithTimeZone>,
     pub retry_count: i32,
+    pub is_high_res: bool,
     pub last_error: Option<String>,
     #[ts(type = "import('./JsonValue').JsonValue")]
     pub processed_data: Option<Json>,
