@@ -7,7 +7,6 @@ use expent_core::ocr;
 use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
-use tokio_stream::StreamExt;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
@@ -17,7 +16,9 @@ pub fn router() -> Router<AppState> {
         .route("/process", post(process_image_ocr_handler))
         .route("/status/{job_id}", get(get_ocr_job_status_handler))
         .route("/stream", get(ocr_stream_handler))
+        .route("/pending", get(list_pending_ocr_jobs_handler))
         .route("/confirm/{job_id}", post(confirm_ocr_job_handler))
+        .route("/bulk-confirm", post(bulk_confirm_ocr_jobs_handler))
         .route("/resolve/{job_id}", post(resolve_ocr_job_handler))
 }
 
@@ -148,6 +149,14 @@ pub async fn get_ocr_job_status_handler(
     Ok(Json(job))
 }
 
+pub async fn list_pending_ocr_jobs_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+) -> Result<Json<Vec<db::entities::ocr_jobs::Model>>, ApiError> {
+    let jobs = ocr::list_pending_ocr_jobs(&state.core.db, &session.user.id).await?;
+    Ok(Json(jobs))
+}
+
 #[derive(Deserialize)]
 pub struct ConfirmOcrRequest {
     pub manual_data: Option<db::ProcessedOcr>,
@@ -167,6 +176,35 @@ pub async fn confirm_ocr_job_handler(
     )
     .await?;
     Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+pub struct BulkConfirmOcrRequest {
+    pub job_ids: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct BulkConfirmOcrResponse {
+    pub succeeded: Vec<String>,
+    pub failed: Vec<(String, String)>,
+}
+
+pub async fn bulk_confirm_ocr_jobs_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Json(payload): Json<BulkConfirmOcrRequest>,
+) -> Result<Json<BulkConfirmOcrResponse>, ApiError> {
+    let mut succeeded = Vec::new();
+    let mut failed = Vec::new();
+
+    for job_id in payload.job_ids {
+        match ocr::confirm_ocr_job(&state.core.db, &session.user.id, &job_id, None).await {
+            Ok(_) => succeeded.push(job_id),
+            Err(e) => failed.push((job_id, e.to_string())),
+        }
+    }
+
+    Ok(Json(BulkConfirmOcrResponse { succeeded, failed }))
 }
 
 #[derive(Deserialize)]

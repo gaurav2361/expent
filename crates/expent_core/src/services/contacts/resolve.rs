@@ -1,6 +1,7 @@
 use any_ascii::any_ascii;
 use db::AppError;
 use db::entities;
+use rphonetic::{Encoder, Metaphone};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 use std::collections::{HashMap, HashSet};
 use strsim::jaro_winkler;
@@ -28,6 +29,17 @@ fn normalize_name(name: &str) -> String {
         .filter(|c| c.is_alphanumeric() || c.is_whitespace())
         .collect::<String>()
         .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Generates a phonetic representation of a name using Metaphone.
+fn phonetic_encode(name: &str) -> String {
+    let normalized = normalize_name(name);
+    let metaphone = Metaphone::default();
+    normalized
+        .split_whitespace()
+        .map(|word| metaphone.encode(word))
         .collect::<Vec<_>>()
         .join(" ")
 }
@@ -98,9 +110,10 @@ where
         }
     }
 
-    // 4. Fuzzy Name Match (Weight 0.1)
+    // 4. Name Match (Fuzzy + Phonetic) (Weight 0.1 total)
     if let Some(name) = &params.name {
         let normalized_input = normalize_name(name);
+        let phonetic_input = phonetic_encode(name);
 
         let contacts = entities::contacts::Entity::find()
             .inner_join(entities::contact_links::Entity)
@@ -112,13 +125,31 @@ where
             let normalized_target = normalize_name(&c.name);
             let similarity = jaro_winkler(&normalized_input, &normalized_target) as f32;
 
+            let mut match_score = 0.0;
+            let mut matched_criteria = HashSet::new();
+
             if similarity > 0.85 {
+                match_score += 0.05 * similarity;
+                matched_criteria.insert("NAME_FUZZY");
+            }
+
+            // Phonetic check
+            let phonetic_target = phonetic_encode(&c.name);
+            if !phonetic_input.is_empty()
+                && !phonetic_target.is_empty()
+                && phonetic_input == phonetic_target
+            {
+                match_score += 0.05;
+                matched_criteria.insert("NAME_PHONETIC");
+            }
+
+            if match_score > 0.0 {
                 let score = matches.entry(c.id.clone()).or_insert(0.0);
-                *score += 0.1 * similarity;
+                *score += match_score;
                 criteria_matches
                     .entry(c.id)
                     .or_insert_with(HashSet::new)
-                    .insert("NAME");
+                    .extend(matched_criteria);
             }
         }
     }

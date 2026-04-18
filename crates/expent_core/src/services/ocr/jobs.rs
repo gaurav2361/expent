@@ -78,6 +78,21 @@ pub async fn get_ocr_job(
         .ok_or_else(|| AppError::not_found("OCR Job not found"))
 }
 
+pub async fn list_pending_ocr_jobs(
+    db: &DatabaseConnection,
+    user_id: &str,
+) -> Result<Vec<entities::ocr_jobs::Model>, AppError> {
+    entities::ocr_jobs::Entity::find()
+        .filter(entities::ocr_jobs::Column::UserId.eq(user_id))
+        .filter(entities::ocr_jobs::Column::Status.is_in(vec![
+            "PENDING_REVIEW".to_string(),
+            "CONTACT_COLLISION".to_string(),
+        ]))
+        .all(db)
+        .await
+        .map_err(AppError::from)
+}
+
 pub async fn update_ocr_job(
     db: &DatabaseConnection,
     job_id: &str,
@@ -232,7 +247,12 @@ pub async fn process_job(
                 job_id
             );
             return Ok::<
-                (db::ProcessedOcr, String, Option<String>, Option<serde_json::Value>),
+                (
+                    db::ProcessedOcr,
+                    String,
+                    Option<String>,
+                    Option<serde_json::Value>,
+                ),
                 Box<dyn std::error::Error + Send + Sync>,
             >((processed_ocr, "RETRY_HIGH_RES".to_string(), None, None));
         }
@@ -276,7 +296,10 @@ pub async fn process_job(
                 }
                 Err(e) => {
                     if let db::AppError::ContactCollision(candidates) = e {
-                        tracing::warn!("⚠️ Contact collision for job {}, needs manual review", job_id);
+                        tracing::warn!(
+                            "⚠️ Contact collision for job {}, needs manual review",
+                            job_id
+                        );
                         final_status = "CONTACT_COLLISION";
                         collision_data = Some(candidates);
                     } else {
@@ -289,9 +312,20 @@ pub async fn process_job(
             final_status = "PENDING_REVIEW";
         }
 
-        Ok::<(db::ProcessedOcr, String, Option<String>, Option<serde_json::Value>), Box<dyn std::error::Error + Send + Sync>>(
-            (processed_ocr, final_status.to_string(), transaction_id, collision_data),
-        )
+        Ok::<
+            (
+                db::ProcessedOcr,
+                String,
+                Option<String>,
+                Option<serde_json::Value>,
+            ),
+            Box<dyn std::error::Error + Send + Sync>,
+        >((
+            processed_ocr,
+            final_status.to_string(),
+            transaction_id,
+            collision_data,
+        ))
     }
     .await;
 
@@ -387,7 +421,7 @@ pub async fn process_job(
                 update_ocr_job(
                     db,
                     &job_id,
-                    "FAILED",
+                    "DEAD_LETTER", // Updated: moved to DEAD_LETTER instead of generic FAILED
                     None,
                     Some(e.to_string()),
                     None,
@@ -404,7 +438,7 @@ pub async fn process_job(
                 let _ = ocr_tx.send(OcrUpdate {
                     user_id,
                     job_id: job_id.clone(),
-                    status: "FAILED".to_string(),
+                    status: "DEAD_LETTER".to_string(),
                     trace_id,
                 });
             }

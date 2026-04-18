@@ -34,6 +34,7 @@ chrono = { features = [ "serde" ], version = "0.4" }
 dotenvy = "0.15"
 futures = "0.3"
 http = "1.2"
+rphonetic = "3.0"
 reqwest = { features = [ "json", "multipart" ], version = "0.12" }
 rand = "0.8"
 rust_decimal = { features = [ "serde-with-str" ], version = "1.41" }

@@ -1,8 +1,6 @@
 use chrono::{DateTime, Utc};
 use db::entities;
-use db::entities::enums::{
-    TransactionDirection, TransactionSource, TransactionStatus, TxnPartyRole,
-};
+use db::entities::enums::{TransactionDirection, TransactionSource, TransactionStatus};
 use db::{AppError, GPayExtraction, OcrResult, OcrTransactionResponse, ProcessedOcr};
 use rust_decimal::Decimal;
 use sea_orm::{
