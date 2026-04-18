@@ -32,8 +32,22 @@ impl MigratorTrait for Migrator {
             Box::new(m20260404_000005_add_category_to_transactions::Migration),
             Box::new(m20260408_000001_create_ocr_jobs::Migration),
             Box::new(m20260417_000001_enhance_ocr_jobs::Migration),
+            Box::new(m20260417_000002_add_ocr_retries::Migration),
+            Box::new(m20260417_000003_add_ocr_scheduled_at::Migration),
+            Box::new(m20260417_000004_add_ocr_raw_key::Migration),
+            Box::new(m20260417_000005_add_ocr_schema_version::Migration),
+            Box::new(m20260417_000006_add_contact_staging::Migration),
+            Box::new(m20260417_000007_create_ocr_job_edits::Migration),
+            Box::new(m20260417_000008_add_ocr_trace_id::Migration),
         ]
     }
 }
 
 pub mod m20260417_000001_enhance_ocr_jobs;
+pub mod m20260417_000002_add_ocr_retries;
+pub mod m20260417_000003_add_ocr_scheduled_at;
+pub mod m20260417_000004_add_ocr_raw_key;
+pub mod m20260417_000005_add_ocr_schema_version;
+pub mod m20260417_000006_add_contact_staging;
+pub mod m20260417_000007_create_ocr_job_edits;
+pub mod m20260417_000008_add_ocr_trace_id;

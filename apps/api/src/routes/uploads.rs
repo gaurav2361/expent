@@ -1,7 +1,6 @@
 use axum::extract::{Multipart, State};
 use axum::routing::post;
 use axum::{Json, Router};
-use expent_core::upload::CompressOptions;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -26,6 +25,7 @@ pub struct PresignedUrlRequest {
 pub struct PresignedUrlResponse {
     pub url: String,
     pub key: String,
+    pub raw_key: Option<String>,
 }
 
 pub async fn get_presigned_url_handler(
@@ -45,7 +45,11 @@ pub async fn get_presigned_url_handler(
         .await
         .map_err(|e| ApiError::Internal(format!("Failed to get presigned URL: {:?}", e)))?;
 
-    Ok(Json(PresignedUrlResponse { url, key }))
+    Ok(Json(PresignedUrlResponse {
+        url,
+        key,
+        raw_key: None,
+    }))
 }
 
 pub async fn direct_upload_handler(
@@ -119,5 +123,6 @@ pub async fn direct_upload_handler(
     Ok(Json(PresignedUrlResponse {
         url: format!("{}/{}", r2_public_url, processed.key),
         key: processed.key,
+        raw_key: processed.raw_key,
     }))
 }

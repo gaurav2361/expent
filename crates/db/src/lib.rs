@@ -40,8 +40,14 @@ pub struct OcrResult {
     pub category_id: Option<String>,
     pub wallet_id: Option<String>,
     pub contact_id: Option<String>,
+    #[serde(default = "default_confidence")]
+    pub confidence_score: f32,
     #[serde(default)]
     pub items: Vec<LineItem>,
+}
+
+fn default_confidence() -> f32 {
+    1.0
 }
 
 /// Specialized extraction for Google Pay screenshots.
@@ -68,6 +74,8 @@ pub struct GPayExtraction {
     pub category_id: Option<String>,
     pub wallet_id: Option<String>,
     pub contact_id: Option<String>,
+    #[serde(default = "default_confidence")]
+    pub confidence_score: f32,
 }
 
 /// Unified OCR data from the Python worker.
@@ -81,6 +89,8 @@ pub struct ProcessedOcr {
     pub doc_type: String,        // "GPAY" or "GENERIC"
     pub data: ExportedJsonValue, // Use ExportedJsonValue instead of serde_json::Value
     pub r2_key: Option<String>,
+    #[serde(default)]
+    pub is_high_res: bool,
 }
 
 /// A type alias for serde_json::Value to control its TypeScript export location.

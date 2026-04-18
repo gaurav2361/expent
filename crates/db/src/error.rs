@@ -18,6 +18,9 @@ pub enum AppError {
     #[error("OCR error: {0}")]
     Ocr(String),
 
+    #[error("Contact collision: {0}")]
+    ContactCollision(serde_json::Value),
+
     #[error("Generic error: {0}")]
     Generic(String),
 }

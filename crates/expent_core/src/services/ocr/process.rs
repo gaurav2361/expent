@@ -1,14 +1,13 @@
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, Utc};
 use db::entities;
 use db::entities::enums::{TransactionDirection, TransactionSource, TransactionStatus};
 use db::{AppError, GPayExtraction, OcrResult, OcrTransactionResponse, ProcessedOcr};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveEnum, ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, QueryFilter,
-    Set, TransactionError, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    TransactionTrait,
 };
 
-/// Processes OCR data by either merging it with an existing transaction or creating a new one.
 pub async fn process_ocr(
     db: &DatabaseConnection,
     user_id: &str,
@@ -19,7 +18,7 @@ pub async fn process_ocr(
     // 3.2 Idempotency check: if r2_key is provided, check if we already have a transaction for it
     if let Some(ref key) = processed.r2_key {
         let existing_source = entities::transaction_sources::Entity::find()
-            .filter(entities::transaction_sources::Column::R2FileUrl.eq(key))
+            .filter(entities::transaction_sources::Column::R2FileUrl.eq(Some(key.to_string())))
             .one(db)
             .await?;
 
@@ -44,7 +43,7 @@ pub async fn process_ocr(
 
             if processed.doc_type == "GPAY" {
                 let gpay: GPayExtraction = serde_json::from_value(processed.data.0.clone())
-                    .map_err(|e| AppError::Generic(format!("Failed to parse GPay data: {e}")))?;
+                    .map_err(|e| AppError::Ocr(format!("Failed to parse GPAY data: {}", e)))?;
 
                 let mut contact_id = gpay.contact_id.clone();
                 let wallet_id = gpay.wallet_id.clone();
@@ -65,7 +64,9 @@ pub async fn process_ocr(
                     .await?;
 
                     if resolution.is_collision {
-                        return Err(AppError::Generic("CONTACT_COLLISION".to_string()));
+                        return Err(AppError::ContactCollision(
+                            serde_json::to_value(resolution.collision_candidates).unwrap(),
+                        ));
                     }
 
                     if let Some(c_id) = resolution.contact_id {
@@ -103,104 +104,70 @@ pub async fn process_ocr(
                     }
                 }
 
-                let direction = if gpay.direction == "IN" {
-                    TransactionDirection::In
-                } else {
-                    TransactionDirection::Out
+                let direction = match gpay.direction.as_str() {
+                    "IN" => TransactionDirection::In,
+                    _ => TransactionDirection::Out,
                 };
 
-                let date = if let Some(dt_str) = &gpay.datetime_str {
-                    match chrono::NaiveDateTime::parse_from_str(dt_str, "%d %b %Y, %I:%M %p") {
-                        Ok(naive) => DateTime::<FixedOffset>::from_naive_utc_and_offset(
-                            naive,
-                            FixedOffset::east_opt(0).unwrap(),
-                        ),
-                        Err(_) => Utc::now().into(),
-                    }
-                } else {
-                    Utc::now().into()
+                // Parse status
+                let status = match gpay.status.as_deref() {
+                    Some("COMPLETED") => TransactionStatus::Completed,
+                    Some("PENDING") => TransactionStatus::Pending,
+                    Some("FAILED") | Some("CANCELLED") => TransactionStatus::Cancelled,
+                    _ => TransactionStatus::Completed,
                 };
 
-                let (source_wallet_id, destination_wallet_id): (Option<String>, Option<String>) =
-                    if direction == TransactionDirection::In {
-                        (None, wallet_id.clone())
-                    } else {
-                        (wallet_id.clone(), None)
-                    };
+                let timestamp = gpay
+                    .datetime_str
+                    .as_ref()
+                    .and_then(|s| DateTime::parse_from_str(s, "%d %b %Y, %I:%M %p").ok())
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(Utc::now);
 
                 let txn = entities::transactions::ActiveModel {
                     id: Set(uuid::Uuid::now_v7().to_string()),
                     user_id: Set(user_id.clone()),
                     amount: Set(gpay.amount),
                     direction: Set(direction),
-                    date: Set(date),
-                    source: Set(TransactionSource::Ocr),
-                    status: Set(TransactionStatus::Completed),
+                    status: Set(status),
+                    date: Set(timestamp.into()),
+                    source_wallet_id: Set(wallet_id),
                     category_id: Set(category_id),
-                    purpose_tag: Set(None),
-                    group_id: Set(None),
-                    source_wallet_id: Set(source_wallet_id.clone()),
-                    destination_wallet_id: Set(destination_wallet_id.clone()),
-                    ledger_tab_id: Set(None),
-                    deleted_at: Set(None),
-                    notes: Set(None),
+                    notes: Set(Some(format!(
+                        "Extracted via Google Pay OCR. UPI: {:?}",
+                        gpay.upi_transaction_id
+                    ))),
+                    source: Set(TransactionSource::Ocr),
+                    ..Default::default()
                 };
 
                 let result = txn.insert(txn_db).await?;
 
-                // Adjust wallet balances
-                crate::services::transactions::adjust_transaction_wallets(
-                    txn_db,
-                    None,
-                    Some(&result),
-                )
-                .await?;
-
-                // 2.7 Store r2_file_url in transaction_sources
-                let source = entities::transaction_sources::ActiveModel {
-                    id: Set(uuid::Uuid::now_v7().to_string()),
-                    transaction_id: Set(result.id.clone()),
-                    source_type: Set("GPAY_OCR".to_string()),
-                    r2_file_url: Set(processed.r2_key),
-                    raw_metadata: Set(Some(processed.data.0.clone())),
-                };
-                source.insert(txn_db).await?;
-
-                // 2.6 Create txn_parties record
+                // Create transaction party record for the contact
                 if let Some(c_id) = contact_id {
                     let party = entities::txn_parties::ActiveModel {
                         id: Set(uuid::Uuid::now_v7().to_string()),
                         transaction_id: Set(result.id.clone()),
                         user_id: Set(None),
                         contact_id: Set(Some(c_id)),
-                        role: Set("COUNTERPARTY".to_string()),
+                        role: Set(match direction {
+                            TransactionDirection::In => "SENDER".to_string(),
+                            TransactionDirection::Out => "RECEIVER".to_string(),
+                        }),
                     };
                     party.insert(txn_db).await?;
                 }
 
-                let transfer = entities::p2p_transfers::ActiveModel {
-                    id: Set(uuid::Uuid::now_v7().to_string()),
-                    transaction_id: Set(result.id.clone()),
-                    direction: Set(gpay.direction),
-                    counterparty_name: Set(gpay.counterparty_name.clone()),
-                    counterparty_phone: Set(gpay.counterparty_phone),
-                    counterparty_upi_id: Set(gpay.counterparty_upi_id),
-                    is_merchant: Set(gpay.is_merchant),
-                    upi_transaction_id: Set(gpay.upi_transaction_id),
-                    google_transaction_id: Set(gpay.google_transaction_id),
-                    source_bank_account: Set(gpay.source_bank_account),
-                };
-                transfer.insert(txn_db).await?;
-
-                if gpay.is_merchant {
-                    let purchase = entities::purchases::ActiveModel {
+                // Create transaction source record
+                if let Some(r2_key) = processed.r2_key {
+                    let source = entities::transaction_sources::ActiveModel {
                         id: Set(uuid::Uuid::now_v7().to_string()),
                         transaction_id: Set(result.id.clone()),
-                        vendor: Set(gpay.counterparty_name),
-                        total: Set(gpay.amount),
-                        order_id: Set(None),
+                        source_type: Set("OCR".to_string()),
+                        r2_file_url: Set(Some(r2_key)),
+                        raw_metadata: Set(Some(processed.data.0)),
                     };
-                    purchase.insert(txn_db).await?;
+                    source.insert(txn_db).await?;
                 }
 
                 Ok(OcrTransactionResponse {
@@ -210,7 +177,7 @@ pub async fn process_ocr(
             } else {
                 // Generic OCR path
                 let generic: OcrResult = serde_json::from_value(processed.data.0.clone())
-                    .map_err(|e| AppError::Generic(format!("Failed to parse Generic data: {e}")))?;
+                    .map_err(|e| AppError::Ocr(format!("Failed to parse generic data: {}", e)))?;
 
                 let mut contact_id = generic.contact_id.clone();
                 let wallet_id = generic.wallet_id.clone();
@@ -231,7 +198,9 @@ pub async fn process_ocr(
                     .await?;
 
                     if resolution.is_collision {
-                        return Err(AppError::Generic("CONTACT_COLLISION".to_string()));
+                        return Err(AppError::ContactCollision(
+                            serde_json::to_value(resolution.collision_candidates).unwrap(),
+                        ));
                     }
 
                     if let Some(c_id) = resolution.contact_id {
@@ -246,69 +215,45 @@ pub async fn process_ocr(
                     user_id: Set(user_id.clone()),
                     amount: Set(amount),
                     direction: Set(TransactionDirection::Out),
-                    date: Set(generic.date.unwrap_or_else(|| Utc::now().into())),
-                    source: Set(TransactionSource::Ocr),
                     status: Set(TransactionStatus::Completed),
+                    date: Set(generic
+                        .date
+                        .map(|dt| dt.with_timezone(&Utc).into())
+                        .unwrap_or_else(|| Utc::now().into())),
+                    source_wallet_id: Set(wallet_id),
                     category_id: Set(category_id),
-                    purpose_tag: Set(generic.vendor.clone()),
-                    group_id: Set(None),
-                    source_wallet_id: Set(wallet_id.clone()),
-                    destination_wallet_id: Set(None),
-                    ledger_tab_id: Set(None),
-                    deleted_at: Set(None),
-                    notes: Set(None),
+                    notes: Set(Some(format!(
+                        "Extracted via Generic OCR. Vendor: {:?}",
+                        generic.vendor
+                    ))),
+                    source: Set(TransactionSource::Ocr),
+                    ..Default::default()
                 };
 
                 let result = txn.insert(txn_db).await?;
 
-                // Adjust wallet balances
-                crate::services::transactions::adjust_transaction_wallets(
-                    txn_db,
-                    None,
-                    Some(&result),
-                )
-                .await?;
-
-                let source = entities::transaction_sources::ActiveModel {
-                    id: Set(uuid::Uuid::now_v7().to_string()),
-                    transaction_id: Set(result.id.clone()),
-                    source_type: Set("GENERIC_OCR".to_string()),
-                    r2_file_url: Set(processed.r2_key),
-                    raw_metadata: Set(Some(processed.data.0)),
-                };
-                source.insert(txn_db).await?;
-
-                // Create txn_parties record if contact_id is provided
+                // Create transaction party record for the contact
                 if let Some(c_id) = contact_id {
                     let party = entities::txn_parties::ActiveModel {
                         id: Set(uuid::Uuid::now_v7().to_string()),
                         transaction_id: Set(result.id.clone()),
                         user_id: Set(None),
                         contact_id: Set(Some(c_id)),
-                        role: Set("COUNTERPARTY".to_string()),
+                        role: Set("RECEIVER".to_string()),
                     };
                     party.insert(txn_db).await?;
                 }
 
-                let purchase = entities::purchases::ActiveModel {
-                    id: Set(uuid::Uuid::now_v7().to_string()),
-                    transaction_id: Set(result.id.clone()),
-                    vendor: Set(generic.vendor.unwrap_or_else(|| "Unknown".to_string())),
-                    total: Set(amount),
-                    order_id: Set(None),
-                };
-                let p_result = purchase.insert(txn_db).await?;
-
-                for item in generic.items {
-                    let p_item = entities::purchase_items::ActiveModel {
+                // Create transaction source record
+                if let Some(r2_key) = processed.r2_key {
+                    let source = entities::transaction_sources::ActiveModel {
                         id: Set(uuid::Uuid::now_v7().to_string()),
-                        purchase_id: Set(p_result.id.clone()),
-                        name: Set(item.name),
-                        quantity: Set(item.quantity),
-                        price: Set(item.price),
-                        sku: Set(None),
+                        transaction_id: Set(result.id.clone()),
+                        source_type: Set("OCR".to_string()),
+                        r2_file_url: Set(Some(r2_key)),
+                        raw_metadata: Set(Some(processed.data.0)),
                     };
-                    p_item.insert(txn_db).await?;
+                    source.insert(txn_db).await?;
                 }
 
                 Ok(OcrTransactionResponse {
@@ -320,7 +265,7 @@ pub async fn process_ocr(
     })
     .await
     .map_err(|e| match e {
-        TransactionError::Connection(ce) => AppError::Db(ce),
-        TransactionError::Transaction(te) => te,
+        sea_orm::TransactionError::Connection(ce) => AppError::Db(ce),
+        sea_orm::TransactionError::Transaction(te) => te,
     })
 }

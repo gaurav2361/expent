@@ -1,24 +1,25 @@
 use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
+use axum::response::sse::{Event, Sse};
 use axum::routing::{get, post};
 use expent_core::ocr;
+use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
-
-use crate::OcrUpdate;
-use axum::response::sse::{Event, Sse};
-use futures::stream::Stream;
-use std::convert::Infallible;
-use tokio_stream::StreamExt;
 
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/process", post(process_image_ocr_handler))
         .route("/status/{job_id}", get(get_ocr_job_status_handler))
         .route("/stream", get(ocr_stream_handler))
+        .route("/pending", get(list_pending_ocr_jobs_handler))
+        .route("/confirm/{job_id}", post(confirm_ocr_job_handler))
+        .route("/bulk-confirm", post(bulk_confirm_ocr_jobs_handler))
+        .route("/resolve/{job_id}", post(resolve_ocr_job_handler))
 }
 
 pub async fn ocr_stream_handler(
@@ -53,6 +54,7 @@ pub async fn ocr_stream_handler(
 #[derive(Deserialize)]
 pub struct ProcessImageOcrRequest {
     pub key: String,
+    pub raw_key: Option<String>,
     pub p_hash: Option<String>,
     pub auto_confirm: Option<bool>,
     pub wallet_id: Option<String>,
@@ -85,10 +87,14 @@ pub async fn process_image_ocr_handler(
 
     // 1. Create a record in ocr_jobs table (QUEUED)
     let auto_confirm = payload.auto_confirm.unwrap_or(false);
+    let trace_id = uuid::Uuid::now_v7().to_string();
+
     let job = ocr::create_ocr_job(
         &state.core.db,
         &session.user.id,
+        Some(trace_id),
         &payload.key,
+        payload.raw_key,
         payload.p_hash,
         auto_confirm,
         payload.wallet_id.clone(),
@@ -108,149 +114,20 @@ pub async fn process_image_ocr_handler(
         ));
     }
 
-    // 2. Spawn a background task
+    // 2. Trigger processing immediately (the background worker will also pick it up if this fails)
     let state_clone = state.clone();
-    let key = payload.key.clone();
     let job_id_clone = job_id.clone();
-    let user_id_clone = session.user.id.clone();
-
     tokio::spawn(async move {
-        // Set status to PROCESSING
-        let _ = ocr::update_ocr_job(
+        if let Err(e) = ocr::process_job(
             &state_clone.core.db,
-            &job_id_clone,
-            "PROCESSING",
-            None,
-            None,
-            None,
-            Some(chrono::Utc::now()),
+            state_clone.core.ocr_service.clone(),
+            &state_clone.core.upload_client,
+            state_clone.ocr_tx.clone(),
+            job_id_clone,
         )
-        .await;
-
-        let _ = state_clone.ocr_tx.send(OcrUpdate {
-            user_id: user_id_clone.clone(),
-            job_id: job_id_clone.clone(),
-            status: "PROCESSING".to_string(),
-        });
-
-        let process_res = async {
-            let bytes = state_clone.core.upload_client.get_file(&key).await?;
-
-            // Determine filename and mime type from the key
-            let filename = key.split("/").last().unwrap_or("upload");
-            let mime_type = if filename.ends_with(".pdf") {
-                "application/pdf"
-            } else if filename.ends_with(".csv") {
-                "text/csv"
-            } else if filename.ends_with(".webp") {
-                "image/webp"
-            } else {
-                "image/png"
-            };
-
-            let ocr_json = state_clone
-                .core
-                .ocr_service
-                .process_file(&bytes, filename, mime_type)
-                .await?;
-
-            let mut processed_ocr: expent_core::ProcessedOcr = serde_json::from_value(ocr_json)?;
-            processed_ocr.r2_key = Some(key.clone());
-
-            // If auto_confirm is enabled, automatically create the transaction
-            let mut transaction_id = None;
-            let mut final_status = "COMPLETED";
-
-            if auto_confirm {
-                // Attach wallet and category if provided in the job
-                if let Some(w_id) = payload.wallet_id {
-                    match processed_ocr.doc_type.as_str() {
-                        "GPAY" => {
-                            if let Ok(mut gpay) = serde_json::from_value::<db::GPayExtraction>(
-                                processed_ocr.data.0.clone(),
-                            ) {
-                                gpay.wallet_id = Some(w_id);
-                                if let Some(c_id) = payload.category_id.clone() {
-                                    gpay.category_id = Some(c_id);
-                                }
-                                processed_ocr.data.0 = serde_json::to_value(gpay).unwrap();
-                            }
-                        }
-                        "GENERIC" => {
-                            if let Ok(mut generic) = serde_json::from_value::<db::OcrResult>(
-                                processed_ocr.data.0.clone(),
-                            ) {
-                                generic.wallet_id = Some(w_id);
-                                if let Some(c_id) = payload.category_id.clone() {
-                                    generic.category_id = Some(c_id);
-                                }
-                                processed_ocr.data.0 = serde_json::to_value(generic).unwrap();
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-
-                match ocr::process_ocr(&state_clone.core.db, &user_id_clone, processed_ocr.clone())
-                    .await
-                {
-                    Ok(res) => {
-                        transaction_id = Some(res.transaction.id);
-                    }
-                    Err(e) => {
-                        tracing::error!("❌ Auto-confirmation failed: {}", e);
-                        final_status = "PENDING_REVIEW"; // Fallback to manual review if auto-confirm fails
-                    }
-                }
-            } else {
-                final_status = "PENDING_REVIEW";
-            }
-
-            Ok::<
-                (expent_core::ProcessedOcr, String, Option<String>),
-                Box<dyn std::error::Error + Send + Sync>,
-            >((processed_ocr, final_status.to_string(), transaction_id))
-        }
-        .await;
-
-        match process_res {
-            Ok((processed, status, tx_id)) => {
-                let _ = ocr::update_ocr_job(
-                    &state_clone.core.db,
-                    &job_id_clone,
-                    &status,
-                    Some(serde_json::to_value(processed).unwrap()),
-                    None,
-                    tx_id,
-                    None,
-                )
-                .await;
-
-                let _ = state_clone.ocr_tx.send(OcrUpdate {
-                    user_id: user_id_clone.clone(),
-                    job_id: job_id_clone.clone(),
-                    status: status.to_string(),
-                });
-            }
-            Err(e) => {
-                tracing::error!("❌ OCR Background Job failed: {}", e);
-                let _ = ocr::update_ocr_job(
-                    &state_clone.core.db,
-                    &job_id_clone,
-                    "FAILED",
-                    None,
-                    Some(e.to_string()),
-                    None,
-                    None,
-                )
-                .await;
-
-                let _ = state_clone.ocr_tx.send(OcrUpdate {
-                    user_id: user_id_clone.clone(),
-                    job_id: job_id_clone.clone(),
-                    status: "FAILED".to_string(),
-                });
-            }
+        .await
+        {
+            tracing::error!("❌ Background job processing failed: {}", e);
         }
     });
 
@@ -270,4 +147,83 @@ pub async fn get_ocr_job_status_handler(
 ) -> Result<Json<db::entities::ocr_jobs::Model>, ApiError> {
     let job = ocr::get_ocr_job(&state.core.db, &session.user.id, &job_id).await?;
     Ok(Json(job))
+}
+
+pub async fn list_pending_ocr_jobs_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+) -> Result<Json<Vec<db::entities::ocr_jobs::Model>>, ApiError> {
+    let jobs = ocr::list_pending_ocr_jobs(&state.core.db, &session.user.id).await?;
+    Ok(Json(jobs))
+}
+
+#[derive(Deserialize)]
+pub struct ConfirmOcrRequest {
+    pub manual_data: Option<db::ProcessedOcr>,
+}
+
+pub async fn confirm_ocr_job_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Path(job_id): Path<String>,
+    Json(payload): Json<ConfirmOcrRequest>,
+) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
+    let result = ocr::confirm_ocr_job(
+        &state.core.db,
+        &session.user.id,
+        &job_id,
+        payload.manual_data,
+    )
+    .await?;
+    Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+pub struct BulkConfirmOcrRequest {
+    pub job_ids: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct BulkConfirmOcrResponse {
+    pub succeeded: Vec<String>,
+    pub failed: Vec<(String, String)>,
+}
+
+pub async fn bulk_confirm_ocr_jobs_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Json(payload): Json<BulkConfirmOcrRequest>,
+) -> Result<Json<BulkConfirmOcrResponse>, ApiError> {
+    let mut succeeded = Vec::new();
+    let mut failed = Vec::new();
+
+    for job_id in payload.job_ids {
+        match ocr::confirm_ocr_job(&state.core.db, &session.user.id, &job_id, None).await {
+            Ok(_) => succeeded.push(job_id),
+            Err(e) => failed.push((job_id, e.to_string())),
+        }
+    }
+
+    Ok(Json(BulkConfirmOcrResponse { succeeded, failed }))
+}
+
+#[derive(Deserialize)]
+pub struct ResolveContactRequest {
+    pub contact_id: String,
+}
+
+pub async fn resolve_ocr_job_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Path(job_id): Path<String>,
+    Json(payload): Json<ResolveContactRequest>,
+) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
+    let result = ocr::resolve_contact_collision(
+        &state.core.db,
+        &session.user.id,
+        &job_id,
+        &payload.contact_id,
+    )
+    .await?;
+    Ok(Json(result))
 }

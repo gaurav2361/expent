@@ -21,14 +21,7 @@ pub mod routes;
 #[derive(Clone)]
 pub struct AppState {
     pub core: Core,
-    pub ocr_tx: tokio::sync::broadcast::Sender<OcrUpdate>,
-}
-
-#[derive(Clone, serde::Serialize)]
-pub struct OcrUpdate {
-    pub user_id: String,
-    pub job_id: String,
-    pub status: String,
+    pub ocr_tx: tokio::sync::broadcast::Sender<expent_core::ocr::OcrUpdate>,
 }
 
 impl FromRef<AppState> for DatabaseConnection {
@@ -87,6 +80,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     ));
 
     let (ocr_tx, _) = tokio::sync::broadcast::channel(100);
+
+    tokio::spawn(expent_core::services::ocr::worker::start_processor_worker(
+        core.db.clone(),
+        core.ocr_service.clone(),
+        core.upload_client.clone(),
+        ocr_tx.clone(),
+    ));
+
     let state = AppState {
         core: core.clone(),
         ocr_tx,

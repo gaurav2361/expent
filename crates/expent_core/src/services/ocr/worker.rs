@@ -1,8 +1,11 @@
-use crate::ocr;
+use crate::ocr::OcrUpdate;
+use ::ocr::OcrService;
 use chrono::Utc;
 use db::entities;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use std::sync::Arc;
 use std::time::Duration;
+use upload::UploadClient;
 
 pub async fn start_recovery_worker(db: DatabaseConnection) {
     let mut interval = tokio::time::interval(Duration::from_secs(300)); // Every 5 minutes
@@ -12,6 +15,70 @@ pub async fn start_recovery_worker(db: DatabaseConnection) {
             tracing::error!("❌ Recovery worker failed: {}", e);
         }
     }
+}
+
+pub async fn start_processor_worker(
+    db: DatabaseConnection,
+    ocr_service: Arc<OcrService>,
+    upload_client: UploadClient,
+    ocr_tx: tokio::sync::broadcast::Sender<OcrUpdate>,
+) {
+    let mut interval = tokio::time::interval(Duration::from_secs(10)); // Poll every 10 seconds
+    loop {
+        interval.tick().await;
+        if let Err(e) =
+            process_queued_jobs(&db, ocr_service.clone(), &upload_client, ocr_tx.clone()).await
+        {
+            tracing::error!("❌ Processor worker failed: {}", e);
+        }
+    }
+}
+
+async fn process_queued_jobs(
+    db: &DatabaseConnection,
+    ocr_service: Arc<OcrService>,
+    upload_client: &UploadClient,
+    ocr_tx: tokio::sync::broadcast::Sender<OcrUpdate>,
+) -> Result<(), anyhow::Error> {
+    let now = Utc::now();
+
+    // Find jobs in QUEUED status that are scheduled for now or in the past
+    let queued_jobs = entities::ocr_jobs::Entity::find()
+        .filter(entities::ocr_jobs::Column::Status.eq("QUEUED"))
+        .filter(
+            entities::ocr_jobs::Column::ScheduledAt
+                .is_null()
+                .or(entities::ocr_jobs::Column::ScheduledAt.lte(now)),
+        )
+        .all(db)
+        .await?;
+
+    for job in queued_jobs {
+        let job_id = job.id.clone();
+        tracing::info!("👷 Background worker picking up job: {}", job_id);
+
+        // Process each job. We can do this concurrently or sequentially.
+        let db_clone = db.clone();
+        let ocr_service_clone = ocr_service.clone();
+        let upload_client_clone = upload_client.clone();
+        let ocr_tx_clone = ocr_tx.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = super::process_job(
+                &db_clone,
+                ocr_service_clone,
+                &upload_client_clone,
+                ocr_tx_clone,
+                job_id,
+            )
+            .await
+            {
+                tracing::error!("❌ Background job processing failed: {}", e);
+            }
+        });
+    }
+
+    Ok(())
 }
 
 async fn recover_stale_jobs(db: &DatabaseConnection) -> Result<(), anyhow::Error> {
@@ -31,10 +98,6 @@ async fn recover_stale_jobs(db: &DatabaseConnection) -> Result<(), anyhow::Error
         active_job.status = Set("QUEUED".to_string());
         active_job.started_at = Set(None);
         active_job.update(db).await?;
-
-        // In a real system with a message queue, we'd re-publish to the queue here.
-        // For now, we depend on the next time the user polls or we might need a
-        // background consumer that processes the QUEUED jobs.
     }
 
     Ok(())
