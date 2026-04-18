@@ -18,10 +18,10 @@ where
         let old_is_active = old.status != TransactionStatus::Cancelled && old.deleted_at.is_none();
         if old_is_active {
             if let Some(sw_id) = &old.source_wallet_id {
-                crate::services::wallets::adjust_balance(db, sw_id, old.amount).await?;
+                crate::wallets::ops::adjust_balance(db, sw_id, old.amount).await?;
             }
             if let Some(dw_id) = &old.destination_wallet_id {
-                crate::services::wallets::adjust_balance(db, dw_id, -old.amount).await?;
+                crate::wallets::ops::adjust_balance(db, dw_id, -old.amount).await?;
             }
         }
     }
@@ -31,10 +31,10 @@ where
         let new_is_active = new.status != TransactionStatus::Cancelled && new.deleted_at.is_none();
         if new_is_active {
             if let Some(sw_id) = &new.source_wallet_id {
-                crate::services::wallets::adjust_balance(db, sw_id, -new.amount).await?;
+                crate::wallets::ops::adjust_balance(db, sw_id, -new.amount).await?;
             }
             if let Some(dw_id) = &new.destination_wallet_id {
-                crate::services::wallets::adjust_balance(db, dw_id, new.amount).await?;
+                crate::wallets::ops::adjust_balance(db, dw_id, new.amount).await?;
             }
         }
     }

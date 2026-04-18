@@ -18,11 +18,14 @@ pub use services::reconciliation;
 pub use services::subscriptions;
 pub use services::transactions;
 pub use services::users;
-pub use services::wallets;
 
 pub mod ocr {
     pub use crate::services::ocr_bridge::*;
     pub use ::ocr::*;
+}
+
+pub mod wallets {
+    pub use ::wallets::*;
 }
 
 // Re-export common crates so API doesn't need to depend on them directly
@@ -32,6 +35,7 @@ pub use sea_orm;
 pub use upload;
 
 use ::ocr::{OcrManager, OcrProcessor, OcrService};
+use ::wallets::WalletsManager;
 use auth::adapter::PostgresAdapter;
 use sea_orm::{Database, DatabaseConnection};
 use std::sync::Arc;
@@ -43,6 +47,7 @@ pub struct Core {
     pub auth: Arc<better_auth::BetterAuth<PostgresAdapter>>,
     pub upload_client: UploadClient,
     pub ocr_manager: Arc<OcrManager>,
+    pub wallets: Arc<WalletsManager>,
 }
 
 impl OcrProcessor for Core {
@@ -120,11 +125,14 @@ impl Core {
             ocr_tx,
         ));
 
+        let wallets = Arc::new(WalletsManager::new(db.clone()));
+
         let core = Self {
             db,
             auth,
             upload_client,
             ocr_manager,
+            wallets,
         };
 
         // Ensure system categories exist
