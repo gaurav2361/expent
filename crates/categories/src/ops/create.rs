@@ -1,6 +1,6 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 
 pub async fn create_category(
     db: &DatabaseConnection,
@@ -9,6 +9,28 @@ pub async fn create_category(
     icon: Option<String>,
     color: Option<String>,
 ) -> Result<entities::categories::Model, AppError> {
+    // 1. Case-insensitive duplicate check
+    let normalized_name = name.trim().to_lowercase();
+
+    let existing = entities::categories::Entity::find()
+        .filter(
+            sea_orm::Condition::any()
+                .add(entities::categories::Column::UserId.eq(user_id))
+                .add(entities::categories::Column::UserId.eq("system")),
+        )
+        .all(db)
+        .await?;
+
+    if existing
+        .iter()
+        .any(|c| c.name.to_lowercase() == normalized_name)
+    {
+        return Err(AppError::Generic(format!(
+            "Category '{}' already exists",
+            name
+        )));
+    }
+
     let category = entities::categories::ActiveModel {
         id: Set(uuid::Uuid::now_v7().to_string()),
         user_id: Set(user_id.to_string()),
