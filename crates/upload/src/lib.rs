@@ -194,6 +194,7 @@ impl UploadClient {
             .and_then(|name| Path::new(name).file_name())
             .and_then(|n| n.to_str())
             .unwrap_or("unnamed");
+
         let mut final_name = sanitized_name.to_string();
         if optimize && category == FileCategory::Image {
             // Force .webp extension if optimized

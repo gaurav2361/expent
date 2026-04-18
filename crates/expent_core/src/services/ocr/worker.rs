@@ -1,4 +1,4 @@
-use crate::ocr::{self, OcrUpdate};
+use crate::ocr::OcrUpdate;
 use ::ocr::OcrService;
 use chrono::Utc;
 use db::entities;
@@ -58,15 +58,13 @@ async fn process_queued_jobs(
         tracing::info!("👷 Background worker picking up job: {}", job_id);
 
         // Process each job. We can do this concurrently or sequentially.
-        // For simplicity and to respect rate limits, let's do it sequentially for now
-        // within this worker loop, or spawn if we want more throughput.
         let db_clone = db.clone();
         let ocr_service_clone = ocr_service.clone();
         let upload_client_clone = upload_client.clone();
         let ocr_tx_clone = ocr_tx.clone();
 
         tokio::spawn(async move {
-            if let Err(e) = ocr::process_job(
+            if let Err(e) = super::process_job(
                 &db_clone,
                 ocr_service_clone,
                 &upload_client_clone,
