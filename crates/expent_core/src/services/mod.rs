@@ -7,4 +7,3 @@ pub mod reconciliation;
 pub mod subscriptions;
 pub mod transactions;
 pub mod users;
-pub mod wallets;

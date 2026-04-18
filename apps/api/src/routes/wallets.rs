@@ -1,7 +1,6 @@
 use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::routing::{get, put};
-use expent_core::wallets;
 use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
@@ -20,7 +19,7 @@ pub async fn list_wallets_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::wallets::Model>>, ApiError> {
-    let result = wallets::list_wallets(&state.core.db, &session.user.id).await?;
+    let result = state.core.wallets.list(&session.user.id).await?;
     Ok(Json(result))
 }
 
@@ -36,14 +35,16 @@ pub async fn create_wallet_handler(
     session: AuthSession,
     Json(payload): Json<CreateWalletRequest>,
 ) -> Result<Json<db::entities::wallets::Model>, ApiError> {
-    let result = wallets::create_wallet(
-        &state.core.db,
-        &session.user.id,
-        &payload.name,
-        payload.r#type,
-        payload.initial_balance,
-    )
-    .await?;
+    let result = state
+        .core
+        .wallets
+        .create(
+            &session.user.id,
+            &payload.name,
+            payload.r#type,
+            payload.initial_balance,
+        )
+        .await?;
     Ok(Json(result))
 }
 
@@ -59,14 +60,11 @@ pub async fn update_wallet_handler(
     Path(id): Path<String>,
     Json(payload): Json<UpdateWalletRequest>,
 ) -> Result<Json<db::entities::wallets::Model>, ApiError> {
-    let result = wallets::update_wallet(
-        &state.core.db,
-        &session.user.id,
-        &id,
-        payload.name,
-        payload.balance,
-    )
-    .await?;
+    let result = state
+        .core
+        .wallets
+        .update(&session.user.id, &id, payload.name, payload.balance)
+        .await?;
     Ok(Json(result))
 }
 
@@ -75,6 +73,6 @@ pub async fn delete_wallet_handler(
     session: AuthSession,
     Path(id): Path<String>,
 ) -> Result<Json<u64>, ApiError> {
-    let result = wallets::delete_wallet(&state.core.db, &session.user.id, &id).await?;
+    let result = state.core.wallets.delete(&session.user.id, &id).await?;
     Ok(Json(result))
 }
