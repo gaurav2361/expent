@@ -25,7 +25,10 @@ pub struct Model {
     pub scheduled_at: Option<DateTimeWithTimeZone>,
     pub retry_count: i32,
     pub is_high_res: bool,
+    pub schema_version: i32,
     pub last_error: Option<String>,
+    #[ts(type = "import('./JsonValue').JsonValue")]
+    pub resolution_candidates: Option<Json>,
     #[ts(type = "import('./JsonValue').JsonValue")]
     pub processed_data: Option<Json>,
     pub error: Option<String>,

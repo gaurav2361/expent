@@ -10,6 +10,8 @@ use sea_orm::{
 use std::sync::Arc;
 use upload::UploadClient;
 
+pub const CURRENT_SCHEMA_VERSION: i32 = 1;
+
 pub async fn create_ocr_job(
     db: &DatabaseConnection,
     user_id: &str,
@@ -50,7 +52,9 @@ pub async fn create_ocr_job(
         scheduled_at: Set(None),
         retry_count: Set(0),
         is_high_res: Set(false),
+        schema_version: Set(CURRENT_SCHEMA_VERSION),
         last_error: Set(None),
+        resolution_candidates: Set(None),
         processed_data: Set(None),
         error: Set(None),
         created_at: Set(Utc::now().into()),
@@ -83,6 +87,8 @@ pub async fn update_ocr_job(
     scheduled_at: Option<chrono::DateTime<chrono::Utc>>,
     retry_count: Option<i32>,
     is_high_res: Option<bool>,
+    schema_version: Option<i32>,
+    resolution_candidates: Option<serde_json::Value>,
     last_error: Option<String>,
 ) -> Result<entities::ocr_jobs::Model, AppError> {
     let mut job: entities::ocr_jobs::ActiveModel =
@@ -113,6 +119,12 @@ pub async fn update_ocr_job(
     }
     if let Some(high_res) = is_high_res {
         job.is_high_res = Set(high_res);
+    }
+    if let Some(version) = schema_version {
+        job.schema_version = Set(version);
+    }
+    if let Some(candidates) = resolution_candidates {
+        job.resolution_candidates = Set(Some(candidates));
     }
     if let Some(l_err) = last_error {
         job.last_error = Set(Some(l_err));
@@ -156,6 +168,8 @@ pub async fn process_job(
         None,
         None,
         Some(chrono::Utc::now()),
+        None,
+        None,
         None,
         None,
         None,
@@ -215,13 +229,14 @@ pub async fn process_job(
                 job_id
             );
             return Ok::<
-                (db::ProcessedOcr, String, Option<String>),
+                (db::ProcessedOcr, String, Option<String>, Option<serde_json::Value>),
                 Box<dyn std::error::Error + Send + Sync>,
-            >((processed_ocr, "RETRY_HIGH_RES".to_string(), None));
+            >((processed_ocr, "RETRY_HIGH_RES".to_string(), None, None));
         }
 
         let mut transaction_id = None;
         let mut final_status = "COMPLETED";
+        let mut collision_data = None;
 
         if job.auto_confirm {
             // Attach wallet and category if provided in the job
@@ -258,22 +273,28 @@ pub async fn process_job(
                     transaction_id = Some(res.transaction.id);
                 }
                 Err(e) => {
-                    tracing::error!("❌ Auto-confirmation failed for job {}: {}", job_id, e);
-                    final_status = "PENDING_REVIEW";
+                    if let db::AppError::ContactCollision(candidates) = e {
+                        tracing::warn!("⚠️ Contact collision for job {}, needs manual review", job_id);
+                        final_status = "CONTACT_COLLISION";
+                        collision_data = Some(candidates);
+                    } else {
+                        tracing::error!("❌ Auto-confirmation failed for job {}: {}", job_id, e);
+                        final_status = "PENDING_REVIEW";
+                    }
                 }
             }
         } else {
             final_status = "PENDING_REVIEW";
         }
 
-        Ok::<(db::ProcessedOcr, String, Option<String>), Box<dyn std::error::Error + Send + Sync>>(
-            (processed_ocr, final_status.to_string(), transaction_id),
+        Ok::<(db::ProcessedOcr, String, Option<String>, Option<serde_json::Value>), Box<dyn std::error::Error + Send + Sync>>(
+            (processed_ocr, final_status.to_string(), transaction_id, collision_data),
         )
     }
     .await;
 
     match process_res {
-        Ok((processed, status, tx_id)) => {
+        Ok((processed, status, tx_id, candidates)) => {
             if status == "RETRY_HIGH_RES" {
                 update_ocr_job(
                     db,
@@ -287,11 +308,13 @@ pub async fn process_job(
                     None,
                     Some(true), // Mark as high-res for next attempt
                     None,
+                    None,
+                    None,
                 )
                 .await?;
 
                 let _ = ocr_tx.send(OcrUpdate {
-                    user_id,
+                    user_id: user_id.clone(),
                     job_id: job_id.clone(),
                     status: "QUEUED".to_string(),
                 });
@@ -307,6 +330,8 @@ pub async fn process_job(
                     None,
                     None,
                     None,
+                    None,
+                    candidates,
                     None,
                 )
                 .await?;
@@ -342,12 +367,14 @@ pub async fn process_job(
                     Some(next_run.into()),
                     Some(new_retry_count),
                     None,
+                    None,
+                    None,
                     Some(e.to_string()),
                 )
                 .await?;
 
                 let _ = ocr_tx.send(OcrUpdate {
-                    user_id,
+                    user_id: user_id.clone(),
                     job_id: job_id.clone(),
                     status: "QUEUED".to_string(),
                 });
@@ -363,6 +390,8 @@ pub async fn process_job(
                     None,
                     Some(new_retry_count),
                     None,
+                    None,
+                    None,
                     Some(e.to_string()),
                 )
                 .await?;
@@ -377,4 +406,78 @@ pub async fn process_job(
     }
 
     Ok(())
+}
+
+pub async fn confirm_ocr_job(
+    db: &DatabaseConnection,
+    user_id: &str,
+    job_id: &str,
+    manual_data: Option<db::ProcessedOcr>,
+) -> Result<db::OcrTransactionResponse, AppError> {
+    let job = get_ocr_job(db, user_id, job_id).await?;
+
+    let ocr_data = if let Some(data) = manual_data {
+        data
+    } else {
+        serde_json::from_value(
+            job.processed_data
+                .ok_or_else(|| AppError::validation("Job has no processed data"))?,
+        )
+        .map_err(|e| AppError::Ocr(format!("Failed to parse job data: {}", e)))?
+    };
+
+    let result = crate::services::ocr::process_ocr(db, user_id, ocr_data).await?;
+
+    update_ocr_job(
+        db,
+        job_id,
+        "COMPLETED",
+        None,
+        None,
+        Some(result.transaction.id.clone()),
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+    .await?;
+
+    Ok(result)
+}
+
+pub async fn resolve_contact_collision(
+    db: &DatabaseConnection,
+    user_id: &str,
+    job_id: &str,
+    contact_id: &str,
+) -> Result<db::OcrTransactionResponse, AppError> {
+    let job = get_ocr_job(db, user_id, job_id).await?;
+    
+    let mut ocr_data: db::ProcessedOcr = serde_json::from_value(
+        job.processed_data
+            .ok_or_else(|| AppError::validation("Job has no processed data"))?,
+    )
+    .map_err(|e| AppError::Ocr(format!("Failed to parse job data: {}", e)))?;
+
+    // Inject the selected contact_id into the data
+    match ocr_data.doc_type.as_str() {
+        "GPAY" => {
+            let mut gpay: db::GPayExtraction = serde_json::from_value(ocr_data.data.0.clone())
+                .map_err(|e| AppError::Ocr(format!("Failed to parse GPAY data: {}", e)))?;
+            gpay.contact_id = Some(contact_id.to_string());
+            ocr_data.data.0 = serde_json::to_value(gpay).unwrap();
+        }
+        "GENERIC" => {
+            let mut generic: db::OcrResult = serde_json::from_value(ocr_data.data.0.clone())
+                .map_err(|e| AppError::Ocr(format!("Failed to parse GENERIC data: {}", e)))?;
+            generic.contact_id = Some(contact_id.to_string());
+            ocr_data.data.0 = serde_json::to_value(generic).unwrap();
+        }
+        _ => return Err(AppError::validation("Unknown document type")),
+    }
+
+    confirm_ocr_job(db, user_id, job_id, Some(ocr_data)).await
 }

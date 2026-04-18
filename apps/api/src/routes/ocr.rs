@@ -1,23 +1,24 @@
-use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
+use axum::response::sse::{Event, Sse};
 use axum::routing::{get, post};
+use axum::Router;
 use expent_core::ocr;
+use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
+use tokio_stream::StreamExt;
 
 use crate::middleware::error::ApiError;
 use crate::{AppState, AuthSession};
-
-use axum::response::sse::{Event, Sse};
-use futures::stream::Stream;
-use std::convert::Infallible;
-use tokio_stream::StreamExt;
 
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/process", post(process_image_ocr_handler))
         .route("/status/{job_id}", get(get_ocr_job_status_handler))
         .route("/stream", get(ocr_stream_handler))
+        .route("/confirm/{job_id}", post(confirm_ocr_job_handler))
+        .route("/resolve/{job_id}", post(resolve_ocr_job_handler))
 }
 
 pub async fn ocr_stream_handler(
@@ -142,4 +143,34 @@ pub async fn get_ocr_job_status_handler(
 ) -> Result<Json<db::entities::ocr_jobs::Model>, ApiError> {
     let job = ocr::get_ocr_job(&state.core.db, &session.user.id, &job_id).await?;
     Ok(Json(job))
+}
+
+#[derive(Deserialize)]
+pub struct ConfirmOcrRequest {
+    pub manual_data: Option<db::ProcessedOcr>,
+}
+
+pub async fn confirm_ocr_job_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Path(job_id): Path<String>,
+    Json(payload): Json<ConfirmOcrRequest>,
+) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
+    let result = ocr::confirm_ocr_job(&state.core.db, &session.user.id, &job_id, payload.manual_data).await?;
+    Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+pub struct ResolveContactRequest {
+    pub contact_id: String,
+}
+
+pub async fn resolve_ocr_job_handler(
+    State(state): State<AppState>,
+    session: AuthSession,
+    Path(job_id): Path<String>,
+    Json(payload): Json<ResolveContactRequest>,
+) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
+    let result = ocr::resolve_contact_collision(&state.core.db, &session.user.id, &job_id, &payload.contact_id).await?;
+    Ok(Json(result))
 }

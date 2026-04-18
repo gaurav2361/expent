@@ -9,7 +9,7 @@ use strsim::jaro_winkler;
 pub struct ContactResolution {
     pub contact_id: Option<String>,
     pub confidence_score: f32,
-    pub collision_candidates: Vec<String>,
+    pub collision_candidates: Vec<entities::contacts::Model>,
     pub is_collision: bool,
 }
 
@@ -80,7 +80,7 @@ where
         }
     }
 
-    // 3. Email Match (Weight 0.1) - Assuming we might have email identifiers
+    // 3. Email Match (Weight 0.1)
     if let Some(email) = &params.email {
         let identifier = entities::contact_identifiers::Entity::find()
             .filter(entities::contact_identifiers::Column::Value.eq(email))
@@ -102,7 +102,6 @@ where
     if let Some(name) = &params.name {
         let normalized_input = normalize_name(name);
 
-        // Load all contacts for this user for fuzzy matching (limit to reasonable number if needed)
         let contacts = entities::contacts::Entity::find()
             .inner_join(entities::contact_links::Entity)
             .filter(entities::contact_links::Column::UserId.eq(user_id))
@@ -114,7 +113,6 @@ where
             let similarity = jaro_winkler(&normalized_input, &normalized_target) as f32;
 
             if similarity > 0.85 {
-                // Confidence threshold for name match
                 let score = matches.entry(c.id.clone()).or_insert(0.0);
                 *score += 0.1 * similarity;
                 criteria_matches
@@ -129,23 +127,26 @@ where
         return Ok(ContactResolution::default());
     }
 
-    // Check for collisions (if different identifiers point to different contacts with significant scores)
     let mut sorted_matches: Vec<_> = matches.into_iter().collect();
     sorted_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
     let (best_contact_id, best_score) = sorted_matches[0].clone();
 
-    // Collision detection: if the second best match has a score from a strong identifier (UPI/Phone)
-    // and it's different from the first match.
+    // Collision detection
     if sorted_matches.len() > 1 {
         let second_score = sorted_matches[1].1;
-
-        // If they are close in score and from different high-weight identifiers
         if second_score > 0.25 {
+            let candidate_ids: Vec<String> =
+                sorted_matches.into_iter().map(|(id, _)| id).collect();
+            let candidates = entities::contacts::Entity::find()
+                .filter(entities::contacts::Column::Id.is_in(candidate_ids))
+                .all(db)
+                .await?;
+
             return Ok(ContactResolution {
                 contact_id: None,
                 confidence_score: best_score,
-                collision_candidates: sorted_matches.into_iter().map(|(id, _)| id).collect(),
+                collision_candidates: candidates,
                 is_collision: true,
             });
         }

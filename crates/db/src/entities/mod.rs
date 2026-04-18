@@ -5,6 +5,7 @@ pub mod bank_statement_rows;
 pub mod categories;
 pub mod contact_identifiers;
 pub mod contact_links;
+pub mod contact_staging;
 pub mod contacts;
 pub mod enums;
 pub mod groups;
