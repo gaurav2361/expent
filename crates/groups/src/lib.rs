@@ -41,8 +41,19 @@ impl GroupsManager {
         groups::create_group(&self.db, user_id, name, description).await
     }
 
-    pub async fn list_groups(&self, user_id: &str) -> Result<Vec<entities::groups::Model>, AppError> {
+    pub async fn list_groups(
+        &self,
+        user_id: &str,
+    ) -> Result<Vec<entities::groups::Model>, AppError> {
         groups::list_groups(&self.db, user_id).await
+    }
+
+    pub async fn get_group(
+        &self,
+        user_id: &str,
+        group_id: &str,
+    ) -> Result<entities::groups::Model, AppError> {
+        groups::get_group(&self.db, user_id, group_id).await
     }
 
     pub async fn invite_to_group(
@@ -78,6 +89,13 @@ impl GroupsManager {
         group_id: &str,
     ) -> Result<Vec<entities::transactions::Model>, AppError> {
         groups::list_group_transactions(&self.db, group_id).await
+    }
+
+    pub async fn list_group_members(
+        &self,
+        group_id: &str,
+    ) -> Result<Vec<db::GroupMemberDetail>, AppError> {
+        groups::members::list_group_members(&self.db, group_id).await
     }
 
     // --- P2P API ---
@@ -142,6 +160,14 @@ impl GroupsManager {
         amount: Decimal,
         wallet_id: Option<String>,
     ) -> Result<entities::transactions::Model, AppError> {
-        p2p::register_repayment(&self.db, self.wallets.clone(), user_id, tab_id, amount, wallet_id).await
+        p2p::register_repayment(
+            &self.db,
+            self.wallets.clone(),
+            user_id,
+            tab_id,
+            amount,
+            wallet_id,
+        )
+        .await
     }
 }

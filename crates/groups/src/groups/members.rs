@@ -1,9 +1,33 @@
 use db::AppError;
+use db::GroupMemberDetail;
 use db::entities;
 use db::entities::enums::{GroupRole, P2PRequestStatus};
 use sea_orm::{
-    ActiveEnum, ActiveModelBehavior, ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter,
+    QuerySelect, RelationTrait, Set,
 };
+
+pub async fn list_group_members(
+    db: &DatabaseConnection,
+    group_id: &str,
+) -> Result<Vec<GroupMemberDetail>, AppError> {
+    // Join user_groups with users to get member details
+    let results = entities::user_groups::Entity::find()
+        .filter(entities::user_groups::Column::GroupId.eq(group_id.to_string()))
+        .join(
+            JoinType::InnerJoin,
+            entities::user_groups::Relation::Users.def(),
+        )
+        .column_as(entities::users::Column::Name, "name")
+        .column_as(entities::users::Column::Email, "email")
+        .column_as(entities::user_groups::Column::UserId, "user_id")
+        .column_as(entities::user_groups::Column::Role, "role")
+        .into_model::<GroupMemberDetail>()
+        .all(db)
+        .await?;
+
+    Ok(results)
+}
 
 pub async fn invite_to_group(
     db: &DatabaseConnection,

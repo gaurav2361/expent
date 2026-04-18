@@ -1,15 +1,14 @@
 use chrono::Utc;
 use db::entities;
-use db::entities::enums::{
-    P2PRequestStatus, TransactionDirection, TransactionSource, TransactionStatus,
-};
+use db::entities::enums::{P2PRequestStatus, TransactionDirection, TransactionSource};
 use db::{AppError, P2PRequestWithSender};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveEnum, ActiveModelTrait, ColIdx, ColumnTrait, DatabaseConnection, EntityTrait, Iden,
-    IdenStatic, QueryFilter, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    TransactionTrait,
 };
 use std::str::FromStr;
+use transactions::TransactionsManager;
 
 pub async fn list_pending_p2p_requests(
     db: &DatabaseConnection,
@@ -42,6 +41,13 @@ pub async fn create_p2p_request(
         .await?
         .ok_or_else(|| AppError::not_found("Transaction not found"))?;
 
+    // Security check: Ensure the transaction belongs to the sender
+    if txn.user_id != sender_id {
+        return Err(AppError::unauthorized(
+            "You can only split your own transactions",
+        ));
+    }
+
     let txn_json = serde_json::to_value(&txn)
         .map_err(|e| AppError::Generic(format!("Failed to serialize transaction: {e}")))?;
 
@@ -57,86 +63,103 @@ pub async fn create_p2p_request(
     request.insert(db).await.map_err(AppError::from)
 }
 
-use transactions::TransactionsManager;
-
 pub async fn accept_p2p_request(
     db: &DatabaseConnection,
     transactions: &TransactionsManager,
     receiver_id: &str,
     request_id: &str,
 ) -> Result<entities::p2p_requests::Model, AppError> {
-    let request = entities::p2p_requests::Entity::find_by_id(request_id.to_string())
-        .one(db)
-        .await?
-        .ok_or_else(|| AppError::not_found("Request not found"))?;
+    let receiver_id = receiver_id.to_string();
+    let request_id = request_id.to_string();
 
-    if request.status != P2PRequestStatus::Pending.to_string()
-        && request.status != P2PRequestStatus::GroupInvite.to_string()
-    {
-        return Err(AppError::unauthorized("Request is not pending"));
-    }
+    db.transaction::<_, entities::p2p_requests::Model, AppError>(|txn_db| {
+        let transactions = transactions.clone();
+        let receiver_id = receiver_id.clone();
+        let request_id = request_id.clone();
+        Box::pin(async move {
+            let request = entities::p2p_requests::Entity::find_by_id(request_id)
+                .one(txn_db)
+                .await?
+                .ok_or_else(|| AppError::not_found("Request not found"))?;
 
-    if request.status == P2PRequestStatus::GroupInvite.to_string() {
-        let metadata: serde_json::Value = serde_json::from_value(request.transaction_data.clone())
-            .map_err(|e| AppError::Generic(format!("Failed to parse invite data: {e}")))?;
+            if request.status != P2PRequestStatus::Pending.to_string()
+                && request.status != P2PRequestStatus::GroupInvite.to_string()
+            {
+                return Err(AppError::unauthorized("Request is not pending"));
+            }
 
-        let group_id = metadata["group_id"]
-            .as_str()
-            .ok_or_else(|| AppError::Generic("Missing group_id in invite".to_string()))?;
+            if request.status == P2PRequestStatus::GroupInvite.to_string() {
+                let metadata: serde_json::Value =
+                    serde_json::from_value(request.transaction_data.clone()).map_err(|e| {
+                        AppError::Generic(format!("Failed to parse invite data: {e}"))
+                    })?;
 
-        let user_group = entities::user_groups::ActiveModel {
-            user_id: Set(receiver_id.to_string()),
-            group_id: Set(group_id.to_string()),
-            role: Set(db::entities::enums::GroupRole::Member.to_string()),
-        };
-        user_group.insert(db).await?;
+                let group_id = metadata["group_id"]
+                    .as_str()
+                    .ok_or_else(|| AppError::Generic("Missing group_id in invite".to_string()))?;
 
-        let mut request: entities::p2p_requests::ActiveModel = request.into();
-        request.status = Set(P2PRequestStatus::Approved.to_string());
-        return request.update(db).await.map_err(AppError::from);
-    }
+                let user_group = entities::user_groups::ActiveModel {
+                    user_id: Set(receiver_id.clone()),
+                    group_id: Set(group_id.to_string()),
+                    role: Set(db::entities::enums::GroupRole::Member.to_string()),
+                };
+                user_group.insert(txn_db).await?;
 
-    let original_txn: serde_json::Value = serde_json::from_value(request.transaction_data.clone())
-        .map_err(|e| AppError::Generic(format!("Failed to parse transaction data: {e}")))?;
+                let mut request: entities::p2p_requests::ActiveModel = request.into();
+                request.status = Set(P2PRequestStatus::Approved.to_string());
+                return request.update(txn_db).await.map_err(AppError::from);
+            }
 
-    let amount = original_txn["amount"]
-        .as_str()
-        .and_then(|s| Decimal::from_str(s).ok())
-        .unwrap_or(Decimal::ZERO);
+            let original_txn: serde_json::Value =
+                serde_json::from_value(request.transaction_data.clone()).map_err(|e| {
+                    AppError::Generic(format!("Failed to parse transaction data: {e}"))
+                })?;
 
-    let date = original_txn["date"]
-        .as_str()
-        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-        .map_or_else(
-            || Utc::now().into(),
-            |d| d.with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()),
-        );
+            let amount = original_txn["amount"]
+                .as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or(Decimal::ZERO);
 
-    let purpose = original_txn["purpose"]
-        .as_str()
-        .map(std::string::ToString::to_string);
+            let date = original_txn["date"]
+                .as_str()
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                .map_or_else(
+                    || Utc::now().into(),
+                    |d| d.with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()),
+                );
 
-    let result_txn = transactions
-        .create(
-            receiver_id,
-            amount,
-            TransactionDirection::In,
-            date,
-            TransactionSource::P2p,
-            purpose,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-        .await?;
+            let purpose = original_txn["purpose"]
+                .as_str()
+                .map(std::string::ToString::to_string);
 
-    let mut request: entities::p2p_requests::ActiveModel = request.into();
-    request.status = Set(P2PRequestStatus::Mapped.to_string());
-    request.linked_txn_id = Set(Some(result_txn.id));
+            let result_txn = transactions
+                .create(
+                    &receiver_id,
+                    amount,
+                    TransactionDirection::In,
+                    date,
+                    TransactionSource::P2p,
+                    purpose,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+                .await?;
 
-    request.update(db).await.map_err(AppError::from)
+            let mut request: entities::p2p_requests::ActiveModel = request.into();
+            request.status = Set(P2PRequestStatus::Mapped.to_string());
+            request.linked_txn_id = Set(Some(result_txn.id));
+
+            request.update(txn_db).await.map_err(AppError::from)
+        })
+    })
+    .await
+    .map_err(|e| match e {
+        sea_orm::TransactionError::Connection(ce) => AppError::Db(ce),
+        sea_orm::TransactionError::Transaction(te) => te,
+    })
 }
 
 pub async fn reject_p2p_request(

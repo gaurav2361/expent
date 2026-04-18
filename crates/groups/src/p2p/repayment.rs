@@ -6,8 +6,8 @@ use db::entities::enums::{
 };
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, Iterable, QueryFilter,
-    Set, TransactionError, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    TransactionError, TransactionTrait,
 };
 
 use std::sync::Arc;
@@ -54,13 +54,8 @@ pub async fn register_repayment(
             // Adjust wallet balances using unified logic
             // We need wallets manager here, but since Core re-exports it, we can use it.
             // Actually, in the bridge we'll just point to the ops for now to avoid circular deps if any.
-            ::transactions::ops::adjust_transaction_wallets(
-                txn_db,
-                wallets,
-                None,
-                Some(&result),
-            )
-            .await?;
+            ::transactions::ops::adjust_transaction_wallets(txn_db, wallets, None, Some(&result))
+                .await?;
 
             let total_paid: Decimal = entities::transactions::Entity::find()
                 .filter(entities::transactions::Column::LedgerTabId.eq(tab.id.clone()))
