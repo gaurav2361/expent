@@ -136,8 +136,7 @@ where
     if sorted_matches.len() > 1 {
         let second_score = sorted_matches[1].1;
         if second_score > 0.25 {
-            let candidate_ids: Vec<String> =
-                sorted_matches.into_iter().map(|(id, _)| id).collect();
+            let candidate_ids: Vec<String> = sorted_matches.into_iter().map(|(id, _)| id).collect();
             let candidates = entities::contacts::Entity::find()
                 .filter(entities::contacts::Column::Id.is_in(candidate_ids))
                 .all(db)

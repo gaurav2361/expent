@@ -1,9 +1,14 @@
 use chrono::{DateTime, Utc};
 use db::entities;
-use db::entities::enums::{TransactionDirection, TransactionSource, TransactionStatus, TxnPartyRole};
+use db::entities::enums::{
+    TransactionDirection, TransactionSource, TransactionStatus, TxnPartyRole,
+};
 use db::{AppError, GPayExtraction, OcrResult, OcrTransactionResponse, ProcessedOcr};
 use rust_decimal::Decimal;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    TransactionTrait,
+};
 
 pub async fn process_ocr(
     db: &DatabaseConnection,

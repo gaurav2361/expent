@@ -13,6 +13,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
     pub user_id: String,
+    pub trace_id: Option<String>,
     pub status: String, // "QUEUED", "PROCESSING", "COMPLETED", "FAILED", "PENDING_REVIEW", "CONTACT_COLLISION", "DEAD_LETTER"
     pub r2_key: String,
     pub raw_key: Option<String>,

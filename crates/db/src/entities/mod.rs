@@ -10,6 +10,7 @@ pub mod contacts;
 pub mod enums;
 pub mod groups;
 pub mod ledger_tabs;
+pub mod ocr_job_edits;
 pub mod ocr_jobs;
 pub mod p2p_requests;
 pub mod p2p_transfers;

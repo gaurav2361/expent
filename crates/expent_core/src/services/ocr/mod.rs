@@ -10,4 +10,5 @@ pub struct OcrUpdate {
     pub user_id: String,
     pub job_id: String,
     pub status: String,
+    pub trace_id: Option<String>,
 }

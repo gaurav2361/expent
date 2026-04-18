@@ -15,6 +15,7 @@ pub const CURRENT_SCHEMA_VERSION: i32 = 1;
 pub async fn create_ocr_job(
     db: &DatabaseConnection,
     user_id: &str,
+    trace_id: Option<String>,
     r2_key: &str,
     raw_key: Option<String>,
     p_hash: Option<String>,
@@ -40,6 +41,7 @@ pub async fn create_ocr_job(
     let job = entities::ocr_jobs::ActiveModel {
         id: Set(uuid::Uuid::now_v7().to_string()),
         user_id: Set(user_id.to_string()),
+        trace_id: Set(trace_id),
         status: Set("QUEUED".to_string()),
         r2_key: Set(r2_key.to_string()),
         raw_key: Set(raw_key),
@@ -151,6 +153,7 @@ pub async fn process_job(
     }
 
     let user_id = job.user_id.clone();
+    let trace_id = job.trace_id.clone();
 
     // Use raw_key if it's already a high-res attempt or if we want to try high-res
     let key = if job.is_high_res && job.raw_key.is_some() {
@@ -181,6 +184,7 @@ pub async fn process_job(
         user_id: user_id.clone(),
         job_id: job_id.clone(),
         status: "PROCESSING".to_string(),
+        trace_id: trace_id.clone(),
     });
 
     let process_res = async {
@@ -221,7 +225,6 @@ pub async fn process_job(
         };
 
         // 3. Progressive Quality Fallback
-        // If confidence is low, not already high-res, and we have a raw original image
         if confidence_score < 0.8 && !job.is_high_res && job.raw_key.is_some() {
             tracing::info!(
                 "⚠️ Low confidence ({}) for job {}, triggering high-res retry",
@@ -239,7 +242,6 @@ pub async fn process_job(
         let mut collision_data = None;
 
         if job.auto_confirm {
-            // Attach wallet and category if provided in the job
             if let Some(w_id) = job.wallet_id {
                 match processed_ocr.doc_type.as_str() {
                     "GPAY" => {
@@ -306,7 +308,7 @@ pub async fn process_job(
                     None,
                     Some(chrono::Utc::now().into()),
                     None,
-                    Some(true), // Mark as high-res for next attempt
+                    Some(true),
                     None,
                     None,
                     None,
@@ -317,6 +319,7 @@ pub async fn process_job(
                     user_id: user_id.clone(),
                     job_id: job_id.clone(),
                     status: "QUEUED".to_string(),
+                    trace_id: trace_id.clone(),
                 });
             } else {
                 update_ocr_job(
@@ -340,6 +343,7 @@ pub async fn process_job(
                     user_id,
                     job_id: job_id.clone(),
                     status: status.to_string(),
+                    trace_id,
                 });
             }
         }
@@ -377,6 +381,7 @@ pub async fn process_job(
                     user_id: user_id.clone(),
                     job_id: job_id.clone(),
                     status: "QUEUED".to_string(),
+                    trace_id,
                 });
             } else {
                 update_ocr_job(
@@ -400,11 +405,39 @@ pub async fn process_job(
                     user_id,
                     job_id: job_id.clone(),
                     status: "FAILED".to_string(),
+                    trace_id,
                 });
             }
         }
     }
 
+    Ok(())
+}
+
+async fn log_ocr_edits(
+    db: &DatabaseConnection,
+    user_id: &str,
+    job_id: &str,
+    original: &serde_json::Value,
+    corrected: &serde_json::Value,
+) -> Result<(), AppError> {
+    if let (Some(orig_obj), Some(corr_obj)) = (original.as_object(), corrected.as_object()) {
+        for (key, corr_val) in corr_obj {
+            let orig_val = orig_obj.get(key).unwrap_or(&serde_json::Value::Null);
+            if orig_val != corr_val && !corr_val.is_object() && !corr_val.is_array() {
+                let edit = entities::ocr_job_edits::ActiveModel {
+                    id: Set(uuid::Uuid::now_v7().to_string()),
+                    ocr_job_id: Set(job_id.to_string()),
+                    user_id: Set(user_id.to_string()),
+                    field_name: Set(key.clone()),
+                    original_value: Set(Some(orig_val.to_string())),
+                    corrected_value: Set(Some(corr_val.to_string())),
+                    created_at: Set(Utc::now().into()),
+                };
+                edit.insert(db).await?;
+            }
+        }
+    }
     Ok(())
 }
 
@@ -417,6 +450,10 @@ pub async fn confirm_ocr_job(
     let job = get_ocr_job(db, user_id, job_id).await?;
 
     let ocr_data = if let Some(data) = manual_data {
+        if let Some(orig_data) = job.processed_data {
+            let corrected_json = serde_json::to_value(&data).unwrap();
+            log_ocr_edits(db, user_id, job_id, &orig_data, &corrected_json).await?;
+        }
         data
     } else {
         serde_json::from_value(
@@ -455,14 +492,13 @@ pub async fn resolve_contact_collision(
     contact_id: &str,
 ) -> Result<db::OcrTransactionResponse, AppError> {
     let job = get_ocr_job(db, user_id, job_id).await?;
-    
+
     let mut ocr_data: db::ProcessedOcr = serde_json::from_value(
         job.processed_data
             .ok_or_else(|| AppError::validation("Job has no processed data"))?,
     )
     .map_err(|e| AppError::Ocr(format!("Failed to parse job data: {}", e)))?;
 
-    // Inject the selected contact_id into the data
     match ocr_data.doc_type.as_str() {
         "GPAY" => {
             let mut gpay: db::GPayExtraction = serde_json::from_value(ocr_data.data.0.clone())

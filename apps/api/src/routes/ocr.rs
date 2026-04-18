@@ -1,8 +1,8 @@
+use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::response::sse::{Event, Sse};
 use axum::routing::{get, post};
-use axum::Router;
 use expent_core::ocr;
 use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
@@ -86,9 +86,12 @@ pub async fn process_image_ocr_handler(
 
     // 1. Create a record in ocr_jobs table (QUEUED)
     let auto_confirm = payload.auto_confirm.unwrap_or(false);
+    let trace_id = uuid::Uuid::now_v7().to_string();
+
     let job = ocr::create_ocr_job(
         &state.core.db,
         &session.user.id,
+        Some(trace_id),
         &payload.key,
         payload.raw_key,
         payload.p_hash,
@@ -156,7 +159,13 @@ pub async fn confirm_ocr_job_handler(
     Path(job_id): Path<String>,
     Json(payload): Json<ConfirmOcrRequest>,
 ) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
-    let result = ocr::confirm_ocr_job(&state.core.db, &session.user.id, &job_id, payload.manual_data).await?;
+    let result = ocr::confirm_ocr_job(
+        &state.core.db,
+        &session.user.id,
+        &job_id,
+        payload.manual_data,
+    )
+    .await?;
     Ok(Json(result))
 }
 
@@ -171,6 +180,12 @@ pub async fn resolve_ocr_job_handler(
     Path(job_id): Path<String>,
     Json(payload): Json<ResolveContactRequest>,
 ) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
-    let result = ocr::resolve_contact_collision(&state.core.db, &session.user.id, &job_id, &payload.contact_id).await?;
+    let result = ocr::resolve_contact_collision(
+        &state.core.db,
+        &session.user.id,
+        &job_id,
+        &payload.contact_id,
+    )
+    .await?;
     Ok(Json(result))
 }

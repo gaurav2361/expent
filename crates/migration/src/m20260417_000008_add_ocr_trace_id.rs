@@ -10,12 +10,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(OcrJobs::Table)
-                    .add_column(
-                        ColumnDef::new(OcrJobs::SchemaVersion)
-                            .integer()
-                            .not_null()
-                            .default(1),
-                    )
+                    .add_column(ColumnDef::new(OcrJobs::TraceId).string().null())
                     .to_owned(),
             )
             .await
@@ -26,7 +21,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(OcrJobs::Table)
-                    .drop_column(OcrJobs::SchemaVersion)
+                    .drop_column(OcrJobs::TraceId)
                     .to_owned(),
             )
             .await
@@ -36,5 +31,5 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 enum OcrJobs {
     Table,
-    SchemaVersion,
+    TraceId,
 }
