@@ -26,8 +26,14 @@ pub async fn start_processor_worker(
     let mut interval = tokio::time::interval(Duration::from_secs(10)); // Poll every 10 seconds
     loop {
         interval.tick().await;
-        if let Err(e) =
-            process_queued_jobs(&db, ocr_service.clone(), &upload_client, ocr_tx.clone(), processor.clone()).await
+        if let Err(e) = process_queued_jobs(
+            &db,
+            ocr_service.clone(),
+            &upload_client,
+            ocr_tx.clone(),
+            processor.clone(),
+        )
+        .await
         {
             tracing::error!("❌ Processor worker failed: {}", e);
         }

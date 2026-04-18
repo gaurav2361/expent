@@ -1,9 +1,9 @@
 use anyhow::Result;
 use reqwest::multipart;
+use sea_orm::DatabaseConnection;
 use serde_json::Value;
 use std::sync::Arc;
 use tracing::info;
-use sea_orm::DatabaseConnection;
 
 pub mod jobs;
 pub mod worker;
@@ -134,11 +134,7 @@ impl OcrManager {
         .await
     }
 
-    pub async fn process_immediately(
-        &self,
-        processor: Arc<dyn OcrProcessor>,
-        job_id: String,
-    ) {
+    pub async fn process_immediately(&self, processor: Arc<dyn OcrProcessor>, job_id: String) {
         let db = self.db.clone();
         let service = self.service.clone();
         let upload = self.upload.clone();
