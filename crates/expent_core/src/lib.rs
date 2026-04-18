@@ -12,7 +12,6 @@ pub use db::TransactionWithDetail;
 
 pub use services::categories;
 pub use services::contacts;
-pub use services::subscriptions;
 pub use services::users;
 
 pub mod ocr {
@@ -36,6 +35,10 @@ pub mod reconciliation {
     pub use ::reconciliation::*;
 }
 
+pub mod subscriptions {
+    pub use ::subscriptions::*;
+}
+
 // Re-export common crates so API doesn't need to depend on them directly
 pub use auth;
 pub use better_auth;
@@ -45,6 +48,7 @@ pub use upload;
 use ::groups::GroupsManager;
 use ::ocr::{OcrManager, OcrProcessor, OcrService};
 use ::reconciliation::ReconciliationManager;
+use ::subscriptions::SubscriptionsManager;
 use ::transactions::TransactionsManager;
 use ::wallets::WalletsManager;
 use auth::adapter::PostgresAdapter;
@@ -62,6 +66,7 @@ pub struct Core {
     pub transactions: Arc<TransactionsManager>,
     pub groups: Arc<GroupsManager>,
     pub reconciliation: Arc<ReconciliationManager>,
+    pub subscriptions: Arc<SubscriptionsManager>,
 }
 
 impl OcrProcessor for Core {
@@ -147,6 +152,7 @@ impl Core {
             transactions.clone(),
         ));
         let reconciliation = Arc::new(ReconciliationManager::new(db.clone()));
+        let subscriptions = Arc::new(SubscriptionsManager::new(db.clone()));
 
         let core = Self {
             db,
@@ -157,6 +163,7 @@ impl Core {
             transactions,
             groups,
             reconciliation,
+            subscriptions,
         };
 
         // Ensure system categories exist

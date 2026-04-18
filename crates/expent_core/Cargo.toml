@@ -7,9 +7,10 @@ edition.workspace = true
 auth.workspace           = true
 db.workspace             = true
 groups.workspace         = true
+ocr.workspace            = true
 reconciliation.workspace = true
+subscriptions.workspace  = true
 
-ocr.workspace          = true
 transactions.workspace = true
 upload.workspace       = true
 wallets.workspace      = true

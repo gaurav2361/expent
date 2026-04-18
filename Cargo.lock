@@ -2040,6 +2040,7 @@ dependencies = [
  "serde",
  "serde_json",
  "strsim",
+ "subscriptions",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -5523,6 +5524,22 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "subscriptions"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "db",
+ "rust_decimal",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "strsim",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
