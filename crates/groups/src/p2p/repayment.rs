@@ -54,7 +54,7 @@ pub async fn register_repayment(
             // Adjust wallet balances using unified logic
             // We need wallets manager here, but since Core re-exports it, we can use it.
             // Actually, in the bridge we'll just point to the ops for now to avoid circular deps if any.
-            crate::transactions::ops::adjust_transaction_wallets(
+            ::transactions::ops::adjust_transaction_wallets(
                 txn_db,
                 wallets,
                 None,

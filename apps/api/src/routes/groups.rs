@@ -2,7 +2,6 @@ use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post};
-use expent_core::groups;
 use serde::Deserialize;
 use validator::Validate;
 
@@ -31,7 +30,7 @@ pub async fn list_groups_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::groups::Model>>, ApiError> {
-    let result = groups::list_groups(&state.core.db, &session.user.id).await?;
+    let result = state.core.groups.list_groups(&session.user.id).await?;
     Ok(Json(result))
 }
 
@@ -48,13 +47,11 @@ pub async fn create_group_handler(
     session: AuthSession,
     ValidatedJson(payload): ValidatedJson<CreateGroupRequest>,
 ) -> Result<Json<db::entities::groups::Model>, ApiError> {
-    let result = groups::create_group(
-        &state.core.db,
-        &session.user.id,
-        &payload.name,
-        payload.description,
-    )
-    .await?;
+    let result = state
+        .core
+        .groups
+        .create_group(&session.user.id, &payload.name, payload.description)
+        .await?;
 
     Ok(Json(result))
 }
@@ -71,13 +68,11 @@ pub async fn invite_to_group_handler(
     session: AuthSession,
     ValidatedJson(payload): ValidatedJson<InviteToGroupRequest>,
 ) -> Result<Json<db::entities::p2p_requests::Model>, ApiError> {
-    let result = groups::invite_to_group(
-        &state.core.db,
-        &session.user.id,
-        &payload.receiver_email,
-        &payload.group_id,
-    )
-    .await?;
+    let result = state
+        .core
+        .groups
+        .invite_to_group(&session.user.id, &payload.receiver_email, &payload.group_id)
+        .await?;
 
     Ok(Json(result))
 }
@@ -87,7 +82,7 @@ pub async fn list_group_transactions_handler(
     _session: AuthSession,
     Path(id): Path<String>,
 ) -> Result<Json<Vec<db::entities::transactions::Model>>, ApiError> {
-    let result = groups::list_group_transactions(&state.core.db, &id).await?;
+    let result = state.core.groups.list_group_transactions(&id).await?;
 
     Ok(Json(result))
 }
@@ -124,7 +119,11 @@ pub async fn remove_group_member_handler(
     session: AuthSession,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> Result<StatusCode, ApiError> {
-    groups::remove_group_member(&state.core.db, &session.user.id, &group_id, &user_id).await?;
+    state
+        .core
+        .groups
+        .remove_group_member(&session.user.id, &group_id, &user_id)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -139,13 +138,10 @@ pub async fn update_member_role_handler(
     Path((group_id, user_id)): Path<(String, String)>,
     Json(payload): Json<UpdateMemberRoleRequest>,
 ) -> Result<StatusCode, ApiError> {
-    groups::update_member_role(
-        &state.core.db,
-        &session.user.id,
-        &group_id,
-        &user_id,
-        payload.role,
-    )
-    .await?;
+    state
+        .core
+        .groups
+        .update_member_role(&session.user.id, &group_id, &user_id, payload.role)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
