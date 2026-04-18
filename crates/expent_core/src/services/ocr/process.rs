@@ -15,6 +15,29 @@ pub async fn process_ocr(
     processed: ProcessedOcr,
 ) -> Result<OcrTransactionResponse, AppError> {
     let user_id = user_id.to_string();
+
+    // 3.2 Idempotency check: if r2_key is provided, check if we already have a transaction for it
+    if let Some(ref key) = processed.r2_key {
+        let existing_source = entities::transaction_sources::Entity::find()
+            .filter(entities::transaction_sources::Column::R2FileUrl.eq(key))
+            .one(db)
+            .await?;
+
+        if let Some(source) = existing_source {
+            let txn = entities::transactions::Entity::find_by_id(source.transaction_id)
+                .one(db)
+                .await?
+                .ok_or_else(|| {
+                    AppError::Generic("Source exists but transaction not found".to_string())
+                })?;
+
+            return Ok(OcrTransactionResponse {
+                transaction: txn,
+                contact_created: false,
+            });
+        }
+    }
+
     db.transaction::<_, OcrTransactionResponse, AppError>(|txn_db| {
         Box::pin(async move {
             let mut contact_created = false;
@@ -27,18 +50,26 @@ pub async fn process_ocr(
                 let wallet_id = gpay.wallet_id.clone();
                 let category_id = gpay.category_id.clone();
 
-                // 2.6 Auto-Contact Creation Logic (only if contact_id was not explicitly provided)
-                if contact_id.is_none()
-                    && let Some(upi_id) = &gpay.counterparty_upi_id
-                {
-                    // Check if identifier exists
-                    let identifier = entities::contact_identifiers::Entity::find()
-                        .filter(entities::contact_identifiers::Column::Value.eq(upi_id))
-                        .one(txn_db)
-                        .await?;
+                // 2.6 Robust Contact Resolution
+                if contact_id.is_none() {
+                    let resolution = crate::services::contacts::resolve_contact(
+                        txn_db,
+                        &user_id,
+                        crate::services::contacts::ResolveParams {
+                            name: Some(gpay.counterparty_name.clone()),
+                            phone: gpay.counterparty_phone.clone(),
+                            email: None,
+                            upi_id: gpay.counterparty_upi_id.clone(),
+                        },
+                    )
+                    .await?;
 
-                    if let Some(ident) = identifier {
-                        contact_id = Some(ident.contact_id);
+                    if resolution.is_collision {
+                        return Err(AppError::Generic("CONTACT_COLLISION".to_string()));
+                    }
+
+                    if let Some(c_id) = resolution.contact_id {
+                        contact_id = Some(c_id);
                     } else {
                         // Create new contact
                         let new_contact = entities::contacts::ActiveModel {
@@ -52,14 +83,16 @@ pub async fn process_ocr(
                         contact_created = true;
 
                         // Create identifier
-                        let new_ident = entities::contact_identifiers::ActiveModel {
-                            id: Set(uuid::Uuid::now_v7().to_string()),
-                            contact_id: Set(c_result.id.clone()),
-                            r#type: Set("UPI".to_string()),
-                            value: Set(upi_id.clone()),
-                            linked_user_id: Set(None),
-                        };
-                        new_ident.insert(txn_db).await?;
+                        if let Some(upi_id) = &gpay.counterparty_upi_id {
+                            let new_ident = entities::contact_identifiers::ActiveModel {
+                                id: Set(uuid::Uuid::now_v7().to_string()),
+                                contact_id: Set(c_result.id.clone()),
+                                r#type: Set("UPI".to_string()),
+                                value: Set(upi_id.clone()),
+                                linked_user_id: Set(None),
+                            };
+                            new_ident.insert(txn_db).await?;
+                        }
 
                         // Create link for user
                         let new_link = entities::contact_links::ActiveModel {
@@ -179,9 +212,32 @@ pub async fn process_ocr(
                 let generic: OcrResult = serde_json::from_value(processed.data.0.clone())
                     .map_err(|e| AppError::Generic(format!("Failed to parse Generic data: {e}")))?;
 
-                let contact_id = generic.contact_id.clone();
+                let mut contact_id = generic.contact_id.clone();
                 let wallet_id = generic.wallet_id.clone();
                 let category_id = generic.category_id.clone();
+
+                // 2.6 Robust Contact Resolution for Generic OCR
+                if contact_id.is_none() && generic.vendor.is_some() {
+                    let resolution = crate::services::contacts::resolve_contact(
+                        txn_db,
+                        &user_id,
+                        crate::services::contacts::ResolveParams {
+                            name: generic.vendor.clone(),
+                            phone: None,
+                            email: None,
+                            upi_id: generic.upi_id.clone(),
+                        },
+                    )
+                    .await?;
+
+                    if resolution.is_collision {
+                        return Err(AppError::Generic("CONTACT_COLLISION".to_string()));
+                    }
+
+                    if let Some(c_id) = resolution.contact_id {
+                        contact_id = Some(c_id);
+                    }
+                }
 
                 let amount = generic.amount.unwrap_or(Decimal::ZERO);
 

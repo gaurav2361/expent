@@ -94,21 +94,25 @@ pub async fn direct_upload_handler(
         data.len()
     );
 
-    // All image uploads are compressed to WebP before going to R2
+    // Use the new optimized upload_direct which handles resizing, pHash, and JPEG conversion
     let processed = state
         .core
         .upload_client
-        .upload_compressed(
+        .upload_direct(
             &session.user.id,
             data,
             Some(file_name),
             Some(content_type),
-            CompressOptions::receipt(),
+            true, // Enable optimization
         )
         .await
         .map_err(|e| ApiError::Internal(format!("UploadClient upload failed: {:?}", e)))?;
 
-    tracing::info!("✅ Upload successful, key: {}", processed.key);
+    tracing::info!(
+        "✅ Upload successful, key: {}, pHash: {:?}",
+        processed.key,
+        processed.p_hash
+    );
     let r2_public_url = std::env::var("R2_PUBLIC_URL")
         .unwrap_or_else(|_| "https://pub-3e637dff099d43faa282edc2702dbf2c.r2.dev".to_string());
 

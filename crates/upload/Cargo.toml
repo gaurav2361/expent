@@ -17,6 +17,7 @@ uuid.workspace       = true
 aws-smithy-runtime-api = "1.7"
 bytes                  = "1.0"
 image                  = "0.25"
+image_hasher           = "3.1"
 infer                  = "0.16"
 mime_guess             = "2.0"
 serde_bytes            = "0.11"

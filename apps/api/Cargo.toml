@@ -20,10 +20,14 @@ serde_json.workspace         = true
 sqlx                         = { features = [ "sqlite" ], workspace = true }
 thiserror.workspace          = true
 tokio.workspace              = true
-tower-http.workspace         = true
-tower_governor.workspace     = true
-tracing.workspace            = true
+tower-http.workspace = true
+tower_governor.workspace = true
+tracing.workspace = true
 tracing-subscriber.workspace = true
+async-stream.workspace = true
+tokio-stream.workspace = true
+futures.workspace = true
+
 urlencoding.workspace        = true
 uuid.workspace               = true
 validator.workspace          = true

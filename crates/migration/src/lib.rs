@@ -31,6 +31,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20260404_000004_fix_reconciliation_schema::Migration),
             Box::new(m20260404_000005_add_category_to_transactions::Migration),
             Box::new(m20260408_000001_create_ocr_jobs::Migration),
+            Box::new(m20260417_000001_enhance_ocr_jobs::Migration),
         ]
     }
 }
+
+pub mod m20260417_000001_enhance_ocr_jobs;

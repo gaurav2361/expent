@@ -1,5 +1,6 @@
 pub mod jobs;
 pub mod process;
+pub mod worker;
 
-pub use jobs::{create_ocr_job, get_ocr_job, update_ocr_job};
+pub use jobs::*;
 pub use process::process_ocr;

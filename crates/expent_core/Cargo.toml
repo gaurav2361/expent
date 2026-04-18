@@ -23,6 +23,7 @@ tracing.workspace      = true
 uuid.workspace         = true
 sea-orm.workspace = true
 strsim = "0.11.1"
+any_ascii.workspace = true
 
 
 [dev-dependencies]
