@@ -5,8 +5,9 @@ edition.workspace = true
 
 [dependencies]
 auth.workspace           = true
-db.workspace             = true
+categories.workspace     = true
 contacts.workspace       = true
+db.workspace             = true
 groups.workspace         = true
 ocr.workspace            = true
 reconciliation.workspace = true
