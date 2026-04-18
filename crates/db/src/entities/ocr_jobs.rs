@@ -21,6 +21,9 @@ pub struct Model {
     pub category_id: Option<String>,
     pub transaction_id: Option<String>,
     pub started_at: Option<DateTimeWithTimeZone>,
+    pub scheduled_at: Option<DateTimeWithTimeZone>,
+    pub retry_count: i32,
+    pub last_error: Option<String>,
     #[ts(type = "import('./JsonValue').JsonValue")]
     pub processed_data: Option<Json>,
     pub error: Option<String>,

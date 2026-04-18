@@ -1999,6 +1999,7 @@ dependencies = [
  "env_logger",
  "mockall",
  "ocr",
+ "rand 0.8.5",
  "rstest",
  "rust_decimal",
  "sea-orm",

@@ -32,8 +32,12 @@ impl MigratorTrait for Migrator {
             Box::new(m20260404_000005_add_category_to_transactions::Migration),
             Box::new(m20260408_000001_create_ocr_jobs::Migration),
             Box::new(m20260417_000001_enhance_ocr_jobs::Migration),
+            Box::new(m20260417_000002_add_ocr_retries::Migration),
+            Box::new(m20260417_000003_add_ocr_scheduled_at::Migration),
         ]
     }
 }
 
 pub mod m20260417_000001_enhance_ocr_jobs;
+pub mod m20260417_000002_add_ocr_retries;
+pub mod m20260417_000003_add_ocr_scheduled_at;

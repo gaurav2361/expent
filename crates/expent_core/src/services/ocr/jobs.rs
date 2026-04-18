@@ -3,6 +3,7 @@ use ::ocr::OcrService;
 use chrono::Utc;
 use db::AppError;
 use db::entities;
+use rand::Rng;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden, QueryFilter, Set,
 };
@@ -44,6 +45,9 @@ pub async fn create_ocr_job(
         category_id: Set(category_id),
         transaction_id: Set(None),
         started_at: Set(None),
+        scheduled_at: Set(None),
+        retry_count: Set(0),
+        last_error: Set(None),
         processed_data: Set(None),
         error: Set(None),
         created_at: Set(Utc::now().into()),
@@ -73,6 +77,9 @@ pub async fn update_ocr_job(
     error: Option<String>,
     transaction_id: Option<String>,
     started_at: Option<chrono::DateTime<chrono::Utc>>,
+    scheduled_at: Option<chrono::DateTime<chrono::Utc>>,
+    retry_count: Option<i32>,
+    last_error: Option<String>,
 ) -> Result<entities::ocr_jobs::Model, AppError> {
     let mut job: entities::ocr_jobs::ActiveModel =
         entities::ocr_jobs::Entity::find_by_id(job_id.to_string())
@@ -93,6 +100,15 @@ pub async fn update_ocr_job(
     }
     if let Some(s_at) = started_at {
         job.started_at = Set(Some(s_at.into()));
+    }
+    if let Some(sch_at) = scheduled_at {
+        job.scheduled_at = Set(Some(sch_at.into()));
+    }
+    if let Some(r_count) = retry_count {
+        job.retry_count = Set(r_count);
+    }
+    if let Some(l_err) = last_error {
+        job.last_error = Set(Some(l_err));
     }
     job.updated_at = Set(Utc::now().into());
 
@@ -127,6 +143,9 @@ pub async fn process_job(
         None,
         None,
         Some(chrono::Utc::now()),
+        None,
+        None,
+        None,
     )
     .await?;
 
@@ -151,7 +170,9 @@ pub async fn process_job(
             "image/png"
         };
 
-        let ocr_json = ocr_service.process_file(&bytes, filename, mime_type).await?;
+        let ocr_json = ocr_service
+            .process_file(&bytes, filename, mime_type)
+            .await?;
 
         let mut processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json)?;
         processed_ocr.r2_key = Some(key.clone());
@@ -164,9 +185,9 @@ pub async fn process_job(
             if let Some(w_id) = job.wallet_id {
                 match processed_ocr.doc_type.as_str() {
                     "GPAY" => {
-                        if let Ok(mut gpay) =
-                            serde_json::from_value::<db::GPayExtraction>(processed_ocr.data.0.clone())
-                        {
+                        if let Ok(mut gpay) = serde_json::from_value::<db::GPayExtraction>(
+                            processed_ocr.data.0.clone(),
+                        ) {
                             gpay.wallet_id = Some(w_id);
                             if let Some(c_id) = job.category_id.clone() {
                                 gpay.category_id = Some(c_id);
@@ -218,6 +239,9 @@ pub async fn process_job(
                 None,
                 tx_id,
                 None,
+                None,
+                None,
+                None,
             )
             .await?;
 
@@ -229,22 +253,57 @@ pub async fn process_job(
         }
         Err(e) => {
             tracing::error!("❌ OCR Background Job {} failed: {}", job_id, e);
-            update_ocr_job(
-                db,
-                &job_id,
-                "FAILED",
-                None,
-                Some(e.to_string()),
-                None,
-                None,
-            )
-            .await?;
 
-            let _ = ocr_tx.send(OcrUpdate {
-                user_id,
-                job_id: job_id.clone(),
-                status: "FAILED".to_string(),
-            });
+            let new_retry_count = job.retry_count + 1;
+            let max_retries = 5;
+
+            if new_retry_count < max_retries {
+                // Exponential backoff: base * 2^attempt + jitter
+                let base_delay = 10; // 10 seconds
+                let backoff_secs = base_delay * (2_i64.pow(new_retry_count as u32));
+                let jitter = rand::thread_rng().gen_range(0..5);
+                let next_run = chrono::Utc::now() + chrono::Duration::seconds(backoff_secs + jitter);
+
+                update_ocr_job(
+                    db,
+                    &job_id,
+                    "QUEUED",
+                    None,
+                    None,
+                    None,
+                    None,
+                    Some(next_run.into()),
+                    Some(new_retry_count),
+                    Some(e.to_string()),
+                )
+                .await?;
+
+                let _ = ocr_tx.send(OcrUpdate {
+                    user_id,
+                    job_id: job_id.clone(),
+                    status: "QUEUED".to_string(),
+                });
+            } else {
+                update_ocr_job(
+                    db,
+                    &job_id,
+                    "FAILED",
+                    None,
+                    Some(e.to_string()),
+                    None,
+                    None,
+                    None,
+                    Some(new_retry_count),
+                    Some(e.to_string()),
+                )
+                .await?;
+
+                let _ = ocr_tx.send(OcrUpdate {
+                    user_id,
+                    job_id: job_id.clone(),
+                    status: "FAILED".to_string(),
+                });
+            }
         }
     }
 
