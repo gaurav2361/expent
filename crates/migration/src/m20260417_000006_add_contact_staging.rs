@@ -12,32 +12,32 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(ContactStaging::Table)
                     .if_not_exists()
-                    .add_column(
+                    .col(
                         ColumnDef::new(ContactStaging::Id)
                             .string()
                             .not_null()
                             .primary_key(),
                     )
-                    .add_column(ColumnDef::new(ContactStaging::UserId).string().not_null())
-                    .add_column(ColumnDef::new(ContactStaging::OcrJobId).string().not_null())
-                    .add_column(ColumnDef::new(ContactStaging::Name).string().not_null())
-                    .add_column(ColumnDef::new(ContactStaging::Phone).string().null())
-                    .add_column(ColumnDef::new(ContactStaging::Email).string().null())
-                    .add_column(ColumnDef::new(ContactStaging::UpiId).string().null())
-                    .add_column(
+                    .col(ColumnDef::new(ContactStaging::UserId).string().not_null())
+                    .col(ColumnDef::new(ContactStaging::OcrJobId).string().not_null())
+                    .col(ColumnDef::new(ContactStaging::Name).string().not_null())
+                    .col(ColumnDef::new(ContactStaging::Phone).string().null())
+                    .col(ColumnDef::new(ContactStaging::Email).string().null())
+                    .col(ColumnDef::new(ContactStaging::UpiId).string().null())
+                    .col(
                         ColumnDef::new(ContactStaging::Status)
                             .string()
                             .not_null()
                             .default("PENDING"),
                     )
-                    .add_column(ColumnDef::new(ContactStaging::Candidates).json().null())
-                    .add_column(
+                    .col(ColumnDef::new(ContactStaging::Candidates).json().null())
+                    .col(
                         ColumnDef::new(ContactStaging::CreatedAt)
                             .date_time()
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
-                    .add_column(
+                    .col(
                         ColumnDef::new(ContactStaging::UpdatedAt)
                             .date_time()
                             .not_null()

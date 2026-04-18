@@ -11,18 +11,18 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(OcrJobEdits::Table)
                     .if_not_exists()
-                    .add_column(
+                    .col(
                         ColumnDef::new(OcrJobEdits::Id)
                             .string()
                             .not_null()
                             .primary_key(),
                     )
-                    .add_column(ColumnDef::new(OcrJobEdits::OcrJobId).string().not_null())
-                    .add_column(ColumnDef::new(OcrJobEdits::UserId).string().not_null())
-                    .add_column(ColumnDef::new(OcrJobEdits::FieldName).string().not_null())
-                    .add_column(ColumnDef::new(OcrJobEdits::OriginalValue).string().null())
-                    .add_column(ColumnDef::new(OcrJobEdits::CorrectedValue).string().null())
-                    .add_column(
+                    .col(ColumnDef::new(OcrJobEdits::OcrJobId).string().not_null())
+                    .col(ColumnDef::new(OcrJobEdits::UserId).string().not_null())
+                    .col(ColumnDef::new(OcrJobEdits::FieldName).string().not_null())
+                    .col(ColumnDef::new(OcrJobEdits::OriginalValue).string().null())
+                    .col(ColumnDef::new(OcrJobEdits::CorrectedValue).string().null())
+                    .col(
                         ColumnDef::new(OcrJobEdits::CreatedAt)
                             .date_time()
                             .not_null()
