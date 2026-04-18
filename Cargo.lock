@@ -2042,6 +2042,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-test",
+ "transactions",
  "upload",
  "uuid",
  "wallets",
@@ -6026,6 +6027,22 @@ checksum = "ad06847b7afb65c7866a36664b75c40b895e318cea4f71299f013fb22965329d"
 dependencies = [
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "transactions"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "db",
+ "rust_decimal",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "tracing",
+ "uuid",
+ "wallets",
 ]
 
 [[package]]

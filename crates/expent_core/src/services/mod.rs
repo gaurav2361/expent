@@ -5,5 +5,4 @@ pub mod ocr_bridge;
 pub mod p2p;
 pub mod reconciliation;
 pub mod subscriptions;
-pub mod transactions;
 pub mod users;

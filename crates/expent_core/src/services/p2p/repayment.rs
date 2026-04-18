@@ -10,8 +10,12 @@ use sea_orm::{
     Set, TransactionError, TransactionTrait,
 };
 
+use std::sync::Arc;
+use wallets::WalletsManager;
+
 pub async fn register_repayment(
     db: &DatabaseConnection,
+    wallets: Arc<WalletsManager>,
     user_id: &str,
     tab_id: &str,
     amount: Decimal,
@@ -20,6 +24,7 @@ pub async fn register_repayment(
     let user_id = user_id.to_string();
     let tab_id = tab_id.to_string();
     db.transaction::<_, entities::transactions::Model, AppError>(|txn_db| {
+        let wallets = wallets.clone();
         Box::pin(async move {
             let tab = entities::ledger_tabs::Entity::find_by_id(tab_id)
                 .one(txn_db)
@@ -46,10 +51,16 @@ pub async fn register_repayment(
 
             let result = txn.insert(txn_db).await?;
 
-            // Adjust wallet balance (Repayment is INFLOW)
-            if let Some(w_id) = wallet_id {
-                crate::wallets::ops::adjust_balance(txn_db, &w_id, amount, true).await?;
-            }
+            // Adjust wallet balances using unified logic
+            // We need wallets manager here, but since Core re-exports it, we can use it.
+            // Actually, in the bridge we'll just point to the ops for now to avoid circular deps if any.
+            crate::transactions::ops::adjust_transaction_wallets(
+                txn_db,
+                wallets,
+                None,
+                Some(&result),
+            )
+            .await?;
 
             let total_paid: Decimal = entities::transactions::Entity::find()
                 .filter(entities::transactions::Column::LedgerTabId.eq(tab.id.clone()))

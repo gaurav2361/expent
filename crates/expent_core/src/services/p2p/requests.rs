@@ -57,8 +57,11 @@ pub async fn create_p2p_request(
     request.insert(db).await.map_err(AppError::from)
 }
 
+use transactions::TransactionsManager;
+
 pub async fn accept_p2p_request(
     db: &DatabaseConnection,
+    transactions: &TransactionsManager,
     receiver_id: &str,
     request_id: &str,
 ) -> Result<entities::p2p_requests::Model, AppError> {
@@ -96,36 +99,38 @@ pub async fn accept_p2p_request(
     let original_txn: serde_json::Value = serde_json::from_value(request.transaction_data.clone())
         .map_err(|e| AppError::Generic(format!("Failed to parse transaction data: {e}")))?;
 
-    let mirrored_txn = entities::transactions::ActiveModel {
-        id: Set(uuid::Uuid::now_v7().to_string()),
-        user_id: Set(receiver_id.to_string()),
-        amount: Set(original_txn["amount"]
-            .as_str()
-            .and_then(|s| Decimal::from_str(s).ok())
-            .unwrap_or(Decimal::ZERO)),
-        direction: Set(TransactionDirection::In),
-        date: Set(original_txn["date"]
-            .as_str()
-            .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-            .map_or_else(
-                || Utc::now().into(),
-                |d| d.with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()),
-            )),
-        source: Set(TransactionSource::P2p),
-        status: Set(TransactionStatus::Completed),
-        category_id: Set(None),
-        purpose_tag: Set(original_txn["purpose"]
-            .as_str()
-            .map(std::string::ToString::to_string)),
-        group_id: Set(None),
-        source_wallet_id: Set(None),
-        destination_wallet_id: Set(None),
-        ledger_tab_id: Set(None),
-        deleted_at: Set(None),
-        notes: Set(None),
-    };
+    let amount = original_txn["amount"]
+        .as_str()
+        .and_then(|s| Decimal::from_str(s).ok())
+        .unwrap_or(Decimal::ZERO);
 
-    let result_txn = mirrored_txn.insert(db).await?;
+    let date = original_txn["date"]
+        .as_str()
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+        .map_or_else(
+            || Utc::now().into(),
+            |d| d.with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()),
+        );
+
+    let purpose = original_txn["purpose"]
+        .as_str()
+        .map(std::string::ToString::to_string);
+
+    let result_txn = transactions
+        .create(
+            receiver_id,
+            amount,
+            TransactionDirection::In,
+            date,
+            TransactionSource::P2p,
+            purpose,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await?;
 
     let mut request: entities::p2p_requests::ActiveModel = request.into();
     request.status = Set(P2PRequestStatus::Mapped.to_string());
