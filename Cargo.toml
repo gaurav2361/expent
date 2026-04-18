@@ -11,7 +11,7 @@ members = [
   "crates/transactions",
   "crates/groups",
   "crates/reconciliation",
-  "crates/subscriptions",
+  "crates/subscriptions", "crates/contacts",
 ]
 resolver = "2"
 
@@ -20,8 +20,10 @@ edition = "2024"
 version = "0.1.0"
 
 [workspace.dependencies]
-auth           = { path = "crates/auth", version = "0.1.0" }
-db             = { path = "crates/db", version = "0.1.0" }
+auth         = { path = "crates/auth", version = "0.1.0" }
+contacts     = { path = "crates/contacts", version = "0.1.0" }
+db           = { path = "crates/db", version = "0.1.0" }
+
 expent_core    = { path = "crates/expent_core", version = "0.1.0" }
 groups         = { path = "crates/groups", version = "0.1.0" }
 ocr            = { path = "crates/ocr", version = "0.1.0" }

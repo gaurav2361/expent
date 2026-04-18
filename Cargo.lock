@@ -1474,6 +1474,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
+name = "contacts"
+version = "0.1.0"
+dependencies = [
+ "any_ascii",
+ "anyhow",
+ "chrono",
+ "db",
+ "rphonetic",
+ "rust_decimal",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "strsim",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2026,6 +2044,7 @@ dependencies = [
  "aws-sdk-s3",
  "better-auth",
  "chrono",
+ "contacts",
  "db",
  "env_logger",
  "groups",
