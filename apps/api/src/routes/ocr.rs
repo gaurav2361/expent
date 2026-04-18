@@ -73,6 +73,13 @@ pub async fn process_image_ocr_handler(
     session: AuthSession,
     Json(payload): Json<ProcessImageOcrRequest>,
 ) -> Result<(StatusCode, Json<OcrJobResponse>), ApiError> {
+    // Per-user rate limiting
+    if !state.ocr_limiter.check(&session.user.id) {
+        return Err(ApiError::BadRequest(
+            "Rate limit exceeded for OCR requests. Please wait a moment.".to_string(),
+        ));
+    }
+
     // Security check: Ensure the key starts with the user ID to prevent IDOR
     let user_id_prefix = format!("{}/", session.user.id);
     if !payload.key.starts_with(&user_id_prefix) {
@@ -161,14 +168,16 @@ pub async fn confirm_ocr_job_handler(
     Path(job_id): Path<String>,
     Json(payload): Json<ConfirmOcrRequest>,
 ) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
-    let result = ocr::confirm_ocr_job(
-        &state.core.db,
-        Arc::new(state.core.clone()),
-        &session.user.id,
-        &job_id,
-        payload.manual_data,
-    )
-    .await?;
+    let result = state
+        .core
+        .ocr_manager
+        .confirm_job(
+            Arc::new(state.core.clone()),
+            &session.user.id,
+            &job_id,
+            payload.manual_data,
+        )
+        .await?;
     Ok(Json(result))
 }
 
@@ -192,14 +201,11 @@ pub async fn bulk_confirm_ocr_jobs_handler(
     let mut failed = Vec::new();
 
     for job_id in payload.job_ids {
-        match ocr::confirm_ocr_job(
-            &state.core.db,
-            Arc::new(state.core.clone()),
-            &session.user.id,
-            &job_id,
-            None,
-        )
-        .await
+        match state
+            .core
+            .ocr_manager
+            .confirm_job(Arc::new(state.core.clone()), &session.user.id, &job_id, None)
+            .await
         {
             Ok(_) => succeeded.push(job_id),
             Err(e) => failed.push((job_id, e.to_string())),
@@ -220,13 +226,15 @@ pub async fn resolve_ocr_job_handler(
     Path(job_id): Path<String>,
     Json(payload): Json<ResolveContactRequest>,
 ) -> Result<Json<db::OcrTransactionResponse>, ApiError> {
-    let result = ocr::resolve_contact_collision(
-        &state.core.db,
-        Arc::new(state.core.clone()),
-        &session.user.id,
-        &job_id,
-        &payload.contact_id,
-    )
-    .await?;
+    let result = state
+        .core
+        .ocr_manager
+        .resolve_collision(
+            Arc::new(state.core.clone()),
+            &session.user.id,
+            &job_id,
+            &payload.contact_id,
+        )
+        .await?;
     Ok(Json(result))
 }

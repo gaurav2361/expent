@@ -18,9 +18,12 @@ pub mod extractors;
 pub mod middleware;
 pub mod routes;
 
+use crate::middleware::rate_limit::UserRateLimiter;
+
 #[derive(Clone)]
 pub struct AppState {
     pub core: Core,
+    pub ocr_limiter: UserRateLimiter,
 }
 
 impl FromRef<AppState> for DatabaseConnection {
@@ -78,7 +81,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Start background workers from OCR manager
     core.ocr_manager.spawn_workers(Arc::new(core.clone()));
 
-    let state = AppState { core: core.clone() };
+    let state = AppState {
+        core: core.clone(),
+        ocr_limiter: UserRateLimiter::new(10, 20),
+    };
 
     let auth_router = core.auth.clone().axum_router();
 
