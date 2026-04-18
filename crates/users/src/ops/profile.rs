@@ -1,7 +1,7 @@
 use chrono::Utc;
 use db::AppError;
 use db::entities;
-use sea_orm::{ActiveEnum, ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
 pub async fn update_profile(
     db: &DatabaseConnection,

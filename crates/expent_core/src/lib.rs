@@ -10,8 +10,6 @@ pub use db::ProcessedOcr;
 pub use db::SplitDetail;
 pub use db::TransactionWithDetail;
 
-pub use services::users;
-
 pub mod ocr {
     pub use crate::services::ocr_bridge::*;
     pub use ::ocr::*;
@@ -45,6 +43,10 @@ pub mod categories {
     pub use ::categories::*;
 }
 
+pub mod users {
+    pub use ::users::*;
+}
+
 // Re-export common crates so API doesn't need to depend on them directly
 pub use auth;
 pub use better_auth;
@@ -58,6 +60,7 @@ use ::ocr::{OcrManager, OcrProcessor, OcrService};
 use ::reconciliation::ReconciliationManager;
 use ::subscriptions::SubscriptionsManager;
 use ::transactions::TransactionsManager;
+use ::users::UsersManager;
 use ::wallets::WalletsManager;
 use auth::adapter::PostgresAdapter;
 use sea_orm::{Database, DatabaseConnection};
@@ -77,6 +80,7 @@ pub struct Core {
     pub subscriptions: Arc<SubscriptionsManager>,
     pub contacts: Arc<ContactsManager>,
     pub categories: Arc<CategoriesManager>,
+    pub users: Arc<UsersManager>,
 }
 
 impl OcrProcessor for Core {
@@ -165,6 +169,7 @@ impl Core {
         let subscriptions = Arc::new(SubscriptionsManager::new(db.clone()));
         let contacts = Arc::new(ContactsManager::new(db.clone()));
         let categories = Arc::new(CategoriesManager::new(db.clone()));
+        let users = Arc::new(UsersManager::new(db.clone()));
 
         let core = Self {
             db,
@@ -178,6 +183,7 @@ impl Core {
             subscriptions,
             contacts,
             categories,
+            users,
         };
 
         // Ensure system categories exist

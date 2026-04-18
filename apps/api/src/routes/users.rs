@@ -3,7 +3,6 @@ use axum::extract::{Json, Multipart, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post, put};
 use expent_core::upload::CompressOptions;
-use expent_core::users;
 use serde::{Deserialize, Serialize};
 
 use crate::middleware::error::ApiError;
@@ -32,14 +31,16 @@ pub async fn update_profile_handler(
     session: AuthSession,
     Json(payload): Json<UpdateProfileRequest>,
 ) -> Result<Json<db::entities::users::Model>, ApiError> {
-    let result = users::update_profile(
-        &state.core.db,
-        &session.user.id,
-        payload.name,
-        payload.username,
-        payload.image,
-    )
-    .await?;
+    let result = state
+        .core
+        .users
+        .update_profile(
+            &session.user.id,
+            payload.name,
+            payload.username,
+            payload.image,
+        )
+        .await?;
     Ok(Json(result))
 }
 
@@ -105,15 +106,12 @@ pub async fn upload_avatar_handler(
     let avatar_url = format!("{}/{}", r2_public_url, processed.key);
 
     // Save the avatar URL to the user's profile in the DB
-    users::update_profile(
-        &state.core.db,
-        &session.user.id,
-        None,
-        None,
-        Some(avatar_url.clone()),
-    )
-    .await
-    .map_err(|e| ApiError::Internal(format!("Failed to save avatar URL to DB: {:?}", e)))?;
+    state
+        .core
+        .users
+        .update_profile(&session.user.id, None, None, Some(avatar_url.clone()))
+        .await
+        .map_err(|e| ApiError::Internal(format!("Failed to save avatar URL to DB: {:?}", e)))?;
 
     tracing::info!(
         "✅ Avatar uploaded for user {}: {}",
@@ -131,7 +129,7 @@ pub async fn list_user_upi_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::user_upi_ids::Model>>, ApiError> {
-    let result = users::list_user_upi(&state.core.db, &session.user.id).await?;
+    let result = state.core.users.list_upi(&session.user.id).await?;
     Ok(Json(result))
 }
 
@@ -146,13 +144,11 @@ pub async fn add_user_upi_handler(
     session: AuthSession,
     Json(payload): Json<AddUpiRequest>,
 ) -> Result<Json<db::entities::user_upi_ids::Model>, ApiError> {
-    let result = users::add_user_upi(
-        &state.core.db,
-        &session.user.id,
-        payload.upi_id,
-        payload.label,
-    )
-    .await?;
+    let result = state
+        .core
+        .users
+        .add_upi(&session.user.id, payload.upi_id, payload.label)
+        .await?;
     Ok(Json(result))
 }
 
@@ -161,6 +157,10 @@ pub async fn make_primary_upi_handler(
     session: AuthSession,
     Path(id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
-    users::make_primary_upi(&state.core.db, &session.user.id, &id).await?;
+    state
+        .core
+        .users
+        .make_primary_upi(&session.user.id, &id)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }

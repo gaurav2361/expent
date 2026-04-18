@@ -14,6 +14,7 @@ members = [
   "crates/subscriptions",
   "crates/contacts",
   "crates/categories",
+  "crates/users",
 ]
 resolver = "2"
 
@@ -33,6 +34,7 @@ ocr            = { path = "crates/ocr", version = "0.1.0" }
 reconciliation = { path = "crates/reconciliation", version = "0.1.0" }
 subscriptions  = { path = "crates/subscriptions", version = "0.1.0" }
 transactions   = { path = "crates/transactions", version = "0.1.0" }
+users          = { path = "crates/users", version = "0.1.0" }
 upload         = { path = "crates/upload", version = "0.1.0" }
 wallets        = { path = "crates/wallets", version = "0.1.0" }
 
