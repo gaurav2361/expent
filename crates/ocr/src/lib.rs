@@ -157,4 +157,40 @@ impl OcrManager {
             processor,
         ));
     }
+
+    pub async fn confirm_job(
+        &self,
+        processor: Arc<dyn OcrProcessor>,
+        user_id: &str,
+        job_id: &str,
+        manual_data: Option<db::ProcessedOcr>,
+    ) -> Result<db::OcrTransactionResponse, db::AppError> {
+        confirm_ocr_job(
+            &self.db,
+            &self.upload,
+            processor,
+            user_id,
+            job_id,
+            manual_data,
+        )
+        .await
+    }
+
+    pub async fn resolve_collision(
+        &self,
+        processor: Arc<dyn OcrProcessor>,
+        user_id: &str,
+        job_id: &str,
+        contact_id: &str,
+    ) -> Result<db::OcrTransactionResponse, db::AppError> {
+        resolve_contact_collision(
+            &self.db,
+            &self.upload,
+            processor,
+            user_id,
+            job_id,
+            contact_id,
+        )
+        .await
+    }
 }

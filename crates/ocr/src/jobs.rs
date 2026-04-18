@@ -492,6 +492,7 @@ async fn log_ocr_edits(
 
 pub async fn confirm_ocr_job(
     db: &DatabaseConnection,
+    upload_client: &UploadClient,
     processor: Arc<dyn OcrProcessor>,
     user_id: &str,
     job_id: &str,
@@ -532,11 +533,18 @@ pub async fn confirm_ocr_job(
     )
     .await?;
 
+    // Cleanup raw image if it exists
+    if let Some(raw_key) = job.raw_key {
+        tracing::info!("🧹 Cleaning up raw high-res image: {}", raw_key);
+        let _ = upload_client.delete_file(&raw_key).await;
+    }
+
     Ok(result)
 }
 
 pub async fn resolve_contact_collision(
     db: &DatabaseConnection,
+    upload_client: &UploadClient,
     processor: Arc<dyn OcrProcessor>,
     user_id: &str,
     job_id: &str,
@@ -566,5 +574,13 @@ pub async fn resolve_contact_collision(
         _ => return Err(AppError::validation("Unknown document type")),
     }
 
-    confirm_ocr_job(db, processor, user_id, job_id, Some(ocr_data)).await
+    confirm_ocr_job(
+        db,
+        upload_client,
+        processor,
+        user_id,
+        job_id,
+        Some(ocr_data),
+    )
+    .await
 }

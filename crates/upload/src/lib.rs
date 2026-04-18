@@ -304,6 +304,18 @@ impl UploadClient {
 
         Ok(data)
     }
+
+    pub async fn delete_file(&self, key: &str) -> Result<(), UploadError> {
+        self.s3_client
+            .delete_object()
+            .bucket(&self.bucket_name)
+            .key(key)
+            .send()
+            .await
+            .map_err(|e| UploadError::S3Error(format!("{:#?}", e)))?;
+
+        Ok(())
+    }
 }
 
 pub struct UploadProcessor;
