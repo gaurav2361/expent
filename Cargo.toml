@@ -11,6 +11,7 @@ members = [
   "crates/transactions",
   "crates/groups",
   "crates/reconciliation",
+  "crates/subscriptions",
 ]
 resolver = "2"
 
@@ -25,6 +26,7 @@ expent_core    = { path = "crates/expent_core", version = "0.1.0" }
 groups         = { path = "crates/groups", version = "0.1.0" }
 ocr            = { path = "crates/ocr", version = "0.1.0" }
 reconciliation = { path = "crates/reconciliation", version = "0.1.0" }
+subscriptions  = { path = "crates/subscriptions", version = "0.1.0" }
 transactions   = { path = "crates/transactions", version = "0.1.0" }
 upload         = { path = "crates/upload", version = "0.1.0" }
 wallets        = { path = "crates/wallets", version = "0.1.0" }

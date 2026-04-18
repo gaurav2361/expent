@@ -2,7 +2,6 @@ use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, post};
-use expent_core::subscriptions;
 use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
@@ -23,8 +22,11 @@ pub async fn list_confirmed_subscriptions_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::subscriptions::Model>>, ApiError> {
-    let result =
-        subscriptions::list_confirmed_subscriptions(&state.core.db, &session.user.id).await?;
+    let result = state
+        .core
+        .subscriptions
+        .list_confirmed(&session.user.id)
+        .await?;
     Ok(Json(result))
 }
 
@@ -32,7 +34,7 @@ pub async fn detect_subscriptions_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::subscriptions::Model>>, ApiError> {
-    let result = subscriptions::detect_subscriptions(&state.core.db, &session.user.id).await?;
+    let result = state.core.subscriptions.detect(&session.user.id).await?;
 
     Ok(Json(result))
 }
@@ -52,17 +54,19 @@ pub async fn confirm_subscription_handler(
     session: AuthSession,
     Json(payload): Json<ConfirmSubscriptionRequest>,
 ) -> Result<Json<db::entities::subscriptions::Model>, ApiError> {
-    let result = subscriptions::confirm_subscription(
-        &state.core.db,
-        &session.user.id,
-        payload.name,
-        payload.amount,
-        payload.cycle,
-        payload.start_date,
-        payload.next_charge_date,
-        payload.keywords,
-    )
-    .await?;
+    let result = state
+        .core
+        .subscriptions
+        .confirm(
+            &session.user.id,
+            payload.name,
+            payload.amount,
+            payload.cycle,
+            payload.start_date,
+            payload.next_charge_date,
+            payload.keywords,
+        )
+        .await?;
     Ok(Json(result))
 }
 
@@ -71,7 +75,11 @@ pub async fn stop_tracking_subscription_handler(
     session: AuthSession,
     Path(id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
-    subscriptions::stop_tracking_subscription(&state.core.db, &session.user.id, &id).await?;
+    state
+        .core
+        .subscriptions
+        .stop_tracking(&session.user.id, &id)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -87,12 +95,10 @@ pub async fn configure_subscription_alert_handler(
     Path(id): Path<String>,
     Json(payload): Json<ConfigureAlertRequest>,
 ) -> Result<Json<db::entities::sub_alerts::Model>, ApiError> {
-    let result = subscriptions::configure_subscription_alert(
-        &state.core.db,
-        &id,
-        payload.days_before,
-        payload.channel,
-    )
-    .await?;
+    let result = state
+        .core
+        .subscriptions
+        .configure_alert(&id, payload.days_before, payload.channel)
+        .await?;
     Ok(Json(result))
 }

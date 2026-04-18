@@ -3,11 +3,9 @@ use db::AppError;
 use db::entities;
 use db::entities::enums::SubscriptionCycle;
 use rust_decimal::Decimal;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
-};
-use strsim::jaro_winkler;
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::str::FromStr;
+use strsim::jaro_winkler;
 
 pub async fn detect_subscriptions(
     db: &DatabaseConnection,
@@ -29,7 +27,7 @@ pub async fn detect_subscriptions(
     for txn in transactions {
         let name = txn.purpose_tag.as_deref().unwrap_or("Unknown");
         let amount = txn.amount;
-        
+
         let mut found_group = false;
         for (group_txn, dates) in groups.iter_mut() {
             let group_name = group_txn.purpose_tag.as_deref().unwrap_or("Unknown");
@@ -88,7 +86,9 @@ pub async fn detect_subscriptions(
                 let sub = entities::subscriptions::Model {
                     id: uuid::Uuid::now_v7().to_string(),
                     user_id: user_id.to_string(),
-                    name: group_txn.purpose_tag.unwrap_or_else(|| "Unknown".to_string()),
+                    name: group_txn
+                        .purpose_tag
+                        .unwrap_or_else(|| "Unknown".to_string()),
                     amount: group_txn.amount,
                     cycle: cycle.to_string(),
                     start_date: dates[0],
