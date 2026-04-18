@@ -8,7 +8,7 @@ members = [
   "crates/ocr",
   "crates/upload",
   "crates/wallets",
-  "crates/transactions",
+  "crates/transactions", "crates/groups",
 ]
 resolver = "2"
 
