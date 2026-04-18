@@ -4,9 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-auth.workspace         = true
-db.workspace           = true
-groups.workspace       = true
+auth.workspace           = true
+db.workspace             = true
+groups.workspace         = true
+reconciliation.workspace = true
+
 ocr.workspace          = true
 transactions.workspace = true
 upload.workspace       = true
