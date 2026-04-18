@@ -1,3 +1,4 @@
+use ::contacts::ContactsManager;
 use chrono::{DateTime, Utc};
 use db::entities;
 use db::entities::enums::{TransactionDirection, TransactionSource, TransactionStatus};
@@ -7,9 +8,11 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
     TransactionTrait,
 };
+use std::sync::Arc;
 
 pub async fn process_ocr(
     db: &DatabaseConnection,
+    contacts_manager: Arc<ContactsManager>,
     user_id: &str,
     processed: ProcessedOcr,
 ) -> Result<OcrTransactionResponse, AppError> {
@@ -38,6 +41,8 @@ pub async fn process_ocr(
     }
 
     db.transaction::<_, OcrTransactionResponse, AppError>(|txn_db| {
+        let contacts_manager = contacts_manager.clone();
+        let user_id = user_id.clone();
         Box::pin(async move {
             let mut contact_created = false;
 
@@ -51,17 +56,18 @@ pub async fn process_ocr(
 
                 // 2.6 Robust Contact Resolution
                 if contact_id.is_none() {
-                    let resolution = crate::contacts::ops::resolve_contact(
-                        txn_db,
-                        &user_id,
-                        crate::contacts::ops::ResolveParams {
-                            name: Some(gpay.counterparty_name.clone()),
-                            phone: gpay.counterparty_phone.clone(),
-                            email: None,
-                            upi_id: gpay.counterparty_upi_id.clone(),
-                        },
-                    )
-                    .await?;
+                    let resolution = contacts_manager
+                        .resolve(
+                            txn_db,
+                            &user_id,
+                            ::contacts::ops::ResolveParams {
+                                name: Some(gpay.counterparty_name.clone()),
+                                phone: gpay.counterparty_phone.clone(),
+                                email: None,
+                                upi_id: gpay.counterparty_upi_id.clone(),
+                            },
+                        )
+                        .await?;
 
                     if resolution.is_collision {
                         return Err(AppError::ContactCollision(
@@ -72,7 +78,8 @@ pub async fn process_ocr(
                     if let Some(c_id) = resolution.contact_id {
                         contact_id = Some(c_id);
                     } else {
-                        // Create new contact
+                        // Create new contact using manager if possible (currently manager uses self.db, but we are inside txn_db)
+                        // For now we keep manual entity insertion but we use the resolution logic from manager
                         let new_contact = entities::contacts::ActiveModel {
                             id: Set(uuid::Uuid::now_v7().to_string()),
                             name: Set(gpay.counterparty_name.clone()),
@@ -185,17 +192,18 @@ pub async fn process_ocr(
 
                 // 2.6 Robust Contact Resolution for Generic OCR
                 if contact_id.is_none() && generic.vendor.is_some() {
-                    let resolution = crate::contacts::ops::resolve_contact(
-                        txn_db,
-                        &user_id,
-                        crate::contacts::ops::ResolveParams {
-                            name: generic.vendor.clone(),
-                            phone: None,
-                            email: None,
-                            upi_id: generic.upi_id.clone(),
-                        },
-                    )
-                    .await?;
+                    let resolution = contacts_manager
+                        .resolve(
+                            txn_db,
+                            &user_id,
+                            ::contacts::ops::ResolveParams {
+                                name: generic.vendor.clone(),
+                                phone: None,
+                                email: None,
+                                upi_id: generic.upi_id.clone(),
+                            },
+                        )
+                        .await?;
 
                     if resolution.is_collision {
                         return Err(AppError::ContactCollision(
