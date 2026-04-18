@@ -1,6 +1,6 @@
 use db::AppError;
 use db::entities;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Iden, Set};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
 
 pub async fn create_category(
     db: &DatabaseConnection,

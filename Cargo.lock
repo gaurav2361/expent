@@ -1333,6 +1333,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "categories"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "db",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2043,6 +2057,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-s3",
  "better-auth",
+ "categories",
  "chrono",
  "contacts",
  "db",

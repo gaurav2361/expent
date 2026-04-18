@@ -10,7 +10,6 @@ pub use db::ProcessedOcr;
 pub use db::SplitDetail;
 pub use db::TransactionWithDetail;
 
-pub use services::categories;
 pub use services::users;
 
 pub mod ocr {
@@ -42,12 +41,17 @@ pub mod contacts {
     pub use ::contacts::*;
 }
 
+pub mod categories {
+    pub use ::categories::*;
+}
+
 // Re-export common crates so API doesn't need to depend on them directly
 pub use auth;
 pub use better_auth;
 pub use sea_orm;
 pub use upload;
 
+use ::categories::CategoriesManager;
 use ::contacts::ContactsManager;
 use ::groups::GroupsManager;
 use ::ocr::{OcrManager, OcrProcessor, OcrService};
@@ -72,6 +76,7 @@ pub struct Core {
     pub reconciliation: Arc<ReconciliationManager>,
     pub subscriptions: Arc<SubscriptionsManager>,
     pub contacts: Arc<ContactsManager>,
+    pub categories: Arc<CategoriesManager>,
 }
 
 impl OcrProcessor for Core {
@@ -159,6 +164,7 @@ impl Core {
         let reconciliation = Arc::new(ReconciliationManager::new(db.clone()));
         let subscriptions = Arc::new(SubscriptionsManager::new(db.clone()));
         let contacts = Arc::new(ContactsManager::new(db.clone()));
+        let categories = Arc::new(CategoriesManager::new(db.clone()));
 
         let core = Self {
             db,
@@ -171,10 +177,11 @@ impl Core {
             reconciliation,
             subscriptions,
             contacts,
+            categories,
         };
 
         // Ensure system categories exist
-        if let Err(e) = categories::ensure_system_categories(&core.db).await {
+        if let Err(e) = core.categories.ensure_system_categories().await {
             tracing::error!("Failed to ensure system categories: {:?}", e);
         }
 
