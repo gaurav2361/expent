@@ -90,29 +90,17 @@ pub async fn delete_contact_handler(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Serialize)]
-pub struct ContactDetailResponse {
-    pub contact: db::entities::contacts::Model,
-    pub identifiers: Vec<db::entities::contact_identifiers::Model>,
-    pub transactions: Vec<db::entities::transactions::Model>,
-}
-
 pub async fn get_contact_detail_handler(
     State(state): State<AppState>,
     session: AuthSession,
     Path(id): Path<String>,
-) -> Result<Json<ContactDetailResponse>, ApiError> {
-    let (contact, identifiers, transactions) = state
+) -> Result<Json<db::ContactDetail>, ApiError> {
+    let detail = state
         .core
         .contacts
         .get_detail(&session.user.id, &id)
         .await?;
-
-    Ok(Json(ContactDetailResponse {
-        contact,
-        identifiers,
-        transactions,
-    }))
+    Ok(Json(detail))
 }
 
 #[derive(Deserialize, Validate)]

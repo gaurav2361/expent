@@ -1,22 +1,16 @@
 use db::AppError;
+use db::ContactDetail;
 use db::entities;
 use sea_orm::{
-    ColumnTrait, ColumnTypeTrait, DatabaseConnection, EntityTrait, Iden, JoinType, QueryFilter,
-    QueryOrder, QuerySelect, RelationTrait,
+    ColumnTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect,
+    RelationTrait,
 };
 
 pub async fn get_contact_detail(
     db: &DatabaseConnection,
     user_id: &str,
     contact_id: &str,
-) -> Result<
-    (
-        entities::contacts::Model,
-        Vec<entities::contact_identifiers::Model>,
-        Vec<entities::transactions::Model>,
-    ),
-    AppError,
-> {
+) -> Result<ContactDetail, AppError> {
     let _link =
         entities::contact_links::Entity::find_by_id((user_id.to_string(), contact_id.to_string()))
             .one(db)
@@ -43,5 +37,9 @@ pub async fn get_contact_detail(
         .all(db)
         .await?;
 
-    Ok((contact, identifiers, transactions))
+    Ok(ContactDetail {
+        contact,
+        identifiers,
+        transactions,
+    })
 }

@@ -1,4 +1,5 @@
 use db::AppError;
+use db::ContactDetail;
 use db::entities;
 use sea_orm::{ConnectionTrait, DatabaseConnection};
 
@@ -46,14 +47,7 @@ impl ContactsManager {
         &self,
         user_id: &str,
         contact_id: &str,
-    ) -> Result<
-        (
-            entities::contacts::Model,
-            Vec<entities::contact_identifiers::Model>,
-            Vec<entities::transactions::Model>,
-        ),
-        AppError,
-    > {
+    ) -> Result<ContactDetail, AppError> {
         ops::get_contact_detail(&self.db, user_id, contact_id).await
     }
 
