@@ -1,7 +1,7 @@
 pub mod categories;
 pub mod contacts;
 pub mod groups;
-pub mod ocr;
+pub mod ocr_bridge;
 pub mod p2p;
 pub mod reconciliation;
 pub mod subscriptions;

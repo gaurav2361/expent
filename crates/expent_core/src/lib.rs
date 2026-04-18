@@ -13,7 +13,6 @@ pub use db::TransactionWithDetail;
 pub use services::categories;
 pub use services::contacts;
 pub use services::groups;
-pub use services::ocr;
 pub use services::p2p;
 pub use services::reconciliation;
 pub use services::subscriptions;
@@ -21,14 +20,18 @@ pub use services::transactions;
 pub use services::users;
 pub use services::wallets;
 
+pub mod ocr {
+    pub use crate::services::ocr_bridge::*;
+    pub use ::ocr::*;
+}
+
 // Re-export common crates so API doesn't need to depend on them directly
 pub use auth;
 pub use better_auth;
-pub use ocr as ocr_engine;
 pub use sea_orm;
 pub use upload;
 
-use ::ocr::OcrService;
+use ::ocr::{OcrManager, OcrProcessor, OcrService};
 use auth::adapter::PostgresAdapter;
 use sea_orm::{Database, DatabaseConnection};
 use std::sync::Arc;
@@ -39,7 +42,22 @@ pub struct Core {
     pub db: DatabaseConnection,
     pub auth: Arc<better_auth::BetterAuth<PostgresAdapter>>,
     pub upload_client: UploadClient,
-    pub ocr_service: Arc<OcrService>,
+    pub ocr_manager: Arc<OcrManager>,
+}
+
+impl OcrProcessor for Core {
+    fn process_ocr(
+        &self,
+        db: &DatabaseConnection,
+        user_id: &str,
+        processed: db::ProcessedOcr,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<db::OcrTransactionResponse, AppError>> + Send>,
+    > {
+        let db = db.clone();
+        let user_id = user_id.to_string();
+        Box::pin(async move { services::ocr_bridge::process_ocr(&db, &user_id, processed).await })
+    }
 }
 
 pub struct CoreConfig {
@@ -51,7 +69,10 @@ pub struct CoreConfig {
 }
 
 impl Core {
-    pub async fn init(config: CoreConfig) -> Result<Self, anyhow::Error> {
+    pub async fn init(
+        config: CoreConfig,
+        ocr_tx: tokio::sync::broadcast::Sender<::ocr::OcrUpdate>,
+    ) -> Result<Self, anyhow::Error> {
         let db = Database::connect(&config.database_url).await?;
 
         // Initialize Auth
@@ -92,11 +113,18 @@ impl Core {
         let s3_client = aws_sdk_s3::Client::from_conf(s3_client_config);
         let upload_client = UploadClient::new(s3_client, config.s3_bucket_name);
 
+        let ocr_manager = Arc::new(OcrManager::new(
+            ocr_service,
+            db.clone(),
+            upload_client.clone(),
+            ocr_tx,
+        ));
+
         let core = Self {
             db,
             auth,
             upload_client,
-            ocr_service,
+            ocr_manager,
         };
 
         // Ensure system categories exist
