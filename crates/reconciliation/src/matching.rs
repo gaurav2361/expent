@@ -3,8 +3,8 @@ use db::AppError;
 use db::entities;
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelBehavior, ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Iden,
-    QueryFilter, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    TransactionError, TransactionTrait,
 };
 
 pub async fn list_unmatched_rows(
@@ -73,23 +73,35 @@ pub async fn confirm_match(
     txn_id: &str,
     confidence: i32,
 ) -> Result<(), AppError> {
-    let match_record = entities::statement_txn_matches::ActiveModel {
-        row_id: Set(row_id.to_string()),
-        transaction_id: Set(txn_id.to_string()),
-        confidence: Set(Decimal::from(confidence)),
-        matched_at: Set(Utc::now().into()),
-    };
-    match_record.insert(db).await?;
+    let row_id = row_id.to_string();
+    let txn_id = txn_id.to_string();
 
-    let mut row: entities::bank_statement_rows::ActiveModel =
-        entities::bank_statement_rows::Entity::find_by_id(row_id.to_string())
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::not_found("Row not found"))?
-            .into();
+    db.transaction::<_, (), AppError>(|txn_db| {
+        Box::pin(async move {
+            let match_record = entities::statement_txn_matches::ActiveModel {
+                row_id: Set(row_id.clone()),
+                transaction_id: Set(txn_id),
+                confidence: Set(Decimal::from(confidence)),
+                matched_at: Set(Utc::now().into()),
+            };
+            match_record.insert(txn_db).await?;
 
-    row.is_matched = Set(true);
-    row.update(db).await?;
+            let mut row: entities::bank_statement_rows::ActiveModel =
+                entities::bank_statement_rows::Entity::find_by_id(row_id)
+                    .one(txn_db)
+                    .await?
+                    .ok_or_else(|| AppError::not_found("Row not found"))?
+                    .into();
 
-    Ok(())
+            row.is_matched = Set(true);
+            row.update(txn_db).await?;
+
+            Ok(())
+        })
+    })
+    .await
+    .map_err(|e| match e {
+        TransactionError::Connection(ce) => AppError::Db(ce),
+        TransactionError::Transaction(te) => te,
+    })
 }
