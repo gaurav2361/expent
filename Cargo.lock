@@ -2028,6 +2028,7 @@ dependencies = [
  "chrono",
  "db",
  "env_logger",
+ "groups",
  "mockall",
  "ocr",
  "rand 0.8.5",
@@ -2475,6 +2476,23 @@ dependencies = [
  "ff",
  "rand_core 0.6.4",
  "subtle",
+]
+
+[[package]]
+name = "groups"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "db",
+ "rust_decimal",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "tracing",
+ "transactions",
+ "uuid",
+ "wallets",
 ]
 
 [[package]]
