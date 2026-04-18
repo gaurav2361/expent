@@ -79,14 +79,42 @@ pub async fn update_wallet(
     wallet.update(db).await.map_err(AppError::from)
 }
 
+pub async fn get_balance(db: &DatabaseConnection, wallet_id: &str) -> Result<Decimal, AppError> {
+    let wallet = entities::wallets::Entity::find_by_id(wallet_id.to_string())
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::not_found("Wallet not found"))?;
+
+    Ok(wallet.balance)
+}
+
 /// Adjusts the balance of a wallet atomically using database-level expressions.
 /// This prevents race conditions where multiple updates happen simultaneously.
-pub async fn adjust_balance<C>(db: &C, wallet_id: &str, amount: Decimal) -> Result<(), AppError>
+pub async fn adjust_balance<C>(
+    db: &C,
+    wallet_id: &str,
+    amount: Decimal,
+    allow_negative: bool,
+) -> Result<(), AppError>
 where
     C: ConnectionTrait,
 {
+    // If we don't allow negative balance and the amount is negative, we need to check current balance first.
+    // Note: While this check isn't perfectly atomic with the update below unless we use a complex SQL constraint,
+    // it's a good first-level defense. For true atomicity, a database constraint CHECK (balance >= 0) is preferred.
+    if !allow_negative && amount.is_sign_negative() {
+        let current_balance = entities::wallets::Entity::find_by_id(wallet_id.to_string())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::not_found("Wallet not found"))?
+            .balance;
+
+        if current_balance + amount < Decimal::ZERO {
+            return Err(AppError::validation("Insufficient funds in wallet"));
+        }
+    }
+
     // Use Sea-ORM's update_many with an expression for atomic update
-    // UPDATE wallets SET balance = balance + :amount, updated_at = :now WHERE id = :id
     let result = entities::wallets::Entity::update_many()
         .col_expr(
             entities::wallets::Column::Balance,
