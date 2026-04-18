@@ -2,7 +2,8 @@ use axum::Router;
 use axum::extract::{Json, Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post};
-use expent_core::{SplitDetail, ocr, transactions};
+use db::SplitDetail;
+use expent_core::ocr::OcrProcessor;
 use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
@@ -49,21 +50,23 @@ pub async fn create_manual_transaction_handler(
     session: AuthSession,
     ValidatedJson(payload): ValidatedJson<CreateManualTransactionRequest>,
 ) -> Result<Json<db::entities::transactions::Model>, ApiError> {
-    let result = transactions::create_transaction(
-        &state.core.db,
-        &session.user.id,
-        payload.amount,
-        payload.direction,
-        payload.date,
-        db::entities::enums::TransactionSource::Manual,
-        Some(payload.purpose_tag),
-        payload.category_id,
-        payload.source_wallet_id,
-        payload.destination_wallet_id,
-        payload.contact_id,
-        payload.notes,
-    )
-    .await?;
+    let result = state
+        .core
+        .transactions
+        .create(
+            &session.user.id,
+            payload.amount,
+            payload.direction,
+            payload.date,
+            db::entities::enums::TransactionSource::Manual,
+            Some(payload.purpose_tag),
+            payload.category_id,
+            payload.source_wallet_id,
+            payload.destination_wallet_id,
+            payload.contact_id,
+            payload.notes,
+        )
+        .await?;
 
     Ok(Json(result))
 }
@@ -79,13 +82,11 @@ pub async fn list_transactions_handler(
     session: AuthSession,
     Query(params): Query<PaginationParams>,
 ) -> Result<Json<db::PaginatedTransactions>, ApiError> {
-    let result = transactions::list_transactions(
-        &state.core.db,
-        &session.user.id,
-        params.limit,
-        params.offset,
-    )
-    .await?;
+    let result = state
+        .core
+        .transactions
+        .list(&session.user.id, params.limit, params.offset)
+        .await?;
     Ok(Json(result))
 }
 
@@ -93,7 +94,11 @@ pub async fn get_summary_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<db::DashboardSummary>, ApiError> {
-    let result = transactions::get_dashboard_summary(&state.core.db, &session.user.id).await?;
+    let result = state
+        .core
+        .transactions
+        .get_summary(&session.user.id)
+        .await?;
     Ok(Json(result))
 }
 
@@ -102,7 +107,10 @@ pub async fn create_from_ocr_handler(
     session: AuthSession,
     Json(payload): Json<expent_core::ProcessedOcr>,
 ) -> Result<Json<expent_core::OcrTransactionResponse>, ApiError> {
-    let result = ocr::process_ocr(&state.core.db, &session.user.id, payload).await?;
+    let result = state
+        .core
+        .process_ocr(&state.core.db, &session.user.id, payload)
+        .await?;
     Ok(Json(result))
 }
 
@@ -125,21 +133,23 @@ pub async fn update_transaction_handler(
     Path(id): Path<String>,
     Json(payload): Json<UpdateTransactionRequest>,
 ) -> Result<Json<db::entities::transactions::Model>, ApiError> {
-    let result = transactions::update_transaction(
-        &state.core.db,
-        &session.user.id,
-        &id,
-        payload.amount,
-        payload.date,
-        payload.purpose_tag,
-        payload.category_id,
-        payload.status,
-        payload.notes,
-        payload.source_wallet_id,
-        payload.destination_wallet_id,
-        payload.contact_id,
-    )
-    .await?;
+    let result = state
+        .core
+        .transactions
+        .update(
+            &session.user.id,
+            &id,
+            payload.amount,
+            payload.date.map(|d| d.into()),
+            payload.purpose_tag,
+            payload.category_id,
+            payload.status,
+            payload.notes,
+            payload.source_wallet_id,
+            payload.destination_wallet_id,
+            payload.contact_id,
+        )
+        .await?;
 
     Ok(Json(result))
 }
@@ -149,7 +159,11 @@ pub async fn delete_transaction_handler(
     session: AuthSession,
     Path(id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
-    transactions::delete_transaction(&state.core.db, &session.user.id, &id).await?;
+    state
+        .core
+        .transactions
+        .delete(&session.user.id, &id)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -164,13 +178,11 @@ pub async fn split_transaction_handler(
     session: AuthSession,
     Json(payload): Json<SplitTransactionRequest>,
 ) -> Result<Json<Vec<db::entities::p2p_requests::Model>>, ApiError> {
-    let result = transactions::split_transaction(
-        &state.core.db,
-        &session.user.id,
-        &payload.transaction_id,
-        payload.splits,
-    )
-    .await?;
+    let result = state
+        .core
+        .transactions
+        .split(&session.user.id, &payload.transaction_id, payload.splits)
+        .await?;
 
     Ok(Json(result))
 }

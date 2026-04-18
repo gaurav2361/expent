@@ -68,8 +68,13 @@ pub async fn accept_p2p_handler(
     session: AuthSession,
     Json(payload): Json<AcceptP2PRequest>,
 ) -> Result<Json<db::entities::p2p_requests::Model>, ApiError> {
-    let result =
-        p2p::accept_p2p_request(&state.core.db, &session.user.id, &payload.request_id).await?;
+    let result = p2p::accept_p2p_request(
+        &state.core.db,
+        &state.core.transactions,
+        &session.user.id,
+        &payload.request_id,
+    )
+    .await?;
 
     Ok(Json(result))
 }
@@ -136,6 +141,7 @@ pub async fn register_repayment_handler(
 ) -> Result<Json<db::entities::transactions::Model>, ApiError> {
     let result = p2p::register_repayment(
         &state.core.db,
+        state.core.wallets.clone(),
         &session.user.id,
         &id,
         payload.amount,
