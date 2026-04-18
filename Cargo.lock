@@ -6285,6 +6285,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "db",
+ "regex",
  "sea-orm",
  "serde",
  "serde_json",
