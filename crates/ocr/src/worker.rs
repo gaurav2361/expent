@@ -4,6 +4,7 @@ use db::entities;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Semaphore;
 use upload::UploadClient;
 
 pub async fn start_recovery_worker(db: DatabaseConnection) {
@@ -24,6 +25,8 @@ pub async fn start_processor_worker(
     processor: Arc<dyn crate::OcrProcessor>,
 ) {
     let mut interval = tokio::time::interval(Duration::from_secs(10)); // Poll every 10 seconds
+    let semaphore = Arc::new(Semaphore::new(4)); // Limit to 4 concurrent background OCR tasks
+
     loop {
         interval.tick().await;
         if let Err(e) = process_queued_jobs(
@@ -32,6 +35,7 @@ pub async fn start_processor_worker(
             &upload_client,
             ocr_tx.clone(),
             processor.clone(),
+            semaphore.clone(),
         )
         .await
         {
@@ -46,6 +50,7 @@ async fn process_queued_jobs(
     upload_client: &UploadClient,
     ocr_tx: tokio::sync::broadcast::Sender<OcrUpdate>,
     processor: Arc<dyn crate::OcrProcessor>,
+    semaphore: Arc<Semaphore>,
 ) -> Result<(), anyhow::Error> {
     let now = Utc::now();
 
@@ -62,29 +67,37 @@ async fn process_queued_jobs(
 
     for job in queued_jobs {
         let job_id = job.id.clone();
-        tracing::info!("👷 Background worker picking up job: {}", job_id);
 
-        // Process each job. We can do this concurrently or sequentially.
-        let db_clone = db.clone();
-        let ocr_service_clone = ocr_service.clone();
-        let upload_client_clone = upload_client.clone();
-        let ocr_tx_clone = ocr_tx.clone();
-        let processor_clone = processor.clone();
+        // Wait for an available permit before spawning
+        let permit = semaphore.clone().acquire_owned().await;
 
-        tokio::spawn(async move {
-            if let Err(e) = crate::process_job(
-                &db_clone,
-                ocr_service_clone,
-                &upload_client_clone,
-                ocr_tx_clone,
-                processor_clone,
-                job_id,
-            )
-            .await
-            {
-                tracing::error!("❌ Background job processing failed: {}", e);
-            }
-        });
+        if let Ok(permit) = permit {
+            tracing::info!("👷 Background worker picking up job: {}", job_id);
+
+            let db_clone = db.clone();
+            let ocr_service_clone = ocr_service.clone();
+            let upload_client_clone = upload_client.clone();
+            let ocr_tx_clone = ocr_tx.clone();
+            let processor_clone = processor.clone();
+
+            tokio::spawn(async move {
+                // The permit is held until this task finishes
+                let _permit = permit;
+
+                if let Err(e) = crate::process_job(
+                    &db_clone,
+                    ocr_service_clone,
+                    &upload_client_clone,
+                    ocr_tx_clone,
+                    processor_clone,
+                    job_id,
+                )
+                .await
+                {
+                    tracing::error!("❌ Background job processing failed: {}", e);
+                }
+            });
+        }
     }
 
     Ok(())

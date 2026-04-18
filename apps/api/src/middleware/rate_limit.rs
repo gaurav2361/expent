@@ -1,17 +1,14 @@
 use dashmap::DashMap;
-use governor::{clock::DefaultClock, state::direct::NotKeyed, state::InMemoryState, Quota, RateLimiter};
+use governor::{
+    Quota, RateLimiter, clock::DefaultClock, state::InMemoryState, state::direct::NotKeyed,
+};
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
 /// A per-user rate limiter that uses a Token Bucket algorithm.
 #[derive(Debug, Clone)]
 pub struct UserRateLimiter {
-    limiters: Arc<
-        DashMap<
-            String,
-            Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
-        >,
-    >,
+    limiters: Arc<DashMap<String, Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>>>,
     quota: Quota,
 }
 

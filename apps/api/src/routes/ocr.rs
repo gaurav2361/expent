@@ -204,7 +204,12 @@ pub async fn bulk_confirm_ocr_jobs_handler(
         match state
             .core
             .ocr_manager
-            .confirm_job(Arc::new(state.core.clone()), &session.user.id, &job_id, None)
+            .confirm_job(
+                Arc::new(state.core.clone()),
+                &session.user.id,
+                &job_id,
+                None,
+            )
             .await
         {
             Ok(_) => succeeded.push(job_id),
