@@ -41,3 +41,18 @@
 - `AGENTS.md`: Canonical agent-facing documentation. Keep under 80 lines.
 - `GEMINI.md`: foundational mandates for Gemini CLI specifically.
 - `docs/core.md`: Deep dive into the Centralized Hub Architecture.
+
+<!-- intent-skills:start -->
+# Skill mappings - when working in these areas, load the linked skill file into context.
+skills:
+  - task: "Managing local database collections and live queries"
+    load: "node_modules/@tanstack/react-db/skills/react-db/SKILL.md"
+  - task: "Setting up typed collections and selecting sync adapters"
+    load: "node_modules/@tanstack/db/skills/db-core/collection-setup/SKILL.md"
+  - task: "Implementing optimistic mutations and transactions"
+    load: "node_modules/@tanstack/db/skills/db-core/mutations-optimistic/SKILL.md"
+  - task: "Working with persistent local storage (WA-SQLite, expo-sqlite)"
+    load: "node_modules/@tanstack/db/skills/db-core/persistence/SKILL.md"
+  - task: "Configuring environment variables and secrets"
+    load: "node_modules/dotenv/skills/dotenvx/SKILL.md"
+<!-- intent-skills:end -->

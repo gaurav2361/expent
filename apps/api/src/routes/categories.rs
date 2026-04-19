@@ -2,7 +2,6 @@ use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get};
-use expent_core::categories;
 use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
@@ -21,7 +20,7 @@ pub async fn list_categories_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::categories::Model>>, ApiError> {
-    let result = categories::list_categories(&state.core.db, &session.user.id).await?;
+    let result = state.core.categories.list(&session.user.id).await?;
     Ok(Json(result))
 }
 
@@ -37,14 +36,11 @@ pub async fn create_category_handler(
     session: AuthSession,
     Json(payload): Json<CreateCategoryRequest>,
 ) -> Result<Json<db::entities::categories::Model>, ApiError> {
-    let result = categories::create_category(
-        &state.core.db,
-        &session.user.id,
-        payload.name,
-        payload.icon,
-        payload.color,
-    )
-    .await?;
+    let result = state
+        .core
+        .categories
+        .create(&session.user.id, payload.name, payload.icon, payload.color)
+        .await?;
     Ok(Json(result))
 }
 
@@ -53,6 +49,6 @@ pub async fn delete_category_handler(
     session: AuthSession,
     Path(id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
-    categories::delete_category(&state.core.db, &session.user.id, &id).await?;
+    state.core.categories.delete(&session.user.id, &id).await?;
     Ok(StatusCode::NO_CONTENT)
 }

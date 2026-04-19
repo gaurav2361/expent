@@ -1,4 +1,4 @@
-pub mod services;
+pub mod bridge;
 
 pub use db::AppError;
 pub use db::GPayExtraction;
@@ -10,28 +10,62 @@ pub use db::ProcessedOcr;
 pub use db::SplitDetail;
 pub use db::TransactionWithDetail;
 
-pub use services::categories;
-pub use services::contacts;
-pub use services::groups;
-pub use services::ocr;
-pub use services::p2p;
-pub use services::reconciliation;
-pub use services::subscriptions;
-pub use services::transactions;
-pub use services::users;
-pub use services::wallets;
+pub mod ocr {
+    pub use crate::bridge::*;
+    pub use ::ocr::*;
+}
+
+pub mod wallets {
+    pub use ::wallets::*;
+}
+
+pub mod transactions {
+    pub use ::transactions::*;
+}
+
+pub mod groups {
+    pub use ::groups::*;
+}
+
+pub mod reconciliation {
+    pub use ::reconciliation::*;
+}
+
+pub mod subscriptions {
+    pub use ::subscriptions::*;
+}
+
+pub mod contacts {
+    pub use ::contacts::*;
+}
+
+pub mod categories {
+    pub use ::categories::*;
+}
+
+pub mod users {
+    pub use ::users::*;
+}
 
 // Re-export common crates so API doesn't need to depend on them directly
 pub use auth;
 pub use better_auth;
-pub use ocr as ocr_engine;
 pub use sea_orm;
 pub use upload;
 
-use ::ocr::OcrService;
+use ::categories::CategoriesManager;
+use ::contacts::ContactsManager;
+use ::groups::GroupsManager;
+use ::ocr::{OcrManager, OcrProcessor, OcrService};
+use ::reconciliation::ReconciliationManager;
+use ::subscriptions::SubscriptionsManager;
+use ::transactions::TransactionsManager;
+use ::users::UsersManager;
+use ::wallets::WalletsManager;
 use auth::adapter::PostgresAdapter;
-use sea_orm::{Database, DatabaseConnection};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::sync::Arc;
+use std::time::Duration;
 use upload::UploadClient;
 
 #[derive(Clone)]
@@ -39,7 +73,31 @@ pub struct Core {
     pub db: DatabaseConnection,
     pub auth: Arc<better_auth::BetterAuth<PostgresAdapter>>,
     pub upload_client: UploadClient,
-    pub ocr_service: Arc<OcrService>,
+    pub ocr_manager: Arc<OcrManager>,
+    pub wallets: Arc<WalletsManager>,
+    pub transactions: Arc<TransactionsManager>,
+    pub groups: Arc<GroupsManager>,
+    pub reconciliation: Arc<ReconciliationManager>,
+    pub subscriptions: Arc<SubscriptionsManager>,
+    pub contacts: Arc<ContactsManager>,
+    pub categories: Arc<CategoriesManager>,
+    pub users: Arc<UsersManager>,
+}
+
+impl OcrProcessor for Core {
+    fn process_ocr(
+        &self,
+        db: &DatabaseConnection,
+        user_id: &str,
+        processed: db::ProcessedOcr,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<db::OcrTransactionResponse, AppError>> + Send>,
+    > {
+        let db = db.clone();
+        let user_id = user_id.to_string();
+        let contacts = self.contacts.clone();
+        Box::pin(async move { bridge::process_ocr(&db, contacts, &user_id, processed).await })
+    }
 }
 
 pub struct CoreConfig {
@@ -51,15 +109,47 @@ pub struct CoreConfig {
 }
 
 impl Core {
-    pub async fn init(config: CoreConfig) -> Result<Self, anyhow::Error> {
-        let db = Database::connect(&config.database_url).await?;
+    pub async fn init(
+        config: CoreConfig,
+        ocr_tx: tokio::sync::broadcast::Sender<::ocr::OcrUpdate>,
+    ) -> Result<Self, anyhow::Error> {
+        // 1. Resilient Database Connection
+        let mut opt = ConnectOptions::new(config.database_url);
+        opt.max_connections(20)
+            .min_connections(5)
+            .connect_timeout(Duration::from_secs(10))
+            .idle_timeout(Duration::from_secs(10))
+            .max_lifetime(Duration::from_secs(30 * 60))
+            .sqlx_logging(true);
+
+        let mut retry_count = 0;
+        let db = loop {
+            match Database::connect(opt.clone()).await {
+                Ok(conn) => break conn,
+                Err(e) if retry_count < 3 => {
+                    retry_count += 1;
+                    tracing::warn!(
+                        "Database connection failed, retrying ({}/3): {}",
+                        retry_count,
+                        e
+                    );
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                }
+                Err(e) => {
+                    return Err(anyhow::anyhow!(
+                        "Database connection failed after 3 retries: {}",
+                        e
+                    ));
+                }
+            }
+        };
 
         // Initialize Auth
         let auth = auth::init_auth(db.clone())
             .await
             .map_err(|e| anyhow::anyhow!("Auth init failed: {e}"))?;
 
-        // Initialize OCR
+        // Initialize OCR Service
         let ocr_service = Arc::new(
             OcrService::new()
                 .await
@@ -92,15 +182,43 @@ impl Core {
         let s3_client = aws_sdk_s3::Client::from_conf(s3_client_config);
         let upload_client = UploadClient::new(s3_client, config.s3_bucket_name);
 
+        let ocr_manager = Arc::new(OcrManager::new(
+            ocr_service,
+            db.clone(),
+            upload_client.clone(),
+            ocr_tx,
+        ));
+
+        let wallets = Arc::new(WalletsManager::new(db.clone()));
+        let transactions = Arc::new(TransactionsManager::new(db.clone(), wallets.clone()));
+        let groups = Arc::new(GroupsManager::new(
+            db.clone(),
+            wallets.clone(),
+            transactions.clone(),
+        ));
+        let reconciliation = Arc::new(ReconciliationManager::new(db.clone()));
+        let subscriptions = Arc::new(SubscriptionsManager::new(db.clone()));
+        let contacts = Arc::new(ContactsManager::new(db.clone()));
+        let categories = Arc::new(CategoriesManager::new(db.clone()));
+        let users = Arc::new(UsersManager::new(db.clone()));
+
         let core = Self {
             db,
             auth,
             upload_client,
-            ocr_service,
+            ocr_manager,
+            wallets,
+            transactions,
+            groups,
+            reconciliation,
+            subscriptions,
+            contacts,
+            categories,
+            users,
         };
 
         // Ensure system categories exist
-        if let Err(e) = categories::ensure_system_categories(&core.db).await {
+        if let Err(e) = core.categories.ensure_system_categories().await {
             tracing::error!("Failed to ensure system categories: {:?}", e);
         }
 

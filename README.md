@@ -29,6 +29,7 @@ Expent is an intelligent expense management platform built with Rust, TypeScript
    ```
 3. **Configure environment variables:**
    Copy `.env.example` to `.env` in the root and fill in your credentials.
+
    ```bash
    cp .env.example .env
    ```
@@ -53,12 +54,20 @@ Expent is an intelligent expense management platform built with Rust, TypeScript
 
 ## Environment Variables
 
-| Variable | Description |
-| :--- | :--- |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `AUTH_SECRET` | 32+ character secret for authentication |
-| `S3_ENDPOINT` | S3-compatible API endpoint |
-| `S3_ACCESS_KEY_ID` | Access key for storage |
-| `S3_SECRET_ACCESS_KEY` | Secret key for storage |
-| `S3_BUCKET_NAME` | Name of the bucket for uploads |
-| `OCR_WORKER_URL` | URL where the Python worker is running |
+| Variable               | Description                             |
+| :--------------------- | :-------------------------------------- |
+| `DATABASE_URL`         | PostgreSQL connection string            |
+| `AUTH_SECRET`          | 32+ character secret for authentication |
+| `S3_ENDPOINT`          | S3-compatible API endpoint              |
+| `S3_ACCESS_KEY_ID`     | Access key for storage                  |
+| `S3_SECRET_ACCESS_KEY` | Secret key for storage                  |
+| `S3_BUCKET_NAME`       | Name of the bucket for uploads          |
+| `OCR_WORKER_URL`       | URL where the Python worker is running  |
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
+<!-- END:nextjs-agent-rules -->

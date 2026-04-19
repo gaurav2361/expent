@@ -2,6 +2,7 @@
 
 import { Toaster } from "@expent/ui/components/goey-toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import { MotionConfig } from "motion/react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -26,12 +27,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        <MotionConfig reducedMotion="user">
-          {children}
-          <AppToaster />
-        </MotionConfig>
-      </ThemeProvider>
+      <HotkeysProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <MotionConfig reducedMotion="user">
+            {children}
+            <AppToaster />
+          </MotionConfig>
+        </ThemeProvider>
+      </HotkeysProvider>
     </QueryClientProvider>
   );
 }

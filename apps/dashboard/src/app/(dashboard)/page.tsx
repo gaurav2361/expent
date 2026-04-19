@@ -27,21 +27,38 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-import { Analytics } from "@/components/dashboard/analytics";
-import { CategoryChart } from "@/components/dashboard/category-chart";
-import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart";
-import { Overview } from "@/components/dashboard/overview";
+import dynamic from "next/dynamic";
+
+const Analytics = dynamic(() => import("@/components/dashboard/analytics").then((mod) => mod.Analytics), {
+  loading: () => <div className="h-[400px] w-full animate-pulse bg-muted rounded-xl" />,
+});
+
+const Overview = dynamic(() => import("@/components/dashboard/overview").then((mod) => mod.Overview), {
+  loading: () => <div className="h-[350px] w-full animate-pulse bg-muted rounded-xl" />,
+});
+
+const IncomeExpenseChart = dynamic(
+  () => import("@/components/dashboard/income-expense-chart").then((mod) => mod.IncomeExpenseChart),
+  {
+    loading: () => <div className="h-[300px] w-full animate-pulse bg-muted rounded-xl" />,
+  },
+);
+
+const CategoryChart = dynamic(() => import("@/components/dashboard/category-chart").then((mod) => mod.CategoryChart), {
+  loading: () => <div className="h-[300px] w-full animate-pulse bg-muted rounded-xl" />,
+});
+
 import { DataTable } from "@/components/data-table/data-table";
 import { ApprovalCard } from "@/components/tool-ui/approval-card";
 import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
 import { DashboardSkeleton } from "@/components/ui-elements/dashboard-skeleton";
-import { ManualTransactionDialog } from "@/components/transactions/manual-transaction-dialog";
 import { ReviewTransactionForm } from "@/components/transactions/review-transaction-form";
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
 import { useP2P } from "@/hooks/use-p2p";
 import { useTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 import { apiClient } from "@/lib/api-client";
+import { useGlobalStore } from "@/lib/store";
 import type { Column } from "@/lib/data-table-types";
 
 export default function DashboardPage() {
@@ -69,6 +86,7 @@ export default function DashboardPage() {
   const { transactions, isLoading: isTxnsLoading, updateMutation, deleteMutation } = useTransactions({ limit: 5 });
   const { summary, isLoading: isSummaryLoading } = useTransactionSummary();
   const { p2pRequests, acceptMutation } = useP2P();
+  const { setTransactionModalOpen } = useGlobalStore();
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -78,15 +96,7 @@ export default function DashboardPage() {
   const [processedOcr, setProcessedOcr] = useState<TypedProcessedOcr | null>(null);
   const [isSavingOcr, setIsSavingOcr] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
-  const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
-
-  if (isSummaryLoading && !summary) {
-    return <DashboardSkeleton />;
-  }
-
-  const totalBalance = summary?.total_balance ? parseFloat(summary.total_balance as any) : 0;
-  const monthlySpend = summary?.monthly_spend ? parseFloat(summary.monthly_spend as any) : 0;
 
   const triggerSplit = useCallback((id: string, amount: string) => {
     setSelectedTxn({ id, amount });
@@ -250,6 +260,13 @@ export default function DashboardPage() {
     }
   };
 
+  if (isSummaryLoading && !summary) {
+    return <DashboardSkeleton />;
+  }
+
+  const totalBalance = summary?.total_balance ? parseFloat(summary.total_balance as any) : 0;
+  const monthlySpend = summary?.monthly_spend ? parseFloat(summary.monthly_spend as any) : 0;
+
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -259,7 +276,7 @@ export default function DashboardPage() {
             <p className="text-muted-foreground text-sm">Welcome back! Here is your financial summary.</p>
           </div>
           <div className="flex items-center space-x-2">
-            <Button onClick={() => setManualDialogOpen(true)}>
+            <Button onClick={() => setTransactionModalOpen(true)}>
               <PlusIcon className="h-4 w-4 mr-2" />
               Add Transaction
             </Button>
@@ -316,24 +333,29 @@ export default function DashboardPage() {
                   </Button>
                 }
               />
-              <Card className="bg-primary/5 dark:bg-primary/10 border-primary/20 shadow-sm">
+              <Card className="hover:shadow-md transition-shadow duration-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-primary">Quick Receive/Upload</CardTitle>
-                  <FileTextIcon className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Quick Receive/Upload</CardTitle>
+                  <div className="p-2 bg-muted/50 rounded-lg text-muted-foreground">
+                    <FileTextIcon className="h-4 w-4" />
+                  </div>
                 </CardHeader>
-                <CardContent className="mt-1">
+                <CardContent className="mt-2">
                   <div className="flex gap-2">
                     <Input
                       id="quick-upload"
                       type="file"
                       accept="image/*,application/pdf,text/csv"
                       onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      className="h-8 text-xs bg-background"
+                      className="h-9 text-xs bg-muted/20 border-none shadow-none"
                     />
-                    <Button onClick={handleUpload} disabled={!file || isUploading} size="sm">
+                    <Button onClick={handleUpload} disabled={!file || isUploading} size="sm" className="h-9 px-4">
                       {isUploading ? "…" : "Go"}
                     </Button>
                   </div>
+                  <p className="text-[10px] text-muted-foreground mt-2 italic px-1">
+                    Drag and drop or select a file to scan
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -464,8 +486,6 @@ export default function DashboardPage() {
           totalAmount={selectedTxn.amount || "0"}
         />
       )}
-
-      <ManualTransactionDialog open={manualDialogOpen} onOpenChange={setManualDialogOpen} />
     </>
   );
 }

@@ -103,15 +103,23 @@ pub async fn init_auth(
 
     let cors_origin = env::var("CORS_ORIGIN").unwrap_or_default();
 
-    let mut trusted_origins = vec![
-        "http://localhost:3000".to_string(),
-        "http://127.0.0.1:3000".to_string(),
-        "http://localhost:8080".to_string(),
-        "http://127.0.0.1:8080".to_string(),
-        "http://localhost:8081".to_string(),
-        "http://127.0.0.1:8081".to_string(),
-        base_url.clone(),
-    ];
+    let is_production = env::var("APP_ENV").unwrap_or_default() == "production"
+        || env::var("NODE_ENV").unwrap_or_default() == "production";
+
+    let mut trusted_origins = Vec::new();
+
+    if !is_production {
+        trusted_origins.extend(vec![
+            "http://localhost:3000".to_string(),
+            "http://127.0.0.1:3000".to_string(),
+            "http://localhost:8080".to_string(),
+            "http://127.0.0.1:8080".to_string(),
+            "http://localhost:8081".to_string(),
+            "http://127.0.0.1:8081".to_string(),
+        ]);
+    }
+
+    trusted_origins.push(base_url.clone());
 
     if !cors_origin.is_empty() {
         trusted_origins.extend(cors_origin.split(',').map(|s| s.trim().to_string()));

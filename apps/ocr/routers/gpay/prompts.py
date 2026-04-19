@@ -24,4 +24,6 @@ CRITICAL RULES FOR GOOGLE PAY:
    - If this is a simple blue checkmark screen, these IDs will not be visible. Set them to null.
 5. Formatting:
    - Strip the currency symbol (₹) and commas from the amount.
+6. Confidence:
+   - Set "confidence_score" (0.0 to 1.0) based on image clarity and data certainty. If everything is clear, set to 1.0. If blurry or ambiguous, lower it.
 """

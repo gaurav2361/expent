@@ -2,7 +2,6 @@ use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
-use expent_core::p2p;
 use serde::Deserialize;
 
 use crate::middleware::error::ApiError;
@@ -25,13 +24,13 @@ pub fn router() -> Router<AppState> {
 pub async fn list_pending_p2p_handler(
     State(state): State<AppState>,
     session: AuthSession,
-) -> Result<Json<Vec<expent_core::P2PRequestWithSender>>, ApiError> {
+) -> Result<Json<Vec<db::P2PRequestWithSender>>, ApiError> {
     let email = session
         .user
         .email
         .clone()
         .ok_or_else(|| ApiError::BadRequest("Email missing".to_string()))?;
-    let result = p2p::list_pending_p2p_requests(&state.core.db, &email).await?;
+    let result = state.core.groups.list_pending_p2p_requests(&email).await?;
 
     Ok(Json(result))
 }
@@ -47,13 +46,15 @@ pub async fn create_p2p_handler(
     session: AuthSession,
     Json(payload): Json<CreateP2PRequest>,
 ) -> Result<Json<db::entities::p2p_requests::Model>, ApiError> {
-    let result = p2p::create_p2p_request(
-        &state.core.db,
-        &session.user.id,
-        &payload.receiver_email,
-        &payload.transaction_id,
-    )
-    .await?;
+    let result = state
+        .core
+        .groups
+        .create_p2p_request(
+            &session.user.id,
+            &payload.receiver_email,
+            &payload.transaction_id,
+        )
+        .await?;
 
     Ok(Json(result))
 }
@@ -68,8 +69,11 @@ pub async fn accept_p2p_handler(
     session: AuthSession,
     Json(payload): Json<AcceptP2PRequest>,
 ) -> Result<Json<db::entities::p2p_requests::Model>, ApiError> {
-    let result =
-        p2p::accept_p2p_request(&state.core.db, &session.user.id, &payload.request_id).await?;
+    let result = state
+        .core
+        .groups
+        .accept_p2p_request(&session.user.id, &payload.request_id)
+        .await?;
 
     Ok(Json(result))
 }
@@ -79,7 +83,11 @@ pub async fn reject_p2p_handler(
     session: AuthSession,
     Path(id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
-    p2p::reject_p2p_request(&state.core.db, &session.user.id, &id).await?;
+    state
+        .core
+        .groups
+        .reject_p2p_request(&session.user.id, &id)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -97,16 +105,18 @@ pub async fn create_ledger_tab_handler(
     session: AuthSession,
     Json(payload): Json<CreateLedgerTabRequest>,
 ) -> Result<Json<db::entities::ledger_tabs::Model>, ApiError> {
-    let result = p2p::create_ledger_tab(
-        &state.core.db,
-        &session.user.id,
-        payload.counterparty_id,
-        payload.tab_type,
-        &payload.title,
-        payload.description,
-        payload.target_amount,
-    )
-    .await?;
+    let result = state
+        .core
+        .groups
+        .create_ledger_tab(
+            &session.user.id,
+            payload.counterparty_id,
+            payload.tab_type,
+            &payload.title,
+            payload.description,
+            payload.target_amount,
+        )
+        .await?;
     Ok(Json(result))
 }
 
@@ -134,13 +144,15 @@ pub async fn register_repayment_handler(
     Path(id): Path<String>,
     Json(payload): Json<RegisterRepaymentRequest>,
 ) -> Result<Json<db::entities::transactions::Model>, ApiError> {
-    let result = p2p::register_repayment(
-        &state.core.db,
-        &session.user.id,
-        &id,
-        payload.amount,
-        payload.source_wallet_id,
-    )
-    .await?;
+    let result = state
+        .core
+        .groups
+        .register_repayment(
+            &session.user.id,
+            &id,
+            payload.amount,
+            payload.source_wallet_id,
+        )
+        .await?;
     Ok(Json(result))
 }

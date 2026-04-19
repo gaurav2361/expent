@@ -1,43 +1,42 @@
 import type { PaginatedTransactions, Transaction, TransactionWithDetail, DashboardSummary } from "@expent/types";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLiveQuery } from "@tanstack/react-db";
 import { apiClient } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
+import { db } from "@/lib/db";
 
 export function useTransactions(params: { limit?: number; offset?: number } = {}) {
   const session = useSession();
   const queryClient = useQueryClient();
 
-  const query = useQuery({
-    queryKey: ["transactions", params],
-    queryFn: () => {
-      const searchParams = new URLSearchParams();
-      if (params.limit) searchParams.append("limit", params.limit.toString());
-      if (params.offset) searchParams.append("offset", params.offset.toString());
-      const queryString = searchParams.toString();
-      return apiClient<PaginatedTransactions>(`/api/transactions${queryString ? `?${queryString}` : ""}`);
+  // Use TanStack DB for the live query
+  const query = useLiveQuery(
+    (q) => {
+      let query = q.from({ transactions: db.transactions }).orderBy(({ transactions }) => transactions.date, "desc");
+      if (params.limit) query = query.limit(params.limit);
+      if (params.offset) query = query.offset(params.offset);
+      return query;
     },
-    enabled: !!session.data,
-  });
+    [params.limit, params.offset, session.data],
+  );
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<TransactionWithDetail> }) =>
-      apiClient<Transaction>(`/api/transactions/${id}`, {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<TransactionWithDetail> }) => {
+      // 1. Send to server
+      const updatedTxn = await apiClient<Transaction>(`/api/transactions/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          amount: data.amount,
-          date: data.date,
-          purpose_tag: data.purpose_tag,
-          status: data.status,
-          notes: data.notes,
-          category_id: data.category_id,
-          source_wallet_id: data.source_wallet_id,
-          destination_wallet_id: data.destination_wallet_id,
-          contact_id: data.contact_id,
-        }),
-      }),
+        body: JSON.stringify(data),
+      });
+
+      // 2. Update local DB
+      db.transactions.update(id, (draft) => {
+        Object.assign(draft, updatedTxn);
+      });
+
+      return updatedTxn;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transaction-summary"] });
       toast.success("Transaction updated");
@@ -46,12 +45,16 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiClient(`/api/transactions/${id}`, {
+    mutationFn: async (id: string) => {
+      // 1. Send to server
+      await apiClient(`/api/transactions/${id}`, {
         method: "DELETE",
-      }),
+      });
+
+      // 2. Delete from local DB
+      db.transactions.delete(id);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transaction-summary"] });
       toast.success("Transaction deleted");
@@ -60,11 +63,11 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
   });
 
   return {
-    transactions: query.data?.items,
-    totalCount: query.data?.total_count || 0,
+    transactions: query.data as unknown as TransactionWithDetail[],
+    totalCount: (query as any).totalCount || 0, // TanStack DB handles total count in meta
     isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    error: query.error,
+    isFetching: query.isLoading, // In DB mode, loading is fetching
+    error: query.isError ? "Error loading transactions" : null,
     updateMutation,
     deleteMutation,
   };
@@ -77,7 +80,7 @@ export function useTransactionSummary() {
     queryKey: ["transaction-summary"],
     queryFn: () => apiClient<DashboardSummary>("/api/transactions/summary"),
     enabled: !!session.data,
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   return {

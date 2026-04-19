@@ -18,9 +18,12 @@ pub mod extractors;
 pub mod middleware;
 pub mod routes;
 
+use crate::middleware::rate_limit::UserRateLimiter;
+
 #[derive(Clone)]
 pub struct AppState {
     pub core: Core,
+    pub ocr_limiter: UserRateLimiter,
 }
 
 impl FromRef<AppState> for DatabaseConnection {
@@ -62,6 +65,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )
         .init();
 
+    let (ocr_tx, _) = tokio::sync::broadcast::channel(100);
+
     let core_config = CoreConfig {
         database_url: std::env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
         s3_endpoint: std::env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set"),
@@ -71,9 +76,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         s3_bucket_name: std::env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set"),
     };
 
-    let core = Core::init(core_config).await?;
+    let core = Core::init(core_config, ocr_tx).await?;
 
-    let state = AppState { core: core.clone() };
+    // Start background workers from OCR manager
+    core.ocr_manager.spawn_workers(Arc::new(core.clone()));
+
+    let state = AppState {
+        core: core.clone(),
+        ocr_limiter: UserRateLimiter::new(10, 20),
+    };
 
     let auth_router = core.auth.clone().axum_router();
 

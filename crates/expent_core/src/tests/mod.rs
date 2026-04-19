@@ -33,8 +33,14 @@ async fn test_core_init_happy_path(
     let core_instance = core.unwrap();
 
     // Assert specific inner values or characteristics
-    assert!(!core_instance.db.is_closed(), "Database connection should be open");
-    assert!(Arc::strong_count(&core_instance.auth) > 0, "Auth service should be initialized");
+    assert!(
+        !core_instance.db.is_closed(),
+        "Database connection should be open"
+    );
+    assert!(
+        Arc::strong_count(&core_instance.auth) > 0,
+        "Auth service should be initialized"
+    );
     // TODO: Add more specific assertions for upload_client and ocr_service if possible without
     // exposing internal details or requiring complex mocks
 }
@@ -52,7 +58,10 @@ async fn test_core_init_db_connection_failure() {
     };
 
     let core = Core::init(config).await;
-    assert!(core.is_err(), "Core::init should fail with invalid database URL");
+    assert!(
+        core.is_err(),
+        "Core::init should fail with invalid database URL"
+    );
     let error = core.unwrap_err();
     let error_message = error.to_string();
     assert!(

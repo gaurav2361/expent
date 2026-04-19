@@ -4,4 +4,4 @@ import type { JsonValue } from "./JsonValue";
 /**
  * Unified OCR data from the Python worker.
  */
-export type ProcessedOcr = { doc_type: string, data: JsonValue, r2_key: string | null, };
+export type ProcessedOcr = { doc_type: string, data: JsonValue, r2_key: string | null, is_high_res: boolean, };

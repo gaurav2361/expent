@@ -16,6 +16,7 @@ import {
 import { Input } from "@expent/ui/components/input";
 import { Label } from "@expent/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@expent/ui/components/select";
+import { motion } from "motion/react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import {
   AlertCircleIcon,
@@ -189,41 +190,43 @@ export default function ContactsPage() {
 
 function ContactCard({ contact, onPin, onClick }: { contact: Contact; onPin: () => void; onClick: () => void }) {
   return (
-    <Card
-      className="group hover:border-primary/50 transition-all cursor-pointer relative overflow-hidden"
-      onClick={onClick}
-    >
-      <CardHeader className="p-4 flex flex-row items-center gap-4 space-y-0">
-        <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-          {contact.name.charAt(0).toUpperCase()}
-        </div>
-        <div className="flex-1 min-w-0">
-          <CardTitle className="text-base truncate">{contact.name}</CardTitle>
-          <div className="flex items-center text-xs text-muted-foreground gap-2 mt-0.5">
-            {contact.phone && (
-              <span className="flex items-center gap-1">
-                <PhoneIcon className="h-3 w-3" /> {contact.phone}
-              </span>
-            )}
+    <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} className="h-full">
+      <Card
+        className="group hover:border-primary/50 transition-all cursor-pointer relative overflow-hidden h-full"
+        onClick={onClick}
+      >
+        <CardHeader className="p-4 flex flex-row items-center gap-4 space-y-0">
+          <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+            {contact.name.charAt(0).toUpperCase()}
           </div>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className={`h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${contact.is_pinned ? "opacity-100 text-primary" : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onPin();
-            }}
-            aria-label={contact.is_pinned ? "Unpin contact" : "Pin contact"}
-          >
-            <PinIcon className={`h-3.5 w-3.5 ${contact.is_pinned ? "fill-current rotate-45" : ""}`} />
-          </Button>
-          <ChevronRightIcon className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />
-        </div>
-      </CardHeader>
-    </Card>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base truncate">{contact.name}</CardTitle>
+            <div className="flex items-center text-xs text-muted-foreground gap-2 mt-0.5">
+              {contact.phone && (
+                <span className="flex items-center gap-1">
+                  <PhoneIcon className="h-3 w-3" /> {contact.phone}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className={`h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${contact.is_pinned ? "opacity-100 text-primary" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onPin();
+              }}
+              aria-label={contact.is_pinned ? "Unpin contact" : "Pin contact"}
+            >
+              <PinIcon className={`h-3.5 w-3.5 ${contact.is_pinned ? "fill-current rotate-45" : ""}`} />
+            </Button>
+            <ChevronRightIcon className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />
+          </div>
+        </CardHeader>
+      </Card>
+    </motion.div>
   );
 }
 
@@ -307,23 +310,25 @@ function MergeSuggestionsBanner({
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Primary Contact to Keep</Label>
-                <Select value={primaryId} onValueChange={setPrimaryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select primary contact">
-                      {selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.name}{" "}
-                      {selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.phone
-                        ? `(${selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId)?.phone})`
-                        : ""}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedSuggestion.contacts.map((c: Contact) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name} {c.phone ? `(${c.phone})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {(() => {
+                  const primaryContact = selectedSuggestion.contacts.find((c: Contact) => c.id === primaryId);
+                  return (
+                    <Select value={primaryId} onValueChange={setPrimaryId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select primary contact">
+                          {primaryContact?.name} {primaryContact?.phone ? `(${primaryContact.phone})` : ""}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedSuggestion.contacts.map((c: Contact) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} {c.phone ? `(${c.phone})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
             </div>
           )}

@@ -1,5 +1,6 @@
 use chrono::{DateTime, FixedOffset};
 use rust_decimal::Decimal;
+use sea_orm::FromQueryResult;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -40,8 +41,14 @@ pub struct OcrResult {
     pub category_id: Option<String>,
     pub wallet_id: Option<String>,
     pub contact_id: Option<String>,
+    #[serde(default = "default_confidence")]
+    pub confidence_score: f32,
     #[serde(default)]
     pub items: Vec<LineItem>,
+}
+
+fn default_confidence() -> f32 {
+    1.0
 }
 
 /// Specialized extraction for Google Pay screenshots.
@@ -68,6 +75,8 @@ pub struct GPayExtraction {
     pub category_id: Option<String>,
     pub wallet_id: Option<String>,
     pub contact_id: Option<String>,
+    #[serde(default = "default_confidence")]
+    pub confidence_score: f32,
 }
 
 /// Unified OCR data from the Python worker.
@@ -81,6 +90,8 @@ pub struct ProcessedOcr {
     pub doc_type: String,        // "GPAY" or "GENERIC"
     pub data: ExportedJsonValue, // Use ExportedJsonValue instead of serde_json::Value
     pub r2_key: Option<String>,
+    #[serde(default)]
+    pub is_high_res: bool,
 }
 
 /// A type alias for serde_json::Value to control its TypeScript export location.
@@ -151,6 +162,31 @@ pub struct TransactionWithDetail {
     pub contact_name: Option<String>,
     pub contact_id: Option<String>,
     pub category_name: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, TS, FromQueryResult)]
+#[ts(
+    export,
+    rename = "GroupMemberDetail",
+    export_to = "../../../packages/types/src/db/GroupMemberDetail.ts"
+)]
+pub struct GroupMemberDetail {
+    pub user_id: String,
+    pub name: String,
+    pub email: String,
+    pub role: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(
+    export,
+    rename = "ContactDetail",
+    export_to = "../../../packages/types/src/db/ContactDetail.ts"
+)]
+pub struct ContactDetail {
+    pub contact: entities::contacts::Model,
+    pub identifiers: Vec<entities::contact_identifiers::Model>,
+    pub transactions: Vec<entities::transactions::Model>,
 }
 
 /// Paginated response for transactions.

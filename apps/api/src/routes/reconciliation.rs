@@ -2,8 +2,6 @@ use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
-use expent_core::reconciliation;
-use expent_core::sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 
 use crate::middleware::error::ApiError;
@@ -21,7 +19,11 @@ pub async fn list_unmatched_rows_handler(
     State(state): State<AppState>,
     session: AuthSession,
 ) -> Result<Json<Vec<db::entities::bank_statement_rows::Model>>, ApiError> {
-    let result = reconciliation::list_unmatched_rows(&state.core.db, &session.user.id).await?;
+    let result = state
+        .core
+        .reconciliation
+        .list_unmatched_rows(&session.user.id)
+        .await?;
     Ok(Json(result))
 }
 
@@ -36,12 +38,22 @@ pub async fn get_row_matches_handler(
     session: AuthSession,
     Path(id): Path<String>,
 ) -> Result<Json<RowMatchesResponse>, ApiError> {
-    let row = db::entities::bank_statement_rows::Entity::find_by_id(id.clone())
-        .one(&state.core.db)
-        .await?
+    // Note: We could move this "get row" into the manager too, but for now we list details
+    let result = state
+        .core
+        .reconciliation
+        .list_unmatched_rows(&session.user.id)
+        .await?;
+    let row = result
+        .into_iter()
+        .find(|r| r.id == id)
         .ok_or_else(|| ApiError::NotFound("Row not found".to_string()))?;
 
-    let matches = reconciliation::get_row_matches(&state.core.db, &session.user.id, &id).await?;
+    let matches = state
+        .core
+        .reconciliation
+        .get_row_matches(&session.user.id, &id)
+        .await?;
 
     Ok(Json(RowMatchesResponse { row, matches }))
 }
@@ -58,14 +70,16 @@ pub async fn confirm_match_handler(
     Path(id): Path<String>,
     Json(payload): Json<ConfirmMatchRequest>,
 ) -> Result<StatusCode, ApiError> {
-    reconciliation::confirm_match(
-        &state.core.db,
-        &session.user.id,
-        &id,
-        &payload.transaction_id,
-        payload.confidence,
-    )
-    .await?;
+    state
+        .core
+        .reconciliation
+        .confirm_match(
+            &session.user.id,
+            &id,
+            &payload.transaction_id,
+            payload.confidence,
+        )
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -87,15 +101,17 @@ pub async fn upload_statement_handler(
     Json(payload): Json<StatementUploadRequest>,
 ) -> Result<StatusCode, ApiError> {
     for row in payload.rows {
-        reconciliation::upload_statement(
-            &state.core.db,
-            &session.user.id,
-            row.date,
-            row.description,
-            row.amount,
-            None,
-        )
-        .await?;
+        state
+            .core
+            .reconciliation
+            .upload_statement(
+                &session.user.id,
+                row.date,
+                row.description,
+                row.amount,
+                None,
+            )
+            .await?;
     }
     Ok(StatusCode::CREATED)
 }

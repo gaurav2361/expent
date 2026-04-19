@@ -188,15 +188,7 @@ export default function ContactDetailPage() {
               <Separator />
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-primary/5 text-[10px]">
-                  {transactions.some((t: any) => t.is_merchant) ? (
-                    <>
-                      <StoreIcon className="h-3 w-3 mr-1" /> Vendor
-                    </>
-                  ) : (
-                    <>
-                      <UserIcon className="h-3 w-3 mr-1" /> Person
-                    </>
-                  )}
+                  <UserIcon className="h-3 w-3 mr-1" /> Contact Detail
                 </Badge>
               </div>
             </CardContent>

@@ -22,7 +22,7 @@ RULES:
 - Normalize status to title case.
 - Keep dates exactly as shown in the document.
 - Add a top-level "document_type" field: "payment_receipt" | "invoice" | "bank_statement" | "other".
-- Add a top-level "confidence" field: "high" | "medium" | "low".
+- Add a top-level "confidence_score" field: numeric float from 0.0 to 1.0 (1.0 = high certainty, <0.8 = ambiguous).
 """
 
 USER_PROMPT = "Extract all data from this document."

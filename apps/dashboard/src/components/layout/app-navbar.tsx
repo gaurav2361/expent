@@ -10,7 +10,7 @@ import {
 } from "@expent/ui/components/breadcrumb";
 import { Button } from "@expent/ui/components/button";
 import { Separator } from "@expent/ui/components/separator";
-import { BellIcon, SendIcon } from "lucide-react";
+import { BellIcon, SearchIcon, SendIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
@@ -79,6 +79,25 @@ export function AppNavbar() {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Global Search Trigger */}
+        <button
+          onClick={() => {
+            const event = new KeyboardEvent("keydown", {
+              key: "k",
+              metaKey: true,
+              bubbles: true,
+            });
+            document.dispatchEvent(event);
+          }}
+          className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground bg-muted/50 hover:bg-muted border rounded-lg transition-colors group"
+        >
+          <SearchIcon className="size-3.5 group-hover:text-foreground transition-colors" />
+          <span>Search...</span>
+          <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-1 rounded border bg-background px-1 font-mono text-[10px] font-medium opacity-100">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        </button>
+
         <Button size="icon-sm" variant="outline" aria-label="Quick send">
           <SendIcon data-icon="inline-start" />
         </Button>
