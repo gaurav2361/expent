@@ -3,7 +3,6 @@ use db::entities;
 use db::entities::enums::WalletType;
 use rust_decimal::Decimal;
 use sea_orm::{ConnectionTrait, DatabaseConnection};
-use std::sync::Arc;
 
 pub mod ops;
 

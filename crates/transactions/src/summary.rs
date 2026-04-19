@@ -4,8 +4,8 @@ use db::entities::enums::TransactionDirection;
 use db::{AppError, DashboardSummary, MonthlyTrend, NamedAmount};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, FromQueryResult, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect, RelationTrait,
+    ColumnTrait, DatabaseConnection, EntityTrait, FromQueryResult, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect, RelationTrait,
 };
 
 pub async fn get_dashboard_summary(
