@@ -17,11 +17,13 @@ fn default_core_config() -> CoreConfig {
     }
 }
 
-// Ensure OCR_WORKER_URL is set for tests that need OcrService::new() to succeed
+// Ensure environment variables are set for tests
 #[fixture]
-fn setup_ocr_worker_url() {
+fn setup_env() {
     unsafe {
         env::set_var("OCR_WORKER_URL", "http://localhost:8090");
+        env::set_var("BETTER_AUTH_SECRET", "test_secret_key_at_least_32_chars_long_12345");
+        env::set_var("BETTER_AUTH_URL", "http://localhost:3000");
     }
 }
 
@@ -37,7 +39,7 @@ fn broadcast_channel() -> tokio::sync::broadcast::Sender<::ocr::OcrUpdate> {
 #[allow(unused_variables)]
 async fn test_core_init_happy_path(
     default_core_config: CoreConfig,
-    setup_ocr_worker_url: (),
+    setup_env: (),
     broadcast_channel: tokio::sync::broadcast::Sender<::ocr::OcrUpdate>,
 ) {
     let core = Core::init(default_core_config, broadcast_channel).await;
@@ -72,6 +74,8 @@ async fn test_core_init_db_connection_failure(
 
     unsafe {
         env::set_var("OCR_WORKER_URL", "http://localhost:8090");
+        env::set_var("BETTER_AUTH_SECRET", "test_secret_key_at_least_32_chars_long_12345");
+        env::set_var("BETTER_AUTH_URL", "http://localhost:3000");
     }
 
     let core = Core::init(config, broadcast_channel).await;
