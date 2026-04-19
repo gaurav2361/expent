@@ -10,13 +10,7 @@ export function useWallets() {
   const session = useSession();
 
   // Use TanStack DB for the live query
-  const query = useLiveQuery(
-    () => db.from("wallets").select(),
-    {
-      enabled: !!session.data,
-    },
-    [session.data],
-  );
+  const query = useLiveQuery((q) => q.from({ wallets: db.wallets }), [session.data]);
 
   const createMutation = useMutation({
     mutationFn: async (data: { name: string; type: string; initial_balance: number }) => {
@@ -27,7 +21,7 @@ export function useWallets() {
       });
 
       // 2. Insert into local DB (TanStack DB will react immediately)
-      await db.wallets.insert(newWallet);
+      db.wallets.insert(newWallet);
 
       return newWallet;
     },
@@ -46,7 +40,9 @@ export function useWallets() {
       });
 
       // 2. Update local DB
-      await db.wallets.update(updatedWallet);
+      db.wallets.update(id, (draft) => {
+        Object.assign(draft, updatedWallet);
+      });
 
       return updatedWallet;
     },
@@ -64,7 +60,7 @@ export function useWallets() {
       });
 
       // 2. Delete from local DB
-      await db.wallets.delete(id);
+      db.wallets.delete(id);
     },
     onSuccess: () => {
       toast.success("Wallet deleted");
@@ -73,9 +69,9 @@ export function useWallets() {
   });
 
   return {
-    wallets: query.data,
+    wallets: query.data as unknown as Wallet[],
     isLoading: query.isLoading,
-    error: query.isError ? query.state.error : null,
+    error: query.isError ? "Error loading wallets" : null,
     createMutation,
     updateMutation,
     deleteMutation,

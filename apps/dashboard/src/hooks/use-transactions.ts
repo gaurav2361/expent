@@ -12,14 +12,11 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
 
   // Use TanStack DB for the live query
   const query = useLiveQuery(
-    () => {
-      let q = db.from("transactions").orderBy("date", "desc");
-      if (params.limit) q = q.limit(params.limit);
-      if (params.offset) q = q.offset(params.offset);
-      return q.select();
-    },
-    {
-      enabled: !!session.data,
+    (q) => {
+      let query = q.from({ transactions: db.transactions }).orderBy(({ transactions }) => transactions.date, "desc");
+      if (params.limit) query = query.limit(params.limit);
+      if (params.offset) query = query.offset(params.offset);
+      return query;
     },
     [params.limit, params.offset, session.data],
   );
@@ -33,7 +30,9 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
       });
 
       // 2. Update local DB
-      await db.transactions.update(updatedTxn);
+      db.transactions.update(id, (draft) => {
+        Object.assign(draft, updatedTxn);
+      });
 
       return updatedTxn;
     },
@@ -53,7 +52,7 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
       });
 
       // 2. Delete from local DB
-      await db.transactions.delete(id);
+      db.transactions.delete(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
@@ -64,11 +63,11 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
   });
 
   return {
-    transactions: query.data as TransactionWithDetail[],
+    transactions: query.data as unknown as TransactionWithDetail[],
     totalCount: (query as any).totalCount || 0, // TanStack DB handles total count in meta
     isLoading: query.isLoading,
     isFetching: query.isLoading, // In DB mode, loading is fetching
-    error: query.isError ? query.state.error : null,
+    error: query.isError ? "Error loading transactions" : null,
     updateMutation,
     deleteMutation,
   };
