@@ -16,6 +16,14 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(OcrJobs::Table)
                     .add_column(ColumnDef::new(OcrJobs::LastError).string().null())
                     .to_owned(),
             )
@@ -28,6 +36,14 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(OcrJobs::Table)
                     .drop_column(OcrJobs::RetryCount)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(OcrJobs::Table)
                     .drop_column(OcrJobs::LastError)
                     .to_owned(),
             )

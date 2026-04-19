@@ -1,5 +1,5 @@
-use sea_orm::{Database, DatabaseConnection, DbBackend, Schema, Statement, ConnectionTrait};
 use db::entities::*;
+use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, Schema, Statement};
 
 pub async fn setup_test_db() -> DatabaseConnection {
     let db = Database::connect("sqlite::memory:").await.unwrap();

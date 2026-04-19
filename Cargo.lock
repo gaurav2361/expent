@@ -2063,6 +2063,7 @@ dependencies = [
  "db",
  "env_logger",
  "groups",
+ "migration",
  "mockall",
  "ocr",
  "rand 0.8.5",

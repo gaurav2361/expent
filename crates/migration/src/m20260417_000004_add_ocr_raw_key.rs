@@ -11,6 +11,14 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(OcrJobs::Table)
                     .add_column(ColumnDef::new(OcrJobs::RawKey).string().null())
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(OcrJobs::Table)
                     .add_column(
                         ColumnDef::new(OcrJobs::IsHighRes)
                             .boolean()
@@ -28,6 +36,14 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(OcrJobs::Table)
                     .drop_column(OcrJobs::RawKey)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(OcrJobs::Table)
                     .drop_column(OcrJobs::IsHighRes)
                     .to_owned(),
             )
