@@ -22,7 +22,10 @@ fn default_core_config() -> CoreConfig {
 fn setup_env() {
     unsafe {
         env::set_var("OCR_WORKER_URL", "http://localhost:8090");
-        env::set_var("BETTER_AUTH_SECRET", "test_secret_key_at_least_32_chars_long_12345");
+        env::set_var(
+            "BETTER_AUTH_SECRET",
+            "test_secret_key_at_least_32_chars_long_12345",
+        );
         env::set_var("BETTER_AUTH_URL", "http://localhost:3000");
     }
 }
@@ -74,7 +77,10 @@ async fn test_core_init_db_connection_failure(
 
     unsafe {
         env::set_var("OCR_WORKER_URL", "http://localhost:8090");
-        env::set_var("BETTER_AUTH_SECRET", "test_secret_key_at_least_32_chars_long_12345");
+        env::set_var(
+            "BETTER_AUTH_SECRET",
+            "test_secret_key_at_least_32_chars_long_12345",
+        );
         env::set_var("BETTER_AUTH_URL", "http://localhost:3000");
     }
 

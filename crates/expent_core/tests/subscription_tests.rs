@@ -1,6 +1,6 @@
 mod common;
 
-use chrono::{Duration, TimeZone, Utc};
+use chrono::{Duration, Utc};
 use common::{create_test_user, create_test_wallet, setup_test_core};
 use db::entities::enums::{TransactionDirection, TransactionSource};
 use rstest::*;
