@@ -5,6 +5,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
     TransactionTrait,
 };
+use std::collections::HashSet;
 
 pub async fn merge_contacts(
     db: &DatabaseConnection,
@@ -20,22 +21,18 @@ pub async fn merge_contacts(
     let primary_id_owned = primary_id.to_string();
     let secondary_id_owned = secondary_id.to_string();
 
-    // Verify both contacts belong to the user
-    let _primary_link = entities::contact_links::Entity::find_by_id((
-        user_id_owned.clone(),
-        primary_id_owned.clone(),
-    ))
-    .one(db)
-    .await?
-    .ok_or_else(|| AppError::not_found("Primary contact link not found or access denied"))?;
+    // Verify both contacts belong to the user in a single query
+    let links = entities::contact_links::Entity::find()
+        .filter(entities::contact_links::Column::UserId.eq(user_id))
+        .filter(entities::contact_links::Column::ContactId.is_in(vec![primary_id, secondary_id]))
+        .all(db)
+        .await?;
 
-    let _secondary_link = entities::contact_links::Entity::find_by_id((
-        user_id_owned.clone(),
-        secondary_id_owned.clone(),
-    ))
-    .one(db)
-    .await?
-    .ok_or_else(|| AppError::not_found("Secondary contact link not found or access denied"))?;
+    if links.len() != 2 {
+        return Err(AppError::not_found(
+            "One or both contact links not found or access denied",
+        ));
+    }
 
     // Transaction for safety
     let txn = db.begin().await?;
@@ -51,26 +48,30 @@ pub async fn merge_contacts(
         .await?;
 
     // 2. Update contact_identifiers
-    // First get existing primary identifiers to avoid duplicates based on value and type
-    let primary_identifiers = entities::contact_identifiers::Entity::find()
-        .filter(entities::contact_identifiers::Column::ContactId.eq(primary_id))
+    // Get existing primary and secondary identifiers in a single query
+    let all_identifiers = entities::contact_identifiers::Entity::find()
+        .filter(
+            entities::contact_identifiers::Column::ContactId.is_in(vec![primary_id, secondary_id]),
+        )
         .all(&txn)
         .await?;
 
-    let secondary_identifiers = entities::contact_identifiers::Entity::find()
-        .filter(entities::contact_identifiers::Column::ContactId.eq(secondary_id))
-        .all(&txn)
-        .await?;
+    let mut primary_identifier_set = HashSet::with_capacity(all_identifiers.len());
+    let mut secondary_identifiers = Vec::with_capacity(all_identifiers.len());
+
+    for ident in all_identifiers {
+        if ident.contact_id == primary_id {
+            primary_identifier_set.insert((ident.r#type, ident.value));
+        } else if ident.contact_id == secondary_id {
+            secondary_identifiers.push(ident);
+        }
+    }
 
     let mut to_delete = Vec::new();
     let mut to_move = Vec::new();
 
     for sec_id in secondary_identifiers {
-        let is_duplicate = primary_identifiers
-            .iter()
-            .any(|p| p.r#type == sec_id.r#type && p.value == sec_id.value);
-
-        if is_duplicate {
+        if primary_identifier_set.contains(&(sec_id.r#type, sec_id.value)) {
             to_delete.push(sec_id.id);
         } else {
             to_move.push(sec_id.id);
