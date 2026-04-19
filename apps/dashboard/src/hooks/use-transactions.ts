@@ -1,44 +1,43 @@
 import type { PaginatedTransactions, Transaction, TransactionWithDetail, DashboardSummary } from "@expent/types";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLiveQuery } from "@tanstack/react-db";
 import { apiClient } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
+import { db } from "@/lib/db";
 
 export function useTransactions(params: { limit?: number; offset?: number } = {}) {
   const session = useSession();
   const queryClient = useQueryClient();
 
-  const query = useQuery({
-    queryKey: ["transactions", params],
-    queryFn: () => {
-      const searchParams = new URLSearchParams();
-      if (params.limit) searchParams.append("limit", params.limit.toString());
-      if (params.offset) searchParams.append("offset", params.offset.toString());
-      const queryString = searchParams.toString();
-      return apiClient<PaginatedTransactions>(`/api/transactions${queryString ? `?${queryString}` : ""}`);
+  // Use TanStack DB for the live query
+  const query = useLiveQuery(
+    () => {
+      let q = db.from("transactions").orderBy("date", "desc");
+      if (params.limit) q = q.limit(params.limit);
+      if (params.offset) q = q.offset(params.offset);
+      return q.select();
     },
-    enabled: !!session.data,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-  });
+    {
+      enabled: !!session.data,
+    },
+    [params.limit, params.offset, session.data],
+  );
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<TransactionWithDetail> }) =>
-      apiClient<Transaction>(`/api/transactions/${id}`, {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<TransactionWithDetail> }) => {
+      // 1. Send to server
+      const updatedTxn = await apiClient<Transaction>(`/api/transactions/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          amount: data.amount,
-          date: data.date,
-          purpose_tag: data.purpose_tag,
-          status: data.status,
-          notes: data.notes,
-          category_id: data.category_id,
-          source_wallet_id: data.source_wallet_id,
-          destination_wallet_id: data.destination_wallet_id,
-          contact_id: data.contact_id,
-        }),
-      }),
+        body: JSON.stringify(data),
+      });
+
+      // 2. Update local DB
+      await db.transactions.update(updatedTxn);
+
+      return updatedTxn;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transaction-summary"] });
       toast.success("Transaction updated");
@@ -47,52 +46,29 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiClient(`/api/transactions/${id}`, {
+    mutationFn: async (id: string) => {
+      // 1. Send to server
+      await apiClient(`/api/transactions/${id}`, {
         method: "DELETE",
-      }),
-    onMutate: async (id) => {
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({ queryKey: ["transactions"] });
-
-      // Snapshot the previous value
-      const previousTransactions = queryClient.getQueryData(["transactions", params]);
-
-      // Optimistically update to the new value
-      queryClient.setQueryData(["transactions", params], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          items: old.items.filter((t: any) => t.id !== id),
-          total_count: old.total_count - 1,
-        };
       });
 
-      // Return a context object with the snapshotted value
-      return { previousTransactions };
-    },
-    onError: (err, id, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      queryClient.setQueryData(["transactions", params], context?.previousTransactions);
-      toast.error(err.message);
-    },
-    onSettled: () => {
-      // Always refetch after error or success to ensure server sync
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["wallets"] });
-      queryClient.invalidateQueries({ queryKey: ["transaction-summary"] });
+      // 2. Delete from local DB
+      await db.transactions.delete(id);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-summary"] });
       toast.success("Transaction deleted");
     },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   return {
-    transactions: query.data?.items,
-    totalCount: query.data?.total_count || 0,
+    transactions: query.data as TransactionWithDetail[],
+    totalCount: (query as any).totalCount || 0, // TanStack DB handles total count in meta
     isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    error: query.error,
+    isFetching: query.isLoading, // In DB mode, loading is fetching
+    error: query.isError ? query.state.error : null,
     updateMutation,
     deleteMutation,
   };
