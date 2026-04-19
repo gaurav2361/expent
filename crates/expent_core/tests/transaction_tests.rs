@@ -2,12 +2,12 @@ mod common;
 
 use chrono::{TimeZone, Utc};
 use common::{create_test_user, create_test_wallet, setup_test_core};
-use db::entities::enums::{TransactionDirection, TransactionSource, TransactionStatus};
+use db::entities::enums::{TransactionDirection, TransactionSource};
 use db::entities::transactions;
 use rstest::*;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::EntityTrait;
 
 #[rstest]
 #[tokio::test]
@@ -174,9 +174,6 @@ async fn test_transaction_timezone_shifts() {
         .await
         .expect("Failed to create transaction");
 
-    // SeaORM saves DateTimeWithTimeZone. Let's see if it's preserved or normalized.
-    // Usually it's normalized to UTC in DB but the offset might be stored depending on the DB.
-    // For SQLite memory, it should be fine.
     assert_eq!(txn.date.timestamp(), ist_date.timestamp());
 }
 

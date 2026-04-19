@@ -16,6 +16,7 @@ async fn test_get_dashboard_summary() {
     // Create wallets with 0 balance
     let w1 = create_test_wallet(&core, &user_id, Decimal::ZERO).await;
     let w2 = create_test_wallet(&core, &user_id, Decimal::ZERO).await;
+    let _w3 = create_test_wallet(&core, &user_id, Decimal::from_i32(-50).unwrap()).await;
 
     // Create transactions for this month
     let now = Utc::now();
@@ -30,7 +31,7 @@ async fn test_get_dashboard_summary() {
             TransactionSource::Manual,
             None,
             None,
-            Some(w1.clone()), // 0 - 50 = -50
+            Some(w1.clone()),
             None,
             None,
             None,
@@ -48,7 +49,7 @@ async fn test_get_dashboard_summary() {
             None,
             None,
             None,
-            Some(w2.clone()), // 0 + 150 = 150
+            Some(w2.clone()),
             None,
             None,
         )
@@ -61,8 +62,8 @@ async fn test_get_dashboard_summary() {
         .await
         .expect("Failed to get summary");
 
-    // Total balance: -50 + 150 = 100
-    assert_eq!(summary.total_balance, Decimal::from_i32(100).unwrap());
+    // Total balance: 0 (W1) + 0 (W2) - 50 (W3) - 50 (Txn1) + 150 (Txn2) = 50
+    assert_eq!(summary.total_balance, Decimal::from_i32(50).unwrap());
     assert_eq!(summary.monthly_spend, Decimal::from_i32(50).unwrap());
     assert_eq!(summary.monthly_income, Decimal::from_i32(150).unwrap());
 }

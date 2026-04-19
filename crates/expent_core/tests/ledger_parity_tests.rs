@@ -34,7 +34,7 @@ async fn test_wallet_ledger_parity() {
         .await
         .unwrap();
 
-    let t2 = core
+    let _t2 = core
         .transactions
         .create(
             &user_id,
@@ -56,11 +56,6 @@ async fn test_wallet_ledger_parity() {
     core.transactions.delete(&user_id, &t1.id).await.unwrap();
 
     // Parity Check: sum of non-deleted transactions for this wallet
-    // Wallet started at 1000.
-    // T1 (OUT 100) was deleted, so it should not affect balance.
-    // T2 (IN 200) is active.
-    // Expected wallet balance: 1000 + 200 = 1200
-
     let wallet = core.wallets.get(&user_id, &wallet_id).await.unwrap();
     assert_eq!(wallet.balance, Decimal::from_i32(1200).unwrap());
 
