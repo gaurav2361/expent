@@ -1,4 +1,4 @@
-import type { Group, LedgerTab, P2PRequest, P2PRequestWithSender, Transaction, User } from "@expent/types";
+import type { Group, LedgerTab, P2PRequest, P2PRequestWithSender, Transaction, User, GroupMemberDetail } from "@expent/types";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
@@ -100,7 +100,7 @@ export function useGroupMembers(groupId: string) {
 
   const query = useQuery({
     queryKey: ["group-members", groupId],
-    queryFn: () => apiClient<(User & { role: string; user_id: string })[]>(`/api/groups/${groupId}/members`),
+    queryFn: () => apiClient<GroupMemberDetail[]>(`/api/groups/${groupId}/members`),
     enabled: !!groupId,
   });
 

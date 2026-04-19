@@ -23,7 +23,7 @@ export function CategoryChart() {
   const data = React.useMemo(() => {
     if (!summary) return [];
     return summary.category_distribution.map((c) => ({
-      name: c.category_name,
+      name: c.name,
       value: Math.round(parseFloat(c.amount as any)),
     }));
   }, [summary]);

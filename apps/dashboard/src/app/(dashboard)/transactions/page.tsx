@@ -359,7 +359,7 @@ export default function TransactionsPage() {
     },
     enableRowSelection: true,
     manualPagination: true,
-    rowCount: totalCount,
+    rowCount: Number(totalCount),
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
