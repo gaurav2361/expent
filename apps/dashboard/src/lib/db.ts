@@ -1,4 +1,4 @@
-import { createCollection, localStorageCollectionOptions } from "@tanstack/db";
+import { createCollection, localStorageCollectionOptions, BTreeIndex } from "@tanstack/db";
 import type { Wallet, Transaction, PaginatedTransactions } from "@expent/types";
 import { apiClient } from "./api-client";
 
@@ -13,6 +13,7 @@ const walletOptions = localStorageCollectionOptions({
 const transactionsOptions = localStorageCollectionOptions({
   storageKey: "expent_transactions",
   getKey: (txn: Transaction) => txn.id,
+  defaultIndexType: BTreeIndex,
 });
 
 export const db = {
@@ -57,3 +58,6 @@ export const db = {
     },
   }),
 };
+
+// Add explicit index for performance
+db.transactions.createIndex((row) => row.date);

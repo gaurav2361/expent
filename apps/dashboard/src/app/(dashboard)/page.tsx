@@ -333,24 +333,29 @@ export default function DashboardPage() {
                   </Button>
                 }
               />
-              <Card className="bg-primary/5 dark:bg-primary/10 border-primary/20 shadow-sm">
+              <Card className="hover:shadow-md transition-shadow duration-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-primary">Quick Receive/Upload</CardTitle>
-                  <FileTextIcon className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Quick Receive/Upload</CardTitle>
+                  <div className="p-2 bg-muted/50 rounded-lg text-muted-foreground">
+                    <FileTextIcon className="h-4 w-4" />
+                  </div>
                 </CardHeader>
-                <CardContent className="mt-1">
+                <CardContent className="mt-2">
                   <div className="flex gap-2">
                     <Input
                       id="quick-upload"
                       type="file"
                       accept="image/*,application/pdf,text/csv"
                       onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      className="h-8 text-xs bg-background"
+                      className="h-9 text-xs bg-muted/20 border-none shadow-none"
                     />
-                    <Button onClick={handleUpload} disabled={!file || isUploading} size="sm">
+                    <Button onClick={handleUpload} disabled={!file || isUploading} size="sm" className="h-9 px-4">
                       {isUploading ? "…" : "Go"}
                     </Button>
                   </div>
+                  <p className="text-[10px] text-muted-foreground mt-2 italic px-1">
+                    Drag and drop or select a file to scan
+                  </p>
                 </CardContent>
               </Card>
             </div>

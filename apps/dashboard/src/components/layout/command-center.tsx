@@ -8,15 +8,28 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
+  CommandShortcut,
 } from "@expent/ui/components/command";
+import { toast } from "@expent/ui/components/goey-toaster";
+import { cn } from "@expent/ui/lib/utils";
 import { useHotkey, useHotkeySequence } from "@tanstack/react-hotkeys";
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  BellIcon,
   CalculatorIcon,
   CalendarIcon,
+  CameraIcon,
+  CornerDownLeftIcon,
   LayoutDashboardIcon,
+  MonitorIcon,
+  PaletteIcon,
   PlusIcon,
   ReceiptIcon,
+  SearchIcon,
   SettingsIcon,
+  TagIcon,
+  UserIcon,
   UserPlusIcon,
   UsersIcon,
   WalletIcon,
@@ -33,26 +46,65 @@ import { useGlobalStore } from "@/lib/store";
 export function CommandCenter() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
-  const { setTheme } = useTheme();
-  const { setTransactionModalOpen, setHotkeyHelpOpen } = useGlobalStore();
+  const { theme, setTheme } = useTheme();
+  const { setTransactionModalOpen, setOCRModalOpen, setCategoryModalOpen, setHotkeyHelpOpen } = useGlobalStore();
 
-  // Fetch some data for quick search
+  // Custom Double-Space Trigger
+  React.useEffect(() => {
+    let lastSpaceTime = 0;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        const isInput =
+          ["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement).tagName) ||
+          (e.target as HTMLElement).isContentEditable;
+
+        if (isInput) return;
+
+        const currentTime = Date.now();
+        const timeDiff = currentTime - lastSpaceTime;
+
+        if (timeDiff > 0 && timeDiff < 300) {
+          e.preventDefault();
+          setOpen((prev) => !prev);
+          lastSpaceTime = 0;
+        } else {
+          lastSpaceTime = currentTime;
+        }
+      } else {
+        lastSpaceTime = 0;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
+  // Fetch data for quick search
   const { contacts } = useContacts();
   const { wallets } = useWallets();
 
-  // Toggle Command Palette - Use object form for better compatibility
+  // Toggle Command Palette
   useHotkey({ key: "K", mod: true }, (e) => {
     e.preventDefault();
     setOpen((open) => !open);
   });
 
-  // Global Quick Shortcuts (when palette is closed)
+  // Global Quick Shortcuts
   useHotkey("N", (e) => {
     if (open) return;
     setTransactionModalOpen(true);
   });
 
-  // Hotkey Help - Use RawHotkey object to avoid literal type mismatch
+  useHotkey("U", (e) => {
+    if (open) return;
+    setOCRModalOpen(true);
+  });
+
+  useHotkey("C", (e) => {
+    if (open) return;
+    setCategoryModalOpen(true);
+  });
+
   useHotkey({ key: "?" }, (e) => {
     if (open) return;
     setHotkeyHelpOpen(true);
@@ -60,158 +112,257 @@ export function CommandCenter() {
 
   // Navigation Sequences
   useHotkeySequence(["G", "D"], () => {
-    if (open) return;
-    router.push("/");
+    if (!open) router.push("/");
   });
-
   useHotkeySequence(["G", "T"], () => {
-    if (open) return;
-    router.push("/transactions");
+    if (!open) router.push("/transactions");
   });
-
   useHotkeySequence(["G", "W"], () => {
-    if (open) return;
-    router.push("/wallets");
+    if (!open) router.push("/wallets");
+  });
+  useHotkeySequence(["G", "C"], () => {
+    if (!open) router.push("/contacts");
+  });
+  useHotkeySequence(["G", "S"], () => {
+    if (!open) router.push("/settings");
+  });
+  useHotkeySequence(["G", "R"], () => {
+    if (!open) router.push("/reconciliation");
+  });
+  useHotkeySequence(["G", "L"], () => {
+    if (!open) router.push("/p2p/ledger-tabs");
   });
 
-  useHotkeySequence(["G", "C"], () => {
-    if (open) return;
-    router.push("/contacts");
+  // Settings & Theme
+  useHotkey({ key: ",", mod: true }, (e) => {
+    e.preventDefault();
+    if (!open) router.push("/settings");
   });
 
   const runCommand = React.useCallback((command: () => void) => {
     setOpen(false);
-    React.startTransition(() => {
-      command();
-    });
+    command();
   }, []);
+
+  const navItems = React.useMemo(
+    () => [
+      { label: "Dashboard", href: "/", icon: LayoutDashboardIcon, shortcut: "G D", color: "text-blue-500" },
+      { label: "Transactions", href: "/transactions", icon: ReceiptIcon, shortcut: "G T", color: "text-emerald-500" },
+      { label: "Wallets", href: "/wallets", icon: WalletIcon, shortcut: "G W", color: "text-orange-500" },
+      { label: "Contacts", href: "/contacts", icon: UsersIcon, shortcut: "G C", color: "text-purple-500" },
+    ],
+    [],
+  );
+
+  const settingItems = React.useMemo(
+    () => [
+      { label: "Profile Settings", href: "/settings/profile", icon: UserIcon },
+      { label: "Appearance", href: "/settings/appearance", icon: PaletteIcon },
+      { label: "Categories", href: "/settings/categories", icon: TagIcon },
+      { label: "Notifications", href: "/settings/notifications", icon: BellIcon },
+      { label: "Display", href: "/settings/display", icon: MonitorIcon },
+      { label: "Account", href: "/settings/account", icon: SettingsIcon },
+    ],
+    [],
+  );
 
   return (
     <CommandDialog
       open={open}
       onOpenChange={setOpen}
-      className="bg-card/80 backdrop-blur-xl border-white/10 dark:border-white/5 shadow-2xl overflow-hidden"
+      className="bg-background/40 backdrop-blur-3xl border border-white/10 dark:border-white/5 shadow-[0_0_80px_-20px_rgba(0,0,0,0.6)] overflow-hidden p-0 sm:max-w-2xl ring-1 ring-white/10"
     >
-      <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
-      <CommandInput placeholder="Type a command or search..." className="h-12 border-none bg-transparent" />
-      <CommandList className="max-h-[450px] relative z-10 no-scrollbar">
-        <CommandEmpty>No results found.</CommandEmpty>
+      <div className="absolute inset-0 bg-linear-to-b from-white/5 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.08] pointer-events-none mix-blend-overlay" />
 
-        <CommandGroup heading="Quick Actions" className="px-2">
+      <CommandInput placeholder="Search anything..." />
+
+      <CommandList className="max-h-[480px] p-2 no-scrollbar scroll-smooth relative z-10 [&_[cmdk-list-sizer]]:flex [&_[cmdk-list-sizer]]:flex-wrap">
+        <CommandEmpty className="py-12 text-center w-full">
+          <div className="bg-muted/50 size-12 rounded-full flex items-center justify-center mx-auto mb-4">
+            <SearchIcon className="h-6 w-6 text-muted-foreground/40" />
+          </div>
+          <p className="text-muted-foreground font-medium">No results found.</p>
+        </CommandEmpty>
+
+        <CommandGroup heading="Quick Actions" className="px-2 w-full">
           <CommandItem
+            value="add transaction manual entry new"
             onSelect={() => runCommand(() => setTransactionModalOpen(true))}
-            className="rounded-lg mb-1 data-selected:bg-primary/10 data-selected:text-primary transition-all duration-200"
+            className="flex items-center gap-4 px-3 py-3 rounded-xl mb-1 data-selected:bg-primary/10 data-selected:text-primary transition-all group"
           >
-            <div className="size-8 rounded-md bg-primary/10 flex items-center justify-center mr-3">
-              <PlusIcon className="h-4 w-4 text-primary" />
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center group-data-selected:scale-110 transition-transform">
+              <PlusIcon className="h-5 w-5 text-primary" />
             </div>
-            <span className="font-medium">Add Transaction</span>
-            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-              N
-            </kbd>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => setHotkeyHelpOpen(true))}
-            className="rounded-lg mb-1 transition-all duration-200"
-          >
-            <div className="size-8 rounded-md bg-muted flex items-center justify-center mr-3">
-              <CalculatorIcon className="h-4 w-4" />
-            </div>
-            <span className="font-medium">View Hotkeys</span>
-            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-              ?
-            </kbd>
-          </CommandItem>
-        </CommandGroup>
-
-        <CommandSeparator className="opacity-50" />
-
-        <CommandGroup heading="Navigation" className="px-2">
-          <CommandItem
-            onSelect={() => runCommand(() => router.push("/"))}
-            className="rounded-lg mb-1 transition-all duration-200"
-          >
-            <LayoutDashboardIcon className="mr-3 h-4 w-4 opacity-70" />
-            <span>Dashboard</span>
-            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-              G D
-            </kbd>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => router.push("/transactions"))}
-            className="rounded-lg mb-1 transition-all duration-200"
-          >
-            <ReceiptIcon className="mr-3 h-4 w-4 opacity-70" />
-            <span>Transactions</span>
-            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-              G T
-            </kbd>
-          </CommandItem>
-        </CommandGroup>
-
-        <CommandSeparator className="opacity-50" />
-
-        <CommandGroup heading="Wallets" className="px-2">
-          {wallets?.map((wallet) => (
-            <CommandItem
-              key={wallet.id}
-              onSelect={() => runCommand(() => router.push("/wallets"))}
-              className="rounded-lg mb-1 transition-all duration-200"
-            >
-              <div className="size-8 rounded-md bg-muted/50 flex items-center justify-center mr-3">
-                <WalletIcon className="h-4 w-4 opacity-70" />
-              </div>
-              <span>{wallet.name}</span>
-              <span className="ml-auto tabular-nums text-xs text-muted-foreground">
-                ₹{parseFloat(wallet.balance).toLocaleString()}
+            <div className="flex flex-col gap-0.5">
+              <span className="font-semibold text-sm text-foreground">Manual Entry</span>
+              <span className="text-xs text-muted-foreground group-data-selected:text-primary/70">
+                Record a new income or expense
               </span>
-            </CommandItem>
-          ))}
+            </div>
+            <CommandShortcut className="opacity-100 font-bold text-foreground pr-1">N</CommandShortcut>
+          </CommandItem>
+
+          <CommandItem
+            value="scan receipt ocr image upload"
+            onSelect={() => runCommand(() => setOCRModalOpen(true))}
+            className="flex items-center gap-4 px-3 py-3 rounded-xl mb-1 data-selected:bg-emerald-500/10 data-selected:text-emerald-500 transition-all group"
+          >
+            <div className="size-10 rounded-lg bg-emerald-500/10 flex items-center justify-center group-data-selected:scale-110 transition-transform">
+              <CameraIcon className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="font-semibold text-sm text-foreground">Scan Receipt</span>
+              <span className="text-xs text-muted-foreground group-data-selected:text-emerald-500/70">
+                Auto-extract data using AI scanner
+              </span>
+            </div>
+            <CommandShortcut className="opacity-100 font-bold text-foreground pr-1">U</CommandShortcut>
+          </CommandItem>
+
+          <CommandItem
+            value="create new category tag"
+            onSelect={() => runCommand(() => setCategoryModalOpen(true))}
+            className="flex items-center gap-4 px-3 py-3 rounded-xl mb-1 data-selected:bg-purple-500/10 data-selected:text-purple-500 transition-all group"
+          >
+            <div className="size-10 rounded-lg bg-purple-500/10 flex items-center justify-center group-data-selected:scale-110 transition-transform">
+              <TagIcon className="h-5 w-5 text-purple-500" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="font-semibold text-sm text-foreground">New Category</span>
+              <span className="text-xs text-muted-foreground group-data-selected:text-purple-500/70">
+                Create a custom category for transactions
+              </span>
+            </div>
+            <CommandShortcut className="opacity-100 font-bold text-foreground pr-1">C</CommandShortcut>
+          </CommandItem>
         </CommandGroup>
 
-        <CommandSeparator className="opacity-50" />
+        <CommandSeparator className="my-2 opacity-30 w-full" />
 
-        <CommandGroup heading="Recent Contacts" className="px-2">
-          {contacts?.slice(0, 5).map((contact) => (
+        <CommandGroup heading="Navigation" className="px-2 w-full">
+          {navItems.map((nav) => (
             <CommandItem
-              key={contact.id}
-              onSelect={() => runCommand(() => router.push(`/contacts/${contact.id}`))}
-              className="rounded-lg mb-1 transition-all duration-200"
+              key={nav.href}
+              value={nav.label}
+              onSelect={() => runCommand(() => router.push(nav.href))}
+              className="flex items-center gap-4 px-3 py-3 rounded-xl mb-1 transition-all group"
             >
-              <div className="size-8 rounded-md bg-muted/50 flex items-center justify-center mr-3">
-                <UserPlusIcon className="h-4 w-4 opacity-70" />
+              <div className="size-10 rounded-lg bg-muted/50 flex items-center justify-center group-data-selected:bg-background transition-colors">
+                <nav.icon className={cn("h-5 w-5", nav.color)} />
               </div>
-              <span>{contact.name}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-semibold text-sm text-foreground">{nav.label}</span>
+                <span className="text-xs text-muted-foreground">Jump to your {nav.label.toLowerCase()} page</span>
+              </div>
+              <CommandShortcut className="opacity-100 font-bold text-foreground pr-1">{nav.shortcut}</CommandShortcut>
             </CommandItem>
           ))}
         </CommandGroup>
 
-        <CommandSeparator className="opacity-50" />
+        <CommandSeparator className="my-2 opacity-30 w-full" />
 
-        <CommandGroup heading="Settings" className="px-2">
-          <CommandItem
-            onSelect={() => runCommand(() => router.push("/settings/profile"))}
-            className="rounded-lg mb-1 transition-all duration-200"
-          >
-            <SettingsIcon className="mr-3 h-4 w-4 opacity-70" />
-            <span>Profile</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => setTheme("light"))}
-            className="rounded-lg mb-1 transition-all duration-200"
-          >
-            <CalendarIcon className="mr-3 h-4 w-4 opacity-70" />
-            <span>Light Mode</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => setTheme("dark"))}
-            className="rounded-lg mb-1 transition-all duration-200"
-          >
-            <CalendarIcon className="mr-3 h-4 w-4 opacity-70" />
-            <span>Dark Mode</span>
-          </CommandItem>
+        {/* Wallets - Left Half */}
+        <CommandGroup heading="Wallets" className="px-2 w-1/2">
+          <div className="flex flex-col gap-1">
+            {wallets?.slice(0, 4).map((wallet) => (
+              <CommandItem
+                key={wallet.id}
+                value={wallet.name}
+                onSelect={() => runCommand(() => router.push("/wallets"))}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl mb-1 transition-all group"
+              >
+                <div className="size-8 rounded-lg bg-muted/30 flex items-center justify-center group-data-selected:bg-background/50 transition-colors">
+                  <WalletIcon className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-semibold text-foreground truncate">{wallet.name}</span>
+                  <span className="text-[10px] text-muted-foreground tabular-nums">
+                    ₹{parseFloat(wallet.balance).toLocaleString()}
+                  </span>
+                </div>
+              </CommandItem>
+            ))}
+          </div>
+        </CommandGroup>
+
+        {/* Contacts - Right Half */}
+        <CommandGroup heading="Recent Contacts" className="px-2 w-1/2 border-l border-white/5">
+          <div className="flex flex-col gap-1">
+            {contacts?.slice(0, 4).map((contact) => (
+              <CommandItem
+                key={contact.id}
+                value={contact.name}
+                onSelect={() => runCommand(() => router.push(`/contacts/${contact.id}`))}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl mb-1 transition-all group"
+              >
+                <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center group-data-selected:bg-primary/20 transition-colors">
+                  <span className="text-[10px] font-bold text-primary uppercase">{contact.name.charAt(0)}</span>
+                </div>
+                <span className="text-xs font-semibold text-foreground truncate">{contact.name}</span>
+              </CommandItem>
+            ))}
+          </div>
+        </CommandGroup>
+
+        <CommandSeparator className="my-2 opacity-30 w-full" />
+
+        <CommandGroup heading="Settings" className="px-2 w-full">
+          {settingItems.map((item) => (
+            <CommandItem
+              key={item.href}
+              value={item.label}
+              onSelect={() => runCommand(() => router.push(item.href))}
+              className="flex items-center gap-4 px-3 py-2 rounded-xl mb-1 transition-all group"
+            >
+              <div className="size-8 rounded-lg bg-muted/50 flex items-center justify-center group-data-selected:bg-background transition-colors">
+                <item.icon className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <span className="font-medium text-sm text-foreground">{item.label}</span>
+            </CommandItem>
+          ))}
         </CommandGroup>
       </CommandList>
+
+      <div className="flex items-center gap-4 border-t border-white/5 bg-muted/20 px-4 py-3 text-[10px] text-muted-foreground select-none relative z-20">
+        <div className="flex items-center gap-1.5">
+          <kbd className="rounded border border-white/10 bg-background/50 px-1.5 py-0.5 font-mono font-bold text-foreground inline-flex items-center shadow-sm">
+            <CornerDownLeftIcon className="size-3" />
+          </kbd>
+          <span className="font-medium">select</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
+            <kbd className="rounded border border-white/10 bg-background/50 px-1.5 py-0.5 font-mono font-bold text-foreground inline-flex items-center shadow-sm">
+              <ArrowUpIcon className="size-3" />
+            </kbd>
+            <kbd className="rounded border border-white/10 bg-background/50 px-1.5 py-0.5 font-mono font-bold text-foreground inline-flex items-center shadow-sm">
+              <ArrowDownIcon className="size-3" />
+            </kbd>
+          </div>
+          <span className="font-medium">navigate</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
+            <kbd className="rounded border border-white/10 bg-background/50 px-1.5 py-0.5 font-mono font-bold text-foreground inline-flex items-center shadow-sm text-[8px]">
+              Ctrl
+            </kbd>
+            <kbd className="rounded border border-white/10 bg-background/50 px-2 py-0.5 font-mono font-bold text-foreground inline-flex items-center shadow-sm">
+              J
+            </kbd>
+            <kbd className="rounded border border-white/10 bg-background/50 px-2 py-0.5 font-mono font-bold text-foreground inline-flex items-center shadow-sm">
+              K
+            </kbd>
+          </div>
+          <span className="font-medium">vim</span>
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
+          <kbd className="rounded border border-white/10 bg-background/50 px-1.5 py-0.5 font-mono font-bold text-foreground shadow-sm">
+            esc
+          </kbd>
+          <span className="font-medium">close</span>
+        </div>
+      </div>
     </CommandDialog>
   );
 }
