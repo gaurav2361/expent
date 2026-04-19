@@ -34,10 +34,24 @@ export function useContacts() {
         method: "PUT",
         body: JSON.stringify(data),
       }),
-    onSuccess: () => {
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ["contacts"] });
+      const previousContacts = queryClient.getQueryData<Contact[]>(["contacts"]);
+
+      queryClient.setQueryData<Contact[]>(["contacts"], (old) => {
+        if (!old) return old;
+        return old.map((c) => (c.id === id ? { ...c, ...data } : c));
+      });
+
+      return { previousContacts };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(["contacts"], context?.previousContacts);
+      toast.error(err.message);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
-    onError: (error: Error) => toast.error(error.message),
   });
 
   const deleteMutation = useMutation({

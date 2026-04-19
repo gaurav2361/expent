@@ -190,6 +190,8 @@ export default function WalletsPage() {
   );
 }
 
+import { motion } from "motion/react";
+
 function WalletCard({
   wallet,
   walletTransactions,
@@ -247,124 +249,126 @@ function WalletCard({
   };
 
   return (
-    <Card className="overflow-hidden group hover:border-primary/50 transition-all shadow-sm">
-      <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">{typeIcon()}</div>
-          <div>
-            <CardTitle className="text-base">{wallet.name}</CardTitle>
-            <CardDescription className="text-[10px] uppercase font-semibold tracking-wider">
-              {wallet.type.replace("_", " ")}
-            </CardDescription>
-          </div>
-        </div>
-        <CardAction>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="More options"
-                >
-                  <MoreVerticalIcon className="h-4 w-4" />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
-                <PencilIcon className="mr-2 h-4 w-4" /> Edit
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete this wallet? This will not delete transactions.")) {
-                    onDelete();
-                  }
-                }}
-              >
-                <Trash2Icon className="mr-2 h-4 w-4" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="mt-2">
-          <p className="text-xs text-muted-foreground uppercase font-medium">Current Balance</p>
-          <p className="text-2xl font-bold font-mono tracking-tight">
-            ₹{parseFloat(wallet.balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </p>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Last In</p>
-            <p className="text-sm font-semibold text-green-600">
-              {lastStats.lastIn > 0
-                ? `+₹${lastStats.lastIn.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
-                : "—"}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Last Out</p>
-            <p className="text-sm font-semibold text-red-600">
-              {lastStats.lastOut > 0
-                ? `-₹${lastStats.lastOut.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
-                : "—"}
-            </p>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="p-4 pt-0 flex gap-2">
-        <Badge variant="outline" className="text-[10px] bg-muted/30">
-          Last updated {new Date(wallet.updated_at).toLocaleDateString()}
-        </Badge>
-      </CardFooter>
-
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Wallet</DialogTitle>
-            <DialogDescription>Update wallet details or adjust balance manually.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Wallet Name</Label>
-              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+    <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} className="h-full">
+      <Card className="overflow-hidden group hover:border-primary/50 transition-all shadow-sm h-full">
+        <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">{typeIcon()}</div>
+            <div>
+              <CardTitle className="text-base">{wallet.name}</CardTitle>
+              <CardDescription className="text-[10px] uppercase font-semibold tracking-wider">
+                {wallet.type.replace("_", " ")}
+              </CardDescription>
             </div>
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="edit-balance">Balance (₹)</Label>
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0 text-[10px]"
-                  onClick={handleSync}
-                  title="Sync with transaction history"
-                >
-                  Sync with history (₹{calculatedNet.toLocaleString()})
-                </Button>
-              </div>
-              <Input
-                id="edit-balance"
-                type="number"
-                step="0.01"
-                value={editBalance}
-                onChange={(e) => setEditBalance(e.target.value)}
+          </div>
+          <CardAction>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="More options"
+                  >
+                    <MoreVerticalIcon className="h-4 w-4" />
+                  </Button>
+                }
               />
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+                  <PencilIcon className="mr-2 h-4 w-4" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this wallet? This will not delete transactions.")) {
+                      onDelete();
+                    }
+                  }}
+                >
+                  <Trash2Icon className="mr-2 h-4 w-4" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <div className="mt-2">
+            <p className="text-xs text-muted-foreground uppercase font-medium">Current Balance</p>
+            <p className="text-2xl font-bold font-mono tracking-tight">
+              ₹{parseFloat(wallet.balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Last In</p>
+              <p className="text-sm font-semibold text-green-600">
+                {lastStats.lastIn > 0
+                  ? `+₹${lastStats.lastIn.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                  : "—"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Last Out</p>
+              <p className="text-sm font-semibold text-red-600">
+                {lastStats.lastOut > 0
+                  ? `-₹${lastStats.lastOut.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                  : "—"}
+              </p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEdit}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        </CardContent>
+        <CardFooter className="p-4 pt-0 flex gap-2">
+          <Badge variant="outline" className="text-[10px] bg-muted/30">
+            Last updated {new Date(wallet.updated_at).toLocaleDateString()}
+          </Badge>
+        </CardFooter>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Wallet</DialogTitle>
+              <DialogDescription>Update wallet details or adjust balance manually.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Wallet Name</Label>
+                <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="edit-balance">Balance (₹)</Label>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-[10px]"
+                    onClick={handleSync}
+                    title="Sync with transaction history"
+                  >
+                    Sync with history (₹{calculatedNet.toLocaleString()})
+                  </Button>
+                </div>
+                <Input
+                  id="edit-balance"
+                  type="number"
+                  step="0.01"
+                  value={editBalance}
+                  onChange={(e) => setEditBalance(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEdit}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </Card>
+    </motion.div>
   );
 }

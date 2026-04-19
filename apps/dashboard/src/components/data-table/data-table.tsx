@@ -445,32 +445,62 @@ function DataTableHead({ column, columnIndex = 0, totalColumns = 1 }: DataTableH
   );
 }
 
+import { useVirtualizer } from "@tanstack/react-virtual";
+
 function DataTableBody() {
-  const { data, rowIdKey } = useDataTable<DataTableRowData>();
+  const { data, rowIdKey, id } = useDataTable<DataTableRowData>();
   const rowKeys = React.useMemo(
     () => createDataTableRowKeys(data as Array<Record<string, unknown>>, rowIdKey ? String(rowIdKey) : undefined),
     [data, rowIdKey],
   );
-  const hasWarnedRowKeyRef = React.useRef(false);
 
-  React.useEffect(() => {
-    if (hasWarnedRowKeyRef.current) return;
-    if (process.env.NODE_ENV !== "production" && !rowIdKey && data.length > 0) {
-      hasWarnedRowKeyRef.current = true;
-      console.warn(
-        "[DataTable] Missing `rowIdKey` prop. Falling back to inferred/content-derived row keys. " +
-          "Strongly recommended: Pass a `rowIdKey` prop that points to a unique identifier in your row data (e.g., 'id', 'uuid', 'symbol').\n" +
-          'Example: <DataTable rowIdKey="id" columns={...} data={...} />',
-      );
-    }
-  }, [rowIdKey, data.length]);
+  const parentRef = React.useRef<HTMLTableSectionElement>(null);
+
+  // Virtualization is only beneficial for large datasets
+  const isVirtualizationEnabled = data.length >= 50;
+
+  const rowVirtualizer = useVirtualizer({
+    count: data.length,
+    getScrollElement: () => parentRef.current?.parentElement as HTMLElement,
+    estimateSize: () => 48, // Estimated row height
+    overscan: 10,
+  });
+
+  if (!isVirtualizationEnabled) {
+    return (
+      <TableBody>
+        {data.map((row, index) => {
+          const rowKey = rowKeys[index];
+          return <DataTableRow key={rowKey} row={row} />;
+        })}
+      </TableBody>
+    );
+  }
+
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const totalSize = rowVirtualizer.getTotalSize();
+
+  const paddingTop = virtualRows.length > 0 ? virtualRows?.[0]?.start || 0 : 0;
+  const paddingBottom = virtualRows.length > 0 ? totalSize - (virtualRows?.[virtualRows.length - 1]?.end || 0) : 0;
 
   return (
-    <TableBody>
-      {data.map((row, index) => {
+    <TableBody ref={parentRef}>
+      {paddingTop > 0 && (
+        <TableRow>
+          <TableCell style={{ height: `${paddingTop}px` }} />
+        </TableRow>
+      )}
+      {virtualRows.map((virtualRow) => {
+        const index = virtualRow.index;
+        const row = data[index];
         const rowKey = rowKeys[index];
         return <DataTableRow key={rowKey} row={row} />;
       })}
+      {paddingBottom > 0 && (
+        <TableRow>
+          <TableCell style={{ height: `${paddingBottom}px` }} />
+        </TableRow>
+      )}
     </TableBody>
   );
 }
@@ -480,7 +510,7 @@ interface DataTableRowProps {
   className?: string;
 }
 
-function DataTableRow({ row, className }: DataTableRowProps) {
+const DataTableRow = React.memo(({ row, className }: DataTableRowProps) => {
   const { columns } = useDataTable();
 
   return (
@@ -490,7 +520,9 @@ function DataTableRow({ row, className }: DataTableRowProps) {
       ))}
     </TableRow>
   );
-}
+});
+
+DataTableRow.displayName = "DataTableRow";
 
 interface DataTableCellProps {
   value: string | number | boolean | null | (string | number | boolean | null)[];
