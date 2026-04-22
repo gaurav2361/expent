@@ -7,7 +7,7 @@ import { Input } from "@expent/ui/components/input";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { CameraIcon, FileUpIcon, Loader2Icon, SparklesIcon } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
 import { ReviewTransactionForm } from "./review-transaction-form";
 import type { TypedProcessedOcr } from "@expent/types";
@@ -53,10 +53,7 @@ export function GlobalOCRDialog({ open, onOpenChange }: { open: boolean; onOpenC
         ),
       );
 
-      const result = await apiClient<TypedProcessedOcr>("/api/ocr/process", {
-        method: "POST",
-        body: JSON.stringify({ key }),
-      });
+      const result = await api.post<TypedProcessedOcr>("/api/ocr/process", { key });
 
       setUploadSteps((prev) =>
         prev.map((s) =>
@@ -79,10 +76,7 @@ export function GlobalOCRDialog({ open, onOpenChange }: { open: boolean; onOpenC
   const handleConfirm = async (finalData: TypedProcessedOcr) => {
     setIsSaving(true);
     try {
-      await apiClient("/api/transactions/from-ocr", {
-        method: "POST",
-        body: JSON.stringify(finalData),
-      });
+      await api.post("/api/transactions/from-ocr", finalData);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       toast.success("Transaction saved!");

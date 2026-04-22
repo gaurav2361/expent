@@ -54,7 +54,7 @@ import { ReviewTransactionForm } from "@/components/transactions/review-transact
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
 import { useTransactions, useTransactionSummary } from "@/hooks/use-transactions";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 
 // Route Component
 export default function TransactionsPage() {
@@ -139,10 +139,7 @@ export default function TransactionsPage() {
         ),
       );
 
-      const result = await apiClient<any>("/api/ocr/process", {
-        method: "POST",
-        body: JSON.stringify({ key }),
-      });
+      const result = await api.post<any>("/api/ocr/process", { key });
 
       setUploadSteps((prev) =>
         prev.map((s) =>
@@ -166,10 +163,7 @@ export default function TransactionsPage() {
   const handleConfirmOcr = async (finalData: any) => {
     setIsSavingOcr(true);
     try {
-      const result = await apiClient<any>("/api/transactions/from-ocr", {
-        method: "POST",
-        body: JSON.stringify(finalData),
-      });
+      const result = await api.post<any>("/api/transactions/from-ocr", finalData);
       setProcessedOcr(null);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["contacts"] });

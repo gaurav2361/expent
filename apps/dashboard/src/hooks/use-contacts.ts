@@ -1,7 +1,7 @@
 import type { Contact, ContactIdentifier, Transaction } from "@expent/types";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 
 export function useContacts() {
@@ -10,17 +10,13 @@ export function useContacts() {
 
   const query = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => apiClient<Contact[]>("/api/contacts"),
+    queryFn: () => api.get<Contact[]>("/api/contacts"),
     enabled: !!session.data,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; phone?: string | null }) =>
-      apiClient<Contact>("/api/contacts", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (data: { name: string; phone?: string | null }) => api.post<Contact>("/api/contacts", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Contact added");
@@ -29,11 +25,7 @@ export function useContacts() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Contact> }) =>
-      apiClient<Contact>(`/api/contacts/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: ({ id, data }: { id: string; data: Partial<Contact> }) => api.put<Contact>(`/api/contacts/${id}`, data),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ["contacts"] });
       const previousContacts = queryClient.getQueryData<Contact[]>(["contacts"]);
@@ -55,10 +47,7 @@ export function useContacts() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiClient(`/api/contacts/${id}`, {
-        method: "DELETE",
-      }),
+    mutationFn: (id: string) => api.delete(`/api/contacts/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Contact removed");
@@ -82,16 +71,12 @@ export function useMergeContacts() {
 
   const query = useQuery({
     queryKey: ["contacts-suggestions"],
-    queryFn: () => apiClient<{ contacts: Contact[]; reason: string }[]>("/api/contacts/suggestions"),
+    queryFn: () => api.get<{ contacts: Contact[]; reason: string }[]>("/api/contacts/suggestions"),
     enabled: !!session.data,
   });
 
   const mergeMutation = useMutation({
-    mutationFn: (data: { primary_id: string; secondary_id: string }) =>
-      apiClient<Contact>("/api/contacts/merge", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (data: { primary_id: string; secondary_id: string }) => api.post<Contact>("/api/contacts/merge", data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["contacts-suggestions"] });
@@ -115,7 +100,7 @@ export function useContactDetail(id: string) {
   const query = useQuery({
     queryKey: ["contact-detail", id],
     queryFn: () =>
-      apiClient<{
+      api.get<{
         contact: Contact;
         identifiers: ContactIdentifier[];
         transactions: Transaction[];
@@ -126,10 +111,7 @@ export function useContactDetail(id: string) {
 
   const addIdentifierMutation = useMutation({
     mutationFn: (data: { type: string; value: string }) =>
-      apiClient<ContactIdentifier>(`/api/contacts/${id}/identifiers`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      api.post<ContactIdentifier>(`/api/contacts/${id}/identifiers`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contact-detail", id] });
       toast.success("Identifier added");

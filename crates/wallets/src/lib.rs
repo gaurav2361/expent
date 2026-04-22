@@ -12,6 +12,7 @@ pub struct WalletsManager {
 }
 
 impl WalletsManager {
+    #[must_use]
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }
@@ -57,7 +58,7 @@ impl WalletsManager {
     }
 
     /// Atomically adjusts the balance of a wallet.
-    /// Can accept either a DatabaseConnection or a DatabaseTransaction.
+    /// Can accept either a `DatabaseConnection` or a `DatabaseTransaction`.
     pub async fn adjust_balance<C>(
         &self,
         conn: &C,

@@ -14,7 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 
 interface SplitDialogProps {
   open: boolean;
@@ -31,15 +31,12 @@ export function SplitDialog({ open, onOpenChange, transactionId, totalAmount }: 
 
   const splitMutation = useMutation({
     mutationFn: () =>
-      apiClient("/api/transactions/split", {
-        method: "POST",
-        body: JSON.stringify({
-          transaction_id: transactionId,
-          splits: splits.map((s) => ({
-            receiver_email: s.receiver_email,
-            amount: s.amount,
-          })),
-        }),
+      api.post("/api/transactions/split", {
+        transaction_id: transactionId,
+        splits: splits.map((s) => ({
+          receiver_email: s.receiver_email,
+          amount: s.amount,
+        })),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });

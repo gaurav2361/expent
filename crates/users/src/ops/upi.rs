@@ -28,8 +28,7 @@ pub async fn add_user_upi(
     let upi_regex = Regex::new(r"^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$").unwrap();
     if !upi_regex.is_match(&upi_id) {
         return Err(AppError::validation(format!(
-            "Invalid UPI ID format: '{}'",
-            upi_id
+            "Invalid UPI ID format: '{upi_id}'"
         )));
     }
 

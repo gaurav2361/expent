@@ -26,8 +26,7 @@ pub async fn create_category(
         .any(|c| c.name.to_lowercase() == normalized_name)
     {
         return Err(AppError::Generic(format!(
-            "Category '{}' already exists",
-            name
+            "Category '{name}' already exists"
         )));
     }
 

@@ -10,6 +10,7 @@ pub struct UsersManager {
 }
 
 impl UsersManager {
+    #[must_use]
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }

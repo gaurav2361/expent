@@ -10,7 +10,7 @@ import { Label } from "@expent/ui/components/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckIcon, Loader2Icon, UploadIcon, UserIcon } from "lucide-react";
 import * as React from "react";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 
 export function ProfilePanel({ user }: { user: any }) {
   const queryClient = useQueryClient();
@@ -19,11 +19,7 @@ export function ProfilePanel({ user }: { user: any }) {
   const [isUploading, setIsUploading] = React.useState(false);
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) =>
-      apiClient("/api/users/profile", {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (data: any) => api.put("/api/users/profile", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["session"] }); // Better Auth usually stores session in cache
       toast.success("Profile updated");

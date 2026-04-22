@@ -94,7 +94,7 @@ pub struct ProcessedOcr {
     pub is_high_res: bool,
 }
 
-/// A type alias for serde_json::Value to control its TypeScript export location.
+/// A type alias for `serde_json::Value` to control its TypeScript export location.
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(
     export,

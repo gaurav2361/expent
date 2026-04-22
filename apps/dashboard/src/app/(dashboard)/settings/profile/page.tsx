@@ -8,7 +8,7 @@ import { Label } from "@expent/ui/components/label";
 import { Separator } from "@expent/ui/components/separator";
 import { CameraIcon, LoaderIcon } from "lucide-react";
 import * as React from "react";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 
 export default function SettingsProfilePage() {
@@ -98,12 +98,9 @@ export default function SettingsProfilePage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await apiClient("/api/users/profile", {
-        method: "PUT",
-        body: JSON.stringify({
-          name: name || undefined,
-          username: username || undefined,
-        }),
+      await api.put("/api/users/profile", {
+        name: name || undefined,
+        username: username || undefined,
       });
       await session.refetch();
       toast.success("Profile updated successfully!");

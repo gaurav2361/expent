@@ -1,6 +1,6 @@
 import { createCollection, localStorageCollectionOptions, BTreeIndex } from "@tanstack/db";
 import type { Wallet, Transaction, PaginatedTransactions } from "@expent/types";
-import { apiClient } from "./api-client";
+import { api } from "./api-client";
 
 // In @tanstack/db v0.6.5, we export an object with collections.
 // We use localStorageCollectionOptions to handle persistence and cross-tab sync.
@@ -25,7 +25,8 @@ export const db = {
         walletOptions.sync.sync(params);
 
         // 2. Refresh from remote API
-        apiClient<Wallet[]>("/api/wallets")
+        api
+          .get<Wallet[]>("/api/wallets")
           .then((wallets) => {
             params.begin();
             for (const wallet of wallets) {
@@ -45,7 +46,8 @@ export const db = {
         transactionsOptions.sync.sync(params);
 
         // 2. Refresh from remote API (limited to last 100 for hydration)
-        apiClient<PaginatedTransactions>("/api/transactions?limit=100")
+        api
+          .get<PaginatedTransactions>("/api/transactions?limit=100")
           .then((res) => {
             params.begin();
             for (const txn of res.items) {

@@ -32,8 +32,7 @@ pub async fn update_profile(
 
         if existing.is_some() {
             return Err(AppError::Generic(format!(
-                "Username '{}' is already taken",
-                normalized
+                "Username '{normalized}' is already taken"
             )));
         }
 

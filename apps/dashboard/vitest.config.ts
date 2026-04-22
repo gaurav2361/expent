@@ -10,6 +10,8 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@expent/ui": path.resolve(__dirname, "../../packages/ui/src"),
+      "@expent/types": path.resolve(__dirname, "../../packages/types/src"),
     },
   },
 });

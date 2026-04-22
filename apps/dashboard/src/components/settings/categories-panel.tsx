@@ -7,7 +7,7 @@ import { Input } from "@expent/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon, TagIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 
 export function CategoriesPanel() {
   const queryClient = useQueryClient();
@@ -15,15 +15,11 @@ export function CategoriesPanel() {
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ["categories"],
-    queryFn: () => apiClient<any[]>("/api/categories"),
+    queryFn: () => api.get<any[]>("/api/categories"),
   });
 
   const createMutation = useMutation({
-    mutationFn: (name: string) =>
-      apiClient("/api/categories", {
-        method: "POST",
-        body: JSON.stringify({ name }),
-      }),
+    mutationFn: (name: string) => api.post("/api/categories", { name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       setNewName("");
@@ -33,10 +29,7 @@ export function CategoriesPanel() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiClient(`/api/categories/${id}`, {
-        method: "DELETE",
-      }),
+    mutationFn: (id: string) => api.delete(`/api/categories/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Category deleted");

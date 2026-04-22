@@ -9,7 +9,7 @@ import type {
 } from "@expent/types";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 
 export function useP2P() {
@@ -18,16 +18,12 @@ export function useP2P() {
 
   const query = useQuery({
     queryKey: ["p2p-pending"],
-    queryFn: () => apiClient<P2PRequestWithSender[]>("/api/p2p/pending"),
+    queryFn: () => api.get<P2PRequestWithSender[]>("/api/p2p/pending"),
     enabled: !!session.data,
   });
 
   const acceptMutation = useMutation({
-    mutationFn: (requestId: string) =>
-      apiClient<Transaction>("/api/p2p/accept", {
-        method: "POST",
-        body: JSON.stringify({ request_id: requestId }),
-      }),
+    mutationFn: (requestId: string) => api.post<Transaction>("/api/p2p/accept", { request_id: requestId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });
@@ -40,10 +36,7 @@ export function useP2P() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (requestId: string) =>
-      apiClient(`/api/p2p/reject/${requestId}`, {
-        method: "POST",
-      }),
+    mutationFn: (requestId: string) => api.post(`/api/p2p/reject/${requestId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });
       toast.success("Request rejected");
@@ -66,16 +59,12 @@ export function useGroups() {
 
   const query = useQuery({
     queryKey: ["groups"],
-    queryFn: () => apiClient<Group[]>("/api/groups"),
+    queryFn: () => api.get<Group[]>("/api/groups"),
     enabled: !!session.data,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string | null }) =>
-      apiClient<Group>("/api/groups/create", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (data: { name: string; description?: string | null }) => api.post<Group>("/api/groups/create", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       toast.success("Group created");
@@ -85,10 +74,7 @@ export function useGroups() {
 
   const inviteMutation = useMutation({
     mutationFn: (data: { groupId: string; email: string }) =>
-      apiClient<P2PRequest>("/api/groups/invite", {
-        method: "POST",
-        body: JSON.stringify({ group_id: data.groupId, receiver_email: data.email }),
-      }),
+      api.post<P2PRequest>("/api/groups/invite", { group_id: data.groupId, receiver_email: data.email }),
     onSuccess: () => {
       toast.success("Invite sent!");
     },
@@ -108,15 +94,12 @@ export function useGroupMembers(groupId: string) {
 
   const query = useQuery({
     queryKey: ["group-members", groupId],
-    queryFn: () => apiClient<GroupMemberDetail[]>(`/api/groups/${groupId}/members`),
+    queryFn: () => api.get<GroupMemberDetail[]>(`/api/groups/${groupId}/members`),
     enabled: !!groupId,
   });
 
   const removeMemberMutation = useMutation({
-    mutationFn: (userId: string) =>
-      apiClient(`/api/groups/${groupId}/members/${userId}`, {
-        method: "DELETE",
-      }),
+    mutationFn: (userId: string) => api.delete(`/api/groups/${groupId}/members/${userId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
       toast.success("Member removed");
@@ -126,10 +109,7 @@ export function useGroupMembers(groupId: string) {
 
   const updateRoleMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: string }) =>
-      apiClient(`/api/groups/${groupId}/members/${userId}/role`, {
-        method: "PATCH",
-        body: JSON.stringify({ role }),
-      }),
+      api.patch(`/api/groups/${groupId}/members/${userId}/role`, { role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
       toast.success("Role updated");
@@ -151,16 +131,12 @@ export function useLedgerTabs() {
 
   const query = useQuery({
     queryKey: ["ledger-tabs"],
-    queryFn: () => apiClient<LedgerTab[]>("/api/p2p/ledger-tabs"),
+    queryFn: () => api.get<LedgerTab[]>("/api/p2p/ledger-tabs"),
     enabled: !!session.data,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) =>
-      apiClient<LedgerTab>("/api/p2p/ledger-tabs", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (data: any) => api.post<LedgerTab>("/api/p2p/ledger-tabs", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ledger-tabs"] });
       toast.success("Ledger tab created");
@@ -170,10 +146,7 @@ export function useLedgerTabs() {
 
   const repaymentMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
-      apiClient<Transaction>(`/api/p2p/ledger-tabs/${id}/repayment`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      api.post<Transaction>(`/api/p2p/ledger-tabs/${id}/repayment`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ledger-tabs"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });

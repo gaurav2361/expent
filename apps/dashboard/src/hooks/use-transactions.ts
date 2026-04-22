@@ -2,7 +2,7 @@ import type { PaginatedTransactions, Transaction, TransactionWithDetail, Dashboa
 import { toast } from "@expent/ui/components/goey-toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLiveQuery } from "@tanstack/react-db";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 import { db } from "@/lib/db";
 
@@ -24,10 +24,7 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<TransactionWithDetail> }) => {
       // 1. Send to server
-      const updatedTxn = await apiClient<Transaction>(`/api/transactions/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      });
+      const updatedTxn = await api.patch<Transaction>(`/api/transactions/${id}`, data);
 
       // 2. Update local DB
       db.transactions.update(id, (draft) => {
@@ -47,9 +44,7 @@ export function useTransactions(params: { limit?: number; offset?: number } = {}
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       // 1. Send to server
-      await apiClient(`/api/transactions/${id}`, {
-        method: "DELETE",
-      });
+      await api.delete(`/api/transactions/${id}`);
 
       // 2. Delete from local DB
       db.transactions.delete(id);
@@ -78,7 +73,7 @@ export function useTransactionSummary() {
 
   const query = useQuery({
     queryKey: ["transaction-summary"],
-    queryFn: () => apiClient<DashboardSummary>("/api/transactions/summary"),
+    queryFn: () => api.get<DashboardSummary>("/api/transactions/summary"),
     enabled: !!session.data,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

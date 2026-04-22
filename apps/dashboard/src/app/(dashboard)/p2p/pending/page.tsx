@@ -6,17 +6,14 @@ import { Skeleton } from "@expent/ui/components/skeleton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApprovalCard } from "@/components/tool-ui/approval-card";
 import { useP2P } from "@/hooks/use-p2p";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 
 export default function PendingPage() {
   const { p2pRequests, isLoading, acceptMutation } = useP2P();
   const queryClient = useQueryClient();
 
   const rejectMutation = useMutation({
-    mutationFn: (requestId: string) =>
-      apiClient(`/api/p2p/reject/${requestId}`, {
-        method: "POST",
-      }),
+    mutationFn: (requestId: string) => api.post(`/api/p2p/reject/${requestId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["p2p-pending"] });
       toast.success("Request rejected");

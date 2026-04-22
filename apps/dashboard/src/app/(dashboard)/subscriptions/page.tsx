@@ -29,7 +29,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { useState } from "react";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 
 export default function SubscriptionsComponent() {
@@ -38,7 +38,7 @@ export default function SubscriptionsComponent() {
 
   const { data: confirmedSubs } = useQuery({
     queryKey: ["subscriptions"],
-    queryFn: () => apiClient<any[]>("/api/subscriptions"),
+    queryFn: () => api.get<any[]>("/api/subscriptions"),
     enabled: !!session.data,
   });
 
@@ -48,22 +48,19 @@ export default function SubscriptionsComponent() {
     refetch: detect,
   } = useQuery({
     queryKey: ["subscriptions-detect"],
-    queryFn: () => apiClient<any[]>("/api/subscriptions/detect"),
+    queryFn: () => api.get<any[]>("/api/subscriptions/detect"),
     enabled: !!session.data,
   });
 
   const confirmMutation = useMutation({
     mutationFn: (sub: any) =>
-      apiClient("/api/subscriptions", {
-        method: "POST",
-        body: JSON.stringify({
-          name: sub.name,
-          amount: parseFloat(sub.amount),
-          cycle: sub.cycle,
-          start_date: sub.start_date,
-          next_charge_date: sub.next_charge_date,
-          keywords: sub.detection_keywords,
-        }),
+      api.post("/api/subscriptions", {
+        name: sub.name,
+        amount: parseFloat(sub.amount),
+        cycle: sub.cycle,
+        start_date: sub.start_date,
+        next_charge_date: sub.next_charge_date,
+        keywords: sub.detection_keywords,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
@@ -73,10 +70,7 @@ export default function SubscriptionsComponent() {
   });
 
   const stopTrackingMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiClient(`/api/subscriptions/${id}`, {
-        method: "DELETE",
-      }),
+    mutationFn: (id: string) => api.delete(`/api/subscriptions/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
       toast.success("Stopped tracking");
@@ -243,12 +237,9 @@ function AlertConfigDialog({
 
   const alertMutation = useMutation({
     mutationFn: () =>
-      apiClient(`/api/subscriptions/${sub.id}/alerts`, {
-        method: "POST",
-        body: JSON.stringify({
-          days_before: parseInt(days, 10),
-          channel,
-        }),
+      api.post(`/api/subscriptions/${sub.id}/alerts`, {
+        days_before: parseInt(days, 10),
+        channel,
       }),
     onSuccess: () => {
       onOpenChange(false);

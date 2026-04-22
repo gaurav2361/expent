@@ -21,7 +21,7 @@ import { useIsMobile } from "@expent/ui/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { UserIcon, WalletIcon } from "lucide-react";
 import * as React from "react";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { useContacts } from "@/hooks/use-contacts";
 import { useWallets } from "@/hooks/use-wallets";
 
@@ -45,7 +45,7 @@ export function TransactionViewer({ item, onUpdate, open, onOpenChange }: Transa
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
-    queryFn: () => apiClient<any[]>("/api/categories"),
+    queryFn: () => api.get<any[]>("/api/categories"),
   });
 
   const { wallets } = useWallets();

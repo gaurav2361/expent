@@ -1,5 +1,6 @@
 "use client";
 
+import type { ContactIdentifier, Transaction } from "@expent/types";
 import { Badge } from "@expent/ui/components/badge";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
@@ -55,7 +56,7 @@ export default function ContactDetailPage() {
 
   const { contact, identifiers, transactions } = contactData;
 
-  const txnColumns: Column<any>[] = [
+  const txnColumns = [
     { key: "date", label: "Date", format: { kind: "date", dateFormat: "short" } },
     { key: "purpose_tag", label: "Description" },
     {
@@ -64,7 +65,7 @@ export default function ContactDetailPage() {
       format: { kind: "badge", colorMap: { IN: "success", OUT: "danger" } },
     },
     { key: "amount", label: "Amount", format: { kind: "currency", currency: "INR" }, align: "right" },
-  ];
+  ] as Column<Transaction>[];
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto w-full">
@@ -165,7 +166,7 @@ export default function ContactDetailPage() {
               {identifiers.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic">No identifiers added yet.</p>
               ) : (
-                identifiers.map((id: any) => <IdentifierChip key={id.id} identifier={id} />)
+                identifiers.map((id: ContactIdentifier) => <IdentifierChip key={id.id} identifier={id} />)
               )}
             </CardContent>
           </Card>
@@ -182,7 +183,8 @@ export default function ContactDetailPage() {
               <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Total Volume</span>
                 <span className="font-bold text-primary">
-                  ₹{transactions.reduce((acc: number, t: any) => acc + parseFloat(t.amount), 0).toLocaleString()}
+                  ₹
+                  {transactions.reduce((acc: number, t: Transaction) => acc + parseFloat(t.amount), 0).toLocaleString()}
                 </span>
               </div>
               <Separator />
@@ -219,7 +221,7 @@ export default function ContactDetailPage() {
   );
 }
 
-function IdentifierChip({ identifier }: { identifier: any }) {
+function IdentifierChip({ identifier }: { identifier: ContactIdentifier }) {
   const [copied, setCopied] = React.useState(false);
 
   const copy = () => {

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@expe
 import { toast } from "@expent/ui/components/goey-toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FingerprintIcon, KeyIcon, LaptopIcon, PlusIcon, SmartphoneIcon, Trash2Icon } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 
 export function SecurityPanel() {
@@ -15,21 +15,18 @@ export function SecurityPanel() {
 
   const { data: passkeys } = useQuery({
     queryKey: ["passkeys"],
-    queryFn: () => apiClient<any[]>("/api/auth/passkey/list"),
+    queryFn: () => api.get<any[]>("/api/auth/passkey/list"),
     enabled: !!session.data,
   });
 
   const { data: activeSessions } = useQuery({
     queryKey: ["active-sessions"],
-    queryFn: () => apiClient<any[]>("/api/auth/sessions"),
+    queryFn: () => api.get<any[]>("/api/auth/sessions"),
     enabled: !!session.data,
   });
 
   const revokeSessionMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiClient(`/api/auth/sessions/${id}`, {
-        method: "DELETE",
-      }),
+    mutationFn: (id: string) => api.delete(`/api/auth/sessions/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["active-sessions"] });
       toast.success("Session revoked");

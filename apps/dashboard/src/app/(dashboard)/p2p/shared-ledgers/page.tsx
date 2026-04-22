@@ -21,7 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronRightIcon, InfoIcon, PlusIcon, ReceiptIcon, Trash2Icon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { useState } from "react";
 import { useGroupMembers, useGroups } from "@/hooks/use-p2p";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 
 function InviteDialog({ groupId, groupName }: { groupId: string; groupName: string }) {
@@ -169,7 +169,7 @@ function MembersDialog({ groupId, groupName }: { groupId: string; groupName: str
 function GroupDetails({ group }: { group: any }) {
   const { data: transactions, isLoading } = useQuery({
     queryKey: ["group-transactions", group.id],
-    queryFn: () => apiClient<any[]>(`/api/groups/${group.id}/transactions`),
+    queryFn: () => api.get<any[]>(`/api/groups/${group.id}/transactions`),
   });
 
   return (

@@ -29,7 +29,7 @@ pub async fn detect_subscriptions(
         let amount = txn.amount;
 
         let mut found_group = false;
-        for (group_txn, dates) in groups.iter_mut() {
+        for (group_txn, dates) in &mut groups {
             let group_name = group_txn.purpose_tag.as_deref().unwrap_or("Unknown");
             let group_amount = group_txn.amount;
 

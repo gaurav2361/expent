@@ -18,6 +18,7 @@ pub struct TransactionsManager {
 }
 
 impl TransactionsManager {
+    #[must_use]
     pub fn new(db: DatabaseConnection, wallets: Arc<WalletsManager>) -> Self {
         Self { db, wallets }
     }

@@ -12,6 +12,7 @@ pub struct SubscriptionsManager {
 }
 
 impl SubscriptionsManager {
+    #[must_use]
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }

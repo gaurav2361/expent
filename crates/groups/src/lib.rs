@@ -18,6 +18,7 @@ pub struct GroupsManager {
 }
 
 impl GroupsManager {
+    #[must_use]
     pub fn new(
         db: DatabaseConnection,
         wallets: Arc<WalletsManager>,

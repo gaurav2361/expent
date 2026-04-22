@@ -26,7 +26,7 @@ import { CreateWalletDialog } from "@/components/wallets/create-wallet-dialog";
 import { useCategories } from "@/hooks/use-categories";
 import { useContacts } from "@/hooks/use-contacts";
 import { useWallets } from "@/hooks/use-wallets";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 
 const getCategoryIcon = (iconName: string | null | undefined) => {
   if (!iconName) return TagIcon;
@@ -96,18 +96,15 @@ export function ManualTransactionDialog({ open, onOpenChange }: ManualTransactio
 
   const createMutation = useMutation({
     mutationFn: (values: TransactionFormValues) =>
-      apiClient("/api/transactions/manual", {
-        method: "POST",
-        body: JSON.stringify({
-          amount: parseFloat(values.amount),
-          purpose_tag: values.description,
-          direction: values.direction,
-          date: new Date(values.date).toISOString(),
-          source_wallet_id: values.direction === "OUT" && values.walletId !== "none" ? values.walletId : null,
-          destination_wallet_id: values.direction === "IN" && values.walletId !== "none" ? values.walletId : null,
-          contact_id: values.contactId !== "none" ? values.contactId : null,
-          category_id: values.categoryId !== "none" ? values.categoryId : null,
-        }),
+      api.post("/api/transactions/manual", {
+        amount: parseFloat(values.amount),
+        purpose_tag: values.description,
+        direction: values.direction,
+        date: new Date(values.date).toISOString(),
+        source_wallet_id: values.direction === "OUT" && values.walletId !== "none" ? values.walletId : null,
+        destination_wallet_id: values.direction === "IN" && values.walletId !== "none" ? values.walletId : null,
+        contact_id: values.contactId !== "none" ? values.contactId : null,
+        category_id: values.categoryId !== "none" ? values.categoryId : null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });

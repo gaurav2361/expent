@@ -1,72 +1,49 @@
-import { env } from "@/env";
+import { authClient } from "./auth-client";
 
-const API_BASE_URL = env.NEXT_PUBLIC_API_BASE_URL;
+// No need for NEXT_PUBLIC_API_BASE_URL for client requests if using rewrites
+// For server-side requests (if any), it still needs an absolute URL.
+const API_URL = typeof window === "undefined" ? process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:7878" : "";
 
-export interface ApiClientOptions extends RequestInit {
-  retries?: number;
-  retryDelay?: number;
-}
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const session = await authClient.getSession();
+  const token = session?.data?.session.token;
 
-/**
- * Shared API client for the dashboard.
- * Handles base URL, credentials, basic error parsing, and resilient features like retries and cancellation.
- */
-export async function apiClient<T>(
-  endpoint: string,
-  { retries = 2, retryDelay = 1000, ...options }: ApiClientOptions = {},
-): Promise<T> {
-  const url = endpoint.startsWith("http")
-    ? endpoint
-    : `${API_BASE_URL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
-
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        // Only retry on transient errors (5xx, 429)
-        if (attempt < retries && (response.status >= 500 || response.status === 429)) {
-          const delay = retryDelay * Math.pow(2, attempt);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
-        }
-
-        const errorBody = await response.text().catch(() => "Unknown error");
-        throw new Error(errorBody || `API Error: ${response.status} ${response.statusText}`);
-      }
-
-      if (response.status === 204) {
-        return {} as T;
-      }
-
-      return response.json();
-    } catch (error: any) {
-      lastError = error;
-
-      // Don't retry if the request was aborted by the user
-      if (error.name === "AbortError") {
-        throw error;
-      }
-
-      // Retry on network errors
-      if (attempt < retries) {
-        const delay = retryDelay * Math.pow(2, attempt);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
-      }
-
-      throw error;
-    }
+  const headers = new Headers(options.headers);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  if (options.body && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
   }
 
-  throw lastError;
+  // Ensure path starts with /
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  const res = await fetch(`${API_URL}${normalizedPath}`, {
+    ...options,
+    headers,
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: "Unknown error" }));
+    throw new Error(error.message || res.statusText);
+  }
+
+  // Handle 204 No Content
+  if (res.status === 204) {
+    return {} as T;
+  }
+
+  return res.json();
 }
+
+export const api = {
+  get: <T>(path: string, options?: RequestInit) => request<T>(path, { ...options, method: "GET" }),
+  post: <T>(path: string, body?: any, options?: RequestInit) =>
+    request<T>(path, { ...options, method: "POST", body: body ? JSON.stringify(body) : undefined }),
+  put: <T>(path: string, body?: any, options?: RequestInit) =>
+    request<T>(path, { ...options, method: "PUT", body: body ? JSON.stringify(body) : undefined }),
+  patch: <T>(path: string, body?: any, options?: RequestInit) =>
+    request<T>(path, { ...options, method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
+  delete: <T>(path: string, options?: RequestInit) => request<T>(path, { ...options, method: "DELETE" }),
+};

@@ -65,7 +65,7 @@ pub async fn get_merge_suggestions(
         for c2 in contacts.iter().skip(i + 1) {
             let min_id = if c1.id < c2.id { &c1.id } else { &c2.id };
             let max_id = if c1.id < c2.id { &c2.id } else { &c1.id };
-            let pair_id = format!("{}-{}", min_id, max_id);
+            let pair_id = format!("{min_id}-{max_id}");
             if processed_pairs.contains(&pair_id) {
                 continue;
             }
@@ -73,10 +73,11 @@ pub async fn get_merge_suggestions(
             let mut match_reason: Option<String> = None;
 
             // 1. Check exact phone match
-            if let (Some(p1), Some(p2)) = (&c1.phone, &c2.phone) {
-                if !p1.trim().is_empty() && p1 == p2 {
-                    match_reason = Some("Same phone number".to_string());
-                }
+            if let (Some(p1), Some(p2)) = (&c1.phone, &c2.phone)
+                && !p1.trim().is_empty()
+                && p1 == p2
+            {
+                match_reason = Some("Same phone number".to_string());
             }
 
             // 2. Check identifier overlap (UPI, Bank Acc)

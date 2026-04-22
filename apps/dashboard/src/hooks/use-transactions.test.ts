@@ -1,11 +1,19 @@
 import { renderHook, act } from "@testing-library/react";
 import { useTransactions, useTransactionSummary } from "./use-transactions";
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { toast } from "@expent/ui/components/goey-toaster";
 
 // Mock dependencies
-vi.mock("@/lib/api-client");
+vi.mock("@/lib/api-client", () => ({
+  api: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
 vi.mock("@/lib/auth-client", () => ({
   useSession: () => ({ data: { user: { id: "test-user" } } }),
 }));
@@ -49,28 +57,28 @@ describe("useTransactions", () => {
   });
 
   it("should handle update transaction success", async () => {
-    const mockTxn = { id: "1", amount: 100 };
-    (apiClient as any).mockResolvedValue(mockTxn);
+    const mockTxn = { id: "1", amount: "100" };
+    (api.patch as any).mockResolvedValue(mockTxn);
 
     const { result } = renderHook(() => useTransactions());
 
     await act(async () => {
-      await result.current.updateMutation.mutateAsync({ id: "1", data: { amount: 100 } });
+      await result.current.updateMutation.mutateAsync({ id: "1", data: { amount: "100" } });
     });
 
-    expect(apiClient).toHaveBeenCalledWith("/api/transactions/1", expect.objectContaining({ method: "PATCH" }));
+    expect(api.patch).toHaveBeenCalledWith("/api/transactions/1", { amount: "100" });
     expect(toast.success).toHaveBeenCalledWith("Transaction updated");
   });
 
   it("should handle update transaction error", async () => {
     const error = new Error("API Error");
-    (apiClient as any).mockRejectedValue(error);
+    (api.patch as any).mockRejectedValue(error);
 
     const { result } = renderHook(() => useTransactions());
 
     try {
       await act(async () => {
-        await result.current.updateMutation.mutateAsync({ id: "1", data: { amount: 100 } });
+        await result.current.updateMutation.mutateAsync({ id: "1", data: { amount: "100" } });
       });
     } catch (e) {
       // Expected
@@ -80,7 +88,7 @@ describe("useTransactions", () => {
   });
 
   it("should handle delete transaction success", async () => {
-    (apiClient as any).mockResolvedValue({});
+    (api.delete as any).mockResolvedValue({});
 
     const { result } = renderHook(() => useTransactions());
 
@@ -88,7 +96,7 @@ describe("useTransactions", () => {
       await result.current.deleteMutation.mutateAsync("1");
     });
 
-    expect(apiClient).toHaveBeenCalledWith("/api/transactions/1", expect.objectContaining({ method: "DELETE" }));
+    expect(api.delete).toHaveBeenCalledWith("/api/transactions/1");
     expect(toast.success).toHaveBeenCalledWith("Transaction deleted");
   });
 });
@@ -100,10 +108,10 @@ describe("useTransactionSummary", () => {
 
   it("should fetch summary success", async () => {
     const mockSummary = { total_balance: 100 };
-    (apiClient as any).mockResolvedValue(mockSummary);
+    (api.get as any).mockResolvedValue(mockSummary);
 
     renderHook(() => useTransactionSummary());
 
-    expect(apiClient).toHaveBeenCalledWith("/api/transactions/summary");
+    expect(api.get).toHaveBeenCalledWith("/api/transactions/summary");
   });
 });

@@ -46,8 +46,8 @@ export default function InsightsScreen() {
           </View>
           <View className="bg-card border border-border rounded-[28px] p-6 h-[280px] justify-end">
             <View className="flex-row items-end justify-between px-2">
-              {CHART_DATA.map((item, index) => (
-                <View key={index} className="items-center">
+              {CHART_DATA.map((item) => (
+                <View key={item.day} className="items-center">
                   {item.highlight && (
                     <View className="bg-primary/10 px-2 py-1 rounded-md mb-2 border border-primary/20">
                       <Text className="text-[10px] font-bold text-primary">$40</Text>

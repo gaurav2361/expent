@@ -13,6 +13,7 @@ pub struct ReconciliationManager {
 }
 
 impl ReconciliationManager {
+    #[must_use]
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }

@@ -57,7 +57,7 @@ import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
 import { useP2P } from "@/hooks/use-p2p";
 import { useTransactions, useTransactionSummary } from "@/hooks/use-transactions";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import { useGlobalStore } from "@/lib/store";
 import type { Column } from "@/lib/data-table-types";
 
@@ -214,10 +214,7 @@ export default function DashboardPage() {
         ),
       );
 
-      const result = await apiClient<TypedProcessedOcr>("/api/ocr/process", {
-        method: "POST",
-        body: JSON.stringify({ key }),
-      });
+      const result = await api.post<TypedProcessedOcr>("/api/ocr/process", { key });
 
       setUploadSteps((prev) =>
         prev.map((s) =>
@@ -241,10 +238,7 @@ export default function DashboardPage() {
   const handleConfirmOcr = async (finalData: TypedProcessedOcr) => {
     setIsSavingOcr(true);
     try {
-      const result = await apiClient<{ contact_created: boolean }>("/api/transactions/from-ocr", {
-        method: "POST",
-        body: JSON.stringify(finalData),
-      });
+      const result = await api.post<{ contact_created: boolean }>("/api/transactions/from-ocr", finalData);
       setProcessedOcr(null);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["wallets"] });

@@ -129,7 +129,7 @@ export default function ActivityScreen() {
               <FlashList
                 data={[1, 2, 3]}
                 estimatedItemSize={90}
-                renderItem={({ item }) => (
+                renderItem={({ item: _item }) => (
                   <Card
                     style={{ borderCurve: "continuous" }}
                     className="bg-card/40 border-border/40 rounded-[24px] mb-4 border"

@@ -1,3 +1,4 @@
+import type { User } from "@expent/types";
 import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { client } from "@/lib/api";
@@ -8,8 +9,8 @@ const AUTH_KEY = "auth_session";
 interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
-  user: any | null;
-  setAuth: (user: any) => void;
+  user: User | null;
+  setAuth: (user: User) => void;
   clearAuth: () => void;
   setLoading: (loading: boolean) => void;
 }
@@ -18,7 +19,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isLoading: true, // Start loading to check storage
   user: null,
-  setAuth: (user) => {
+  setAuth: (user: User) => {
     setItem(AUTH_KEY, user);
     set({ isAuthenticated: true, user, isLoading: false });
   },
@@ -26,11 +27,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     removeItem(AUTH_KEY);
     set({ isAuthenticated: false, user: null, isLoading: false });
   },
-  setLoading: (loading) => set({ isLoading: loading }),
+  setLoading: (loading: boolean) => set({ isLoading: loading }),
 }));
 
 export function useAuth() {
-  const { isAuthenticated, isLoading, user, setAuth, clearAuth, setLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user, setAuth, clearAuth } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check storage on mount

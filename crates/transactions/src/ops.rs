@@ -124,7 +124,9 @@ pub async fn list_transactions(
 
     let txn_ids: Vec<String> = results.iter().map(|t| t.id.clone()).collect();
 
-    let wallets_map: std::collections::HashMap<String, String> = if !wallet_ids.is_empty() {
+    let wallets_map: std::collections::HashMap<String, String> = if wallet_ids.is_empty() {
+        std::collections::HashMap::new()
+    } else {
         entities::wallets::Entity::find()
             .filter(entities::wallets::Column::Id.is_in(wallet_ids))
             .all(db)
@@ -132,8 +134,6 @@ pub async fn list_transactions(
             .into_iter()
             .map(|w| (w.id, w.name))
             .collect()
-    } else {
-        std::collections::HashMap::new()
     };
 
     let category_ids: std::collections::HashSet<String> = results
@@ -141,7 +141,9 @@ pub async fn list_transactions(
         .filter_map(|t| t.category_id.clone())
         .collect();
 
-    let categories_map: std::collections::HashMap<String, String> = if !category_ids.is_empty() {
+    let categories_map: std::collections::HashMap<String, String> = if category_ids.is_empty() {
+        std::collections::HashMap::new()
+    } else {
         entities::categories::Entity::find()
             .filter(entities::categories::Column::Id.is_in(category_ids))
             .all(db)
@@ -149,8 +151,6 @@ pub async fn list_transactions(
             .into_iter()
             .map(|c| (c.id, c.name))
             .collect()
-    } else {
-        std::collections::HashMap::new()
     };
 
     let parties = entities::txn_parties::Entity::find()
@@ -164,7 +164,9 @@ pub async fn list_transactions(
         .filter_map(|p| p.contact_id.clone())
         .collect();
 
-    let contacts_map: std::collections::HashMap<String, String> = if !contact_ids.is_empty() {
+    let contacts_map: std::collections::HashMap<String, String> = if contact_ids.is_empty() {
+        std::collections::HashMap::new()
+    } else {
         entities::contacts::Entity::find()
             .filter(entities::contacts::Column::Id.is_in(contact_ids))
             .all(db)
@@ -172,8 +174,6 @@ pub async fn list_transactions(
             .into_iter()
             .map(|c| (c.id, c.name))
             .collect()
-    } else {
-        std::collections::HashMap::new()
     };
 
     let txn_to_contact: std::collections::HashMap<String, (String, String)> = parties
@@ -204,8 +204,9 @@ pub async fn list_transactions(
 
         let (contact_id, contact_name) = txn_to_contact
             .get(&txn.id)
-            .map(|(id, name)| (Some(id.clone()), Some(name.clone())))
-            .unwrap_or((None, None));
+            .map_or((None, None), |(id, name)| {
+                (Some(id.clone()), Some(name.clone()))
+            });
 
         final_results.push(TransactionWithDetail {
             transaction: txn,

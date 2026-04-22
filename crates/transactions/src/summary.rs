@@ -182,8 +182,8 @@ pub async fn get_dashboard_summary(
         total_balance,
         monthly_spend: monthly_spend.unwrap_or(Decimal::ZERO),
         monthly_income: monthly_income.unwrap_or(Decimal::ZERO),
-        pending_p2p_count: pending_p2p_count as u64,
-        total_transactions: total_transactions as u64,
+        pending_p2p_count: pending_p2p_count,
+        total_transactions: total_transactions,
         monthly_trends,
         weekly_trends,
         category_distribution,
@@ -210,7 +210,7 @@ async fn get_monthly_trends(
 
     // Initialize the last 6 months with zeros
     for i in (0..6).rev() {
-        let date = now - Duration::days(i as i64 * 30);
+        let date = now - Duration::days(i64::from(i) * 30);
         let key = format!("{}-{:02}", date.year(), date.month());
         trends_map.insert(key, (Decimal::ZERO, Decimal::ZERO));
     }
@@ -271,7 +271,7 @@ async fn get_weekly_trends(
 
     // Initialize last 7 days
     for i in (0..7).rev() {
-        let date = now - Duration::days(i as i64);
+        let date = now - Duration::days(i64::from(i));
         let key = format!("{}-{:02}-{:02}", date.year(), date.month(), date.day());
         trends_map.insert(key, (Decimal::ZERO, Decimal::ZERO));
     }
@@ -293,7 +293,7 @@ async fn get_weekly_trends(
 
     let mut result = Vec::new();
     for (key, (inc, exp)) in trends_map {
-        let y = key.split('-').nth(0).unwrap().parse::<i32>().unwrap();
+        let y = key.split('-').next().unwrap().parse::<i32>().unwrap();
         let m = key.split('-').nth(1).unwrap().parse::<u32>().unwrap();
         let d = key.split('-').nth(2).unwrap().parse::<u32>().unwrap();
 

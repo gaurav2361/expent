@@ -37,7 +37,7 @@ import * as React from "react";
 import { startTransition, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { LogoIcon } from "@/components/ui-elements/logo";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 
 export type SidebarNavItem = {
   title: string;
@@ -143,12 +143,12 @@ function SidebarNavItemComponent({ item, pathname }: { item: SidebarNavItem; pat
     if (url === "/") {
       queryClient.prefetchQuery({
         queryKey: ["transaction-summary"],
-        queryFn: () => apiClient("/api/transactions/summary"),
+        queryFn: () => api.get("/api/transactions/summary"),
       });
     } else if (url === "/transactions") {
       queryClient.prefetchQuery({
         queryKey: ["transactions", { limit: 15, offset: 0 }],
-        queryFn: () => apiClient("/api/transactions?limit=15&offset=0"),
+        queryFn: () => api.get("/api/transactions?limit=15&offset=0"),
       });
     }
   };
