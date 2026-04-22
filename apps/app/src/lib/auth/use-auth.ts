@@ -40,7 +40,7 @@ export function useAuth() {
       try {
         const storedUser = await getItem(AUTH_KEY);
         if (storedUser) {
-          setAuth(storedUser);
+          setAuth(storedUser as User);
         } else {
           clearAuth();
         }

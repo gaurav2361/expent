@@ -1,7 +1,7 @@
 import type {
   Group,
   LedgerTab,
-  P2PRequest,
+  P2pRequest,
   P2PRequestWithSender,
   Transaction,
   User,
@@ -74,7 +74,7 @@ export function useGroups() {
 
   const inviteMutation = useMutation({
     mutationFn: (data: { groupId: string; email: string }) =>
-      api.post<P2PRequest>("/api/groups/invite", { group_id: data.groupId, receiver_email: data.email }),
+      api.post<P2pRequest>("/api/groups/invite", { group_id: data.groupId, receiver_email: data.email }),
     onSuccess: () => {
       toast.success("Invite sent!");
     },
