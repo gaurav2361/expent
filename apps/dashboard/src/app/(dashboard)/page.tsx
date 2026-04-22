@@ -22,6 +22,7 @@ import {
   MoreVerticalIcon,
   PlusIcon,
   Share2Icon,
+  TargetIcon,
   Trash2Icon,
   WalletIcon,
 } from "lucide-react";
@@ -47,6 +48,13 @@ const IncomeExpenseChart = dynamic(
 const CategoryChart = dynamic(() => import("@/components/dashboard/category-chart").then((mod) => mod.CategoryChart), {
   loading: () => <div className="h-[300px] w-full animate-pulse bg-muted rounded-xl" />,
 });
+
+const BudgetHealthWidget = dynamic(
+  () => import("@/components/dashboard/budget-health").then((mod) => mod.BudgetHealthWidget),
+  {
+    loading: () => <div className="h-[200px] w-full animate-pulse bg-muted rounded-xl" />,
+  },
+);
 
 import { DataTable } from "@/components/data-table/data-table";
 import { ApprovalCard } from "@/components/tool-ui/approval-card";
@@ -394,6 +402,15 @@ export default function DashboardPage() {
 
             {/* Additional Overview Charts */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-7 mt-4">
+              <Card className="col-span-1 lg:col-span-3">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-base font-semibold">Budget Health</CardTitle>
+                  <TargetIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <BudgetHealthWidget />
+                </CardContent>
+              </Card>
               <Card className="col-span-1 lg:col-span-4">
                 <CardHeader>
                   <CardTitle>Income vs Expense</CardTitle>
@@ -402,7 +419,10 @@ export default function DashboardPage() {
                   <IncomeExpenseChart />
                 </CardContent>
               </Card>
-              <Card className="col-span-1 lg:col-span-3">
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-7 mt-4">
+              <Card className="col-span-1 lg:col-span-7">
                 <CardHeader>
                   <CardTitle>Spending by Category</CardTitle>
                 </CardHeader>

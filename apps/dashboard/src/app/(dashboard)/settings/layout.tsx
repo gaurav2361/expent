@@ -22,6 +22,11 @@ const sidebarNavItems = [
     icon: <TagIcon className="w-4 h-4" />,
   },
   {
+    title: "Budgets",
+    href: "/settings/budgets",
+    icon: <MonitorIcon className="w-4 h-4" />,
+  },
+  {
     title: "Appearance",
     href: "/settings/appearance",
     icon: <PaletteIcon className="w-4 h-4" />,
