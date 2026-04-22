@@ -13,8 +13,14 @@ impl EntityName for Entity {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS, )]
-#[ts(export, rename = "LedgerTab", export_to = "../../../packages/types/src/db/LedgerTab.ts")]
+#[derive(
+    Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS,
+)]
+#[ts(
+    export,
+    rename = "LedgerTab",
+    export_to = "../../../packages/types/src/db/LedgerTab.ts"
+)]
 pub struct Model {
     pub id: String,
     pub creator_id: String,

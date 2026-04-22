@@ -13,8 +13,14 @@ impl EntityName for Entity {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS, )]
-#[ts(export, rename = "OcrJobEdit", export_to = "../../../packages/types/src/db/OcrJobEdit.ts")]
+#[derive(
+    Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS,
+)]
+#[ts(
+    export,
+    rename = "OcrJobEdit",
+    export_to = "../../../packages/types/src/db/OcrJobEdit.ts"
+)]
 pub struct Model {
     pub id: String,
     pub ocr_job_id: String,

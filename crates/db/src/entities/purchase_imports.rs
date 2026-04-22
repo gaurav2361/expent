@@ -13,8 +13,14 @@ impl EntityName for Entity {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS, )]
-#[ts(export, rename = "PurchaseImport", export_to = "../../../packages/types/src/db/PurchaseImport.ts")]
+#[derive(
+    Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS,
+)]
+#[ts(
+    export,
+    rename = "PurchaseImport",
+    export_to = "../../../packages/types/src/db/PurchaseImport.ts"
+)]
 pub struct Model {
     pub id: String,
     pub pdf_url: String,
