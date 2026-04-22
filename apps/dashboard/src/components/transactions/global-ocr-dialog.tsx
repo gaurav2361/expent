@@ -7,70 +7,19 @@ import { Input } from "@expent/ui/components/input";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { CameraIcon, FileUpIcon, Loader2Icon, SparklesIcon } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useOcrUpload } from "@/hooks/use-ocr";
 import { api } from "@/lib/api-client";
 import { ProgressTracker } from "@/components/tool-ui/progress-tracker";
 import { ReviewTransactionForm } from "./review-transaction-form";
 import type { TypedProcessedOcr } from "@expent/types";
 
 export function GlobalOCRDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const [file, setFile] = React.useState<File | null>(null);
-  const [isUploading, setIsUploading] = React.useState(false);
-  const [uploadSteps, setUploadSteps] = React.useState<
-    { id: string; label: string; status: "pending" | "in-progress" | "completed" | "failed" }[]
-  >([]);
-  const [processedOcr, setProcessedOcr] = React.useState<TypedProcessedOcr | null>(null);
+  const { isUploading, uploadSteps, processedOcr, uploadFile, setProcessedOcr, reset } = useOcrUpload();
   const [isSaving, setIsSaving] = React.useState(false);
   const queryClient = useQueryClient();
 
   const handleUpload = async (selectedFile: File) => {
-    setIsUploading(true);
-    setProcessedOcr(null);
-
-    const steps: { id: string; label: string; status: "pending" | "in-progress" | "completed" | "failed" }[] = [
-      { id: "1", label: "Uploading receipt…", status: "in-progress" as const },
-      { id: "2", label: "Analyzing image…", status: "pending" },
-      { id: "3", label: "Extracting data…", status: "pending" },
-    ];
-    setUploadSteps(steps);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:7878";
-      const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!uploadRes.ok) throw new Error("Upload failed");
-      const { key } = await uploadRes.json();
-
-      setUploadSteps((prev) =>
-        prev.map((s) =>
-          s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s,
-        ),
-      );
-
-      const result = await api.post<TypedProcessedOcr>("/api/ocr/process", { key });
-
-      setUploadSteps((prev) =>
-        prev.map((s) =>
-          s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s,
-        ),
-      );
-
-      setUploadSteps((prev) => prev.map((s) => (s.id === "3" ? { ...s, status: "completed" } : s)));
-      setProcessedOcr(result);
-      toast.success("Receipt scanned successfully!");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to process receipt");
-      onOpenChange(false);
-    } finally {
-      setIsUploading(false);
-    }
+    await uploadFile(selectedFile);
   };
 
   const handleConfirm = async (finalData: TypedProcessedOcr) => {
@@ -81,8 +30,7 @@ export function GlobalOCRDialog({ open, onOpenChange }: { open: boolean; onOpenC
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       toast.success("Transaction saved!");
       onOpenChange(false);
-      setProcessedOcr(null);
-      setFile(null);
+      reset();
     } catch (error) {
       toast.error("Failed to save transaction");
     } finally {
@@ -97,8 +45,7 @@ export function GlobalOCRDialog({ open, onOpenChange }: { open: boolean; onOpenC
         if (!isUploading && !isSaving) {
           onOpenChange(val);
           if (!val) {
-            setProcessedOcr(null);
-            setFile(null);
+            reset();
           }
         }
       }}

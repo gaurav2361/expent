@@ -56,6 +56,7 @@ import { ReviewTransactionForm } from "@/components/transactions/review-transact
 import { SplitDialog } from "@/components/transactions/split-dialog";
 import { TransactionViewer } from "@/components/transactions/transaction-viewer";
 import { useP2P } from "@/hooks/use-p2p";
+import { useOcrUpload } from "@/hooks/use-ocr";
 import { useTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 import { api } from "@/lib/api-client";
 import { useGlobalStore } from "@/lib/store";
@@ -87,13 +88,9 @@ export default function DashboardPage() {
   const { summary, isLoading: isSummaryLoading } = useTransactionSummary();
   const { p2pRequests, acceptMutation } = useP2P();
   const { setTransactionModalOpen } = useGlobalStore();
+  const { isUploading, uploadSteps, processedOcr, uploadFile, setProcessedOcr } = useOcrUpload();
 
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadSteps, setUploadSteps] = useState<
-    { id: string; label: string; status: "pending" | "in-progress" | "completed" | "failed" }[]
-  >([]);
-  const [processedOcr, setProcessedOcr] = useState<TypedProcessedOcr | null>(null);
   const [isSavingOcr, setIsSavingOcr] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<{ id: string; amount: string } | null>(null);
@@ -181,58 +178,7 @@ export default function DashboardPage() {
 
   const handleUpload = async () => {
     if (!file) return;
-    setIsUploading(true);
-    setProcessedOcr(null);
-
-    const steps: { id: string; label: string; status: "pending" | "in-progress" | "completed" | "failed" }[] = [
-      { id: "1", label: "Uploading file…", status: "in-progress" as const },
-      { id: "2", label: "Classifying document…", status: "pending" },
-      { id: "3", label: "Extracting transaction data…", status: "pending" },
-    ];
-    setUploadSteps(steps);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:7878";
-      const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!uploadRes.ok) {
-        const errorBody = await uploadRes.text().catch(() => "Upload failed");
-        throw new Error(errorBody || "Upload failed");
-      }
-      const { key } = await uploadRes.json();
-
-      setUploadSteps((prev) =>
-        prev.map((s) =>
-          s.id === "1" ? { ...s, status: "completed" } : s.id === "2" ? { ...s, status: "in-progress" } : s,
-        ),
-      );
-
-      const result = await api.post<TypedProcessedOcr>("/api/ocr/process", { key });
-
-      setUploadSteps((prev) =>
-        prev.map((s) =>
-          s.id === "2" ? { ...s, status: "completed" } : s.id === "3" ? { ...s, status: "in-progress" } : s,
-        ),
-      );
-
-      setUploadSteps((prev) => prev.map((s) => (s.id === "3" ? { ...s, status: "completed" } : s)));
-
-      setProcessedOcr(result);
-      toast.success("Data extracted successfully! Please review.");
-      setTimeout(() => setIsUploading(false), 1000);
-    } catch (error) {
-      console.error(error);
-      setUploadSteps((prev) => prev.map((s) => (s.status === "in-progress" ? { ...s, status: "failed" } : s)));
-      toast.error(error instanceof Error ? error.message : "Upload or processing failed.");
-      setTimeout(() => setIsUploading(false), 2000);
-    }
+    await uploadFile(file);
   };
 
   const handleConfirmOcr = async (finalData: TypedProcessedOcr) => {

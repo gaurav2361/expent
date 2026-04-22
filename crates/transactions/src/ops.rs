@@ -7,7 +7,8 @@ use rust_decimal::Decimal;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, JoinType,
-    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionError, TransactionTrait,
+    LoaderTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionError,
+    TransactionTrait,
 };
 use std::sync::Arc;
 use wallets::WalletsManager;
@@ -114,53 +115,28 @@ pub async fn list_transactions(
         });
     }
 
-    let mut final_results = Vec::new();
-
-    let wallet_ids: std::collections::HashSet<String> = results
-        .iter()
-        .flat_map(|t| vec![t.source_wallet_id.clone(), t.destination_wallet_id.clone()])
+    // Load related categories
+    let categories = results
+        .load_one(entities::categories::Entity, db)
+        .await?
+        .into_iter()
         .flatten()
-        .collect();
+        .map(|c| (c.id.clone(), c.name))
+        .collect::<std::collections::HashMap<String, String>>();
 
-    let txn_ids: Vec<String> = results.iter().map(|t| t.id.clone()).collect();
-
-    let wallets_map: std::collections::HashMap<String, String> = if wallet_ids.is_empty() {
-        std::collections::HashMap::new()
-    } else {
-        entities::wallets::Entity::find()
-            .filter(entities::wallets::Column::Id.is_in(wallet_ids))
-            .all(db)
-            .await?
-            .into_iter()
-            .map(|w| (w.id, w.name))
-            .collect()
-    };
-
-    let category_ids: std::collections::HashSet<String> = results
-        .iter()
-        .filter_map(|t| t.category_id.clone())
-        .collect();
-
-    let categories_map: std::collections::HashMap<String, String> = if category_ids.is_empty() {
-        std::collections::HashMap::new()
-    } else {
-        entities::categories::Entity::find()
-            .filter(entities::categories::Column::Id.is_in(category_ids))
-            .all(db)
-            .await?
-            .into_iter()
-            .map(|c| (c.id, c.name))
-            .collect()
-    };
-
-    let parties = entities::txn_parties::Entity::find()
-        .filter(entities::txn_parties::Column::TransactionId.is_in(txn_ids))
-        .filter(entities::txn_parties::Column::Role.eq("COUNTERPARTY"))
-        .all(db)
+    // Load related parties (Counterparties)
+    let parties = results
+        .load_many(
+            entities::txn_parties::Entity::find()
+                .filter(entities::txn_parties::Column::Role.eq("COUNTERPARTY")),
+            db,
+        )
         .await?;
 
+    // Collect all contact IDs from parties to load their names
     let contact_ids: std::collections::HashSet<String> = parties
         .iter()
+        .flatten()
         .filter_map(|p| p.contact_id.clone())
         .collect();
 
@@ -176,16 +152,28 @@ pub async fn list_transactions(
             .collect()
     };
 
-    let txn_to_contact: std::collections::HashMap<String, (String, String)> = parties
-        .into_iter()
-        .filter_map(|p| {
-            let c_id = p.contact_id?;
-            let c_name = contacts_map.get(&c_id)?;
-            Some((p.transaction_id, (c_id, c_name.clone())))
-        })
+    // Load wallets (source and destination)
+    let wallet_ids: std::collections::HashSet<String> = results
+        .iter()
+        .flat_map(|t| vec![t.source_wallet_id.clone(), t.destination_wallet_id.clone()])
+        .flatten()
         .collect();
 
-    for txn in results {
+    let wallets_map: std::collections::HashMap<String, String> = if wallet_ids.is_empty() {
+        std::collections::HashMap::new()
+    } else {
+        entities::wallets::Entity::find()
+            .filter(entities::wallets::Column::Id.is_in(wallet_ids))
+            .all(db)
+            .await?
+            .into_iter()
+            .map(|w| (w.id, w.name))
+            .collect()
+    };
+
+    let mut final_results = Vec::new();
+
+    for (i, txn) in results.into_iter().enumerate() {
         let source_wallet_name = txn
             .source_wallet_id
             .as_ref()
@@ -199,14 +187,15 @@ pub async fn list_transactions(
         let category_name = txn
             .category_id
             .as_ref()
-            .and_then(|id| categories_map.get(id))
+            .and_then(|id| categories.get(id))
             .cloned();
 
-        let (contact_id, contact_name) = txn_to_contact
-            .get(&txn.id)
-            .map_or((None, None), |(id, name)| {
-                (Some(id.clone()), Some(name.clone()))
-            });
+        let contact = parties[i].first();
+        let contact_id = contact.and_then(|p| p.contact_id.clone());
+        let contact_name = contact_id
+            .as_ref()
+            .and_then(|id| contacts_map.get(id))
+            .cloned();
 
         final_results.push(TransactionWithDetail {
             transaction: txn,

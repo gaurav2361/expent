@@ -25,7 +25,6 @@ import {
   PhoneIcon,
   PlusIcon,
   ReceiptIcon,
-  StoreIcon,
   Trash2Icon,
   UserIcon,
   WalletIcon,

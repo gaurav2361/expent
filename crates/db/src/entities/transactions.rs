@@ -66,6 +66,28 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Users,
+    #[sea_orm(
+        belongs_to = "super::wallets::Entity",
+        from = "Column::SourceWalletId",
+        to = "super::wallets::Column::Id",
+        on_update = "NoAction",
+        on_delete = "SetNull"
+    )]
+    SourceWallet,
+    #[sea_orm(
+        belongs_to = "super::wallets::Entity",
+        from = "Column::DestinationWalletId",
+        to = "super::wallets::Column::Id",
+        on_update = "NoAction",
+        on_delete = "SetNull"
+    )]
+    DestinationWallet,
+}
+
+impl Related<super::wallets::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SourceWallet.def()
+    }
 }
 
 impl Related<super::p2p_transfers::Entity> for Entity {

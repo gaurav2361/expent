@@ -16,5 +16,10 @@ serde_json.workspace   = true
 tracing.workspace      = true
 uuid.workspace         = true
 
+[dev-dependencies]
+rstest       = "0.26.1"
+tokio        = { features = ["full"], version = "1.44" }
+migration    = { path = "../migration" }
+
 [lints]
 workspace = true

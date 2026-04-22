@@ -11,6 +11,9 @@ use wallets::WalletsManager;
 pub mod ops;
 pub mod summary;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Clone)]
 pub struct TransactionsManager {
     db: DatabaseConnection,
