@@ -2,26 +2,19 @@
 
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 #[derive(Copy, Clone, Default, Debug, DeriveEntity)]
 pub struct Entity;
 
 impl EntityName for Entity {
-    fn table_name(&self) -> &'static str {
+    fn table_name(&self) -> &str {
         "categories"
     }
 }
 
-use ts_rs::TS;
-
-#[derive(
-    Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS,
-)]
-#[ts(
-    export,
-    rename = "Category",
-    export_to = "../../../packages/types/src/db/Category.ts"
-)]
+#[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize, TS, )]
+#[ts(export, rename = "Category", export_to = "../../../packages/types/src/db/Category.ts")]
 pub struct Model {
     pub id: String,
     pub user_id: String,
@@ -53,6 +46,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
+    Budgets,
     Users,
 }
 
@@ -72,11 +66,18 @@ impl ColumnTrait for Column {
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
+            Self::Budgets => Entity::has_many(super::budgets::Entity).into(),
             Self::Users => Entity::belongs_to(super::users::Entity)
                 .from(Column::UserId)
                 .to(super::users::Column::Id)
                 .into(),
         }
+    }
+}
+
+impl Related<super::budgets::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Budgets.def()
     }
 }
 

@@ -2,12 +2,15 @@
 
 pub use super::accounts::Entity as Accounts;
 pub use super::bank_statement_rows::Entity as BankStatementRows;
+pub use super::budgets::Entity as Budgets;
 pub use super::categories::Entity as Categories;
 pub use super::contact_identifiers::Entity as ContactIdentifiers;
 pub use super::contact_links::Entity as ContactLinks;
+pub use super::contact_staging::Entity as ContactStaging;
 pub use super::contacts::Entity as Contacts;
 pub use super::groups::Entity as Groups;
 pub use super::ledger_tabs::Entity as LedgerTabs;
+pub use super::ocr_job_edits::Entity as OcrJobEdits;
 pub use super::ocr_jobs::Entity as OcrJobs;
 pub use super::p2p_requests::Entity as P2pRequests;
 pub use super::p2p_transfers::Entity as P2pTransfers;

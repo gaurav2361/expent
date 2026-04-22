@@ -8,6 +8,7 @@ members = [
   "crates/ocr",
   "crates/upload",
   "crates/wallets",
+  "crates/budgets",
   "crates/transactions",
   "crates/groups",
   "crates/reconciliation",
@@ -58,6 +59,7 @@ regex = "1.10"
 reqwest = { features = [ "json", "multipart" ], version = "0.12" }
 rphonetic = "3.0"
 rust_decimal = { features = [ "serde-with-str" ], version = "1.41" }
+rust_decimal_macros = "1.40"
 sea-orm = { features = [
   "sqlx-postgres",
   "runtime-tokio-native-tls",
@@ -67,6 +69,7 @@ sea-orm = { features = [
 sea-orm-migration = { features = [
   "runtime-tokio-native-tls",
   "sqlx-postgres",
+  "sqlx-sqlite",
 ], version = "1.1.0" }
 serde = { features = [ "derive" ], version = "1.0" }
 serde_json = "1.0"
