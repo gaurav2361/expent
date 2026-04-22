@@ -1,3 +1,4 @@
+pub mod budgets;
 pub mod categories;
 pub mod contacts;
 pub mod groups;

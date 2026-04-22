@@ -35,6 +35,10 @@ pub mod subscriptions {
     pub use ::subscriptions::*;
 }
 
+pub mod budgets {
+    pub use ::budgets::*;
+}
+
 pub mod contacts {
     pub use ::contacts::*;
 }
@@ -53,6 +57,7 @@ pub use better_auth;
 pub use sea_orm;
 pub use upload;
 
+use ::budgets::BudgetsManager;
 use ::categories::CategoriesManager;
 use ::contacts::ContactsManager;
 use ::groups::GroupsManager;
@@ -79,6 +84,7 @@ pub struct Core {
     pub groups: Arc<GroupsManager>,
     pub reconciliation: Arc<ReconciliationManager>,
     pub subscriptions: Arc<SubscriptionsManager>,
+    pub budgets: Arc<BudgetsManager>,
     pub contacts: Arc<ContactsManager>,
     pub categories: Arc<CategoriesManager>,
     pub users: Arc<UsersManager>,
@@ -198,6 +204,7 @@ impl Core {
         ));
         let reconciliation = Arc::new(ReconciliationManager::new(db.clone()));
         let subscriptions = Arc::new(SubscriptionsManager::new(db.clone()));
+        let budgets = Arc::new(BudgetsManager::new(db.clone()));
         let contacts = Arc::new(ContactsManager::new(db.clone()));
         let categories = Arc::new(CategoriesManager::new(db.clone()));
         let users = Arc::new(UsersManager::new(db.clone()));
@@ -212,6 +219,7 @@ impl Core {
             groups,
             reconciliation,
             subscriptions,
+            budgets,
             contacts,
             categories,
             users,

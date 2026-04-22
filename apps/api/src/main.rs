@@ -100,6 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let api_router = Router::new()
         .route("/health", get(|| async { "OK" }))
         .nest("/transactions", routes::transactions::router())
+        .nest("/budgets", routes::budgets::router())
         .nest("/p2p", routes::p2p::router())
         .nest("/groups", routes::groups::router())
         .nest("/contacts", routes::contacts::router())

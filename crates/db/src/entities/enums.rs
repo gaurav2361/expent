@@ -317,6 +317,32 @@ pub enum LedgerTabType {
     EnumString,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
+#[ts(export, export_to = "../../../packages/types/src/db/BudgetPeriod.ts")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum BudgetPeriod {
+    #[sea_orm(string_value = "WEEKLY")]
+    Weekly,
+    #[sea_orm(string_value = "MONTHLY")]
+    Monthly,
+    #[sea_orm(string_value = "YEARLY")]
+    Yearly,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    TS,
+    Display,
+    EnumString,
+)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
 #[ts(
     export,
     export_to = "../../../packages/types/src/db/LedgerTabStatus.ts"
