@@ -20,6 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@expent/ui/globals.css": ["../../packages/ui/src/styles/globals.css"],
       "@expent/ui/*": ["../../packages/ui/src/*"],
       "@expent/types": ["../../packages/types/src/index.ts"],
       "@expent/types/*": ["../../packages/types/src/*"],

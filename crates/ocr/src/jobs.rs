@@ -57,8 +57,8 @@ pub async fn create_ocr_job(
         resolution_candidates: Set(None),
         processed_data: Set(None),
         error: Set(None),
-        created_at: Set(Utc::now().into()),
-        updated_at: Set(Utc::now().into()),
+        created_at: Set(Utc::now().naive_utc()),
+        updated_at: Set(Utc::now().naive_utc()),
     };
 
     job.insert(db).await.map_err(AppError::from)
@@ -124,10 +124,10 @@ pub async fn update_ocr_job(
         job.transaction_id = Set(Some(t_id));
     }
     if let Some(s_at) = started_at {
-        job.started_at = Set(Some(s_at.into()));
+        job.started_at = Set(Some(s_at.naive_utc()));
     }
     if let Some(sch_at) = scheduled_at {
-        job.scheduled_at = Set(Some(sch_at.into()));
+        job.scheduled_at = Set(Some(sch_at.naive_utc()));
     }
     if let Some(r_count) = retry_count {
         job.retry_count = Set(r_count);
@@ -144,7 +144,7 @@ pub async fn update_ocr_job(
     if let Some(l_err) = last_error {
         job.last_error = Set(Some(l_err));
     }
-    job.updated_at = Set(Utc::now().into());
+    job.updated_at = Set(Utc::now().naive_utc());
 
     job.update(db).await.map_err(AppError::from)
 }
@@ -355,7 +355,7 @@ pub async fn process_job(
                     None,
                     None,
                     None,
-                    Some(chrono::Utc::now().into()),
+                    Some(chrono::Utc::now().naive_utc()),
                     None,
                     Some(true),
                     None,
@@ -417,7 +417,7 @@ pub async fn process_job(
                     None,
                     None,
                     None,
-                    Some(next_run.into()),
+                    Some(next_run.naive_utc()),
                     Some(new_retry_count),
                     None,
                     None,
@@ -481,7 +481,7 @@ async fn log_ocr_edits(
                     field_name: Set(key.clone()),
                     original_value: Set(Some(orig_val.to_string())),
                     corrected_value: Set(Some(corr_val.to_string())),
-                    created_at: Set(Utc::now().into()),
+                    created_at: Set(Utc::now().naive_utc()),
                 };
                 edit.insert(db).await?;
             }
