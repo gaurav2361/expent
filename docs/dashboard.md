@@ -73,6 +73,7 @@ The secure boundary wrapped in a global `layout.tsx`.
   - **Pattern Recognition**: Consumes `GET /api/subscriptions/detect` powered by **`expent_core`** heuristics.
 
 - **`/settings`**
+  - **Budgets**: User-defined spending limits per category, visualized via the `BudgetHealthWidget`.
   - **User Controls**: Profile management and theme preferences.
 
 ---

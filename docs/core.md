@@ -55,6 +55,14 @@ Every ledger entry must be reflected in a physical wallet balance.
 - **Atomic Transactions**: All balance adjustments happen inside SeaORM transactions (`db.transaction`).
 - **Reversibility**: When a transaction is edited or deleted, the core automatically calculates the "delta" and applies the inverse operation to the wallet.
 
+### Budget Health Calculation
+
+Located in `crates/budgets`, integrated via `expent_core::services::budgets`:
+
+- **Real-time Tracking**: Aggregates all `OUT` transactions within a specific `BudgetPeriod` (Weekly, Monthly, Yearly).
+- **Category Granularity**: Supports both category-specific limits and "All Categories" global limits.
+- **Velocity Metrics**: Calculates consumption percentage to drive proactive financial alerts in the UI.
+
 ### Subscription Detection
 
 Located in `services/subscriptions/detection.rs`, the core implements a heuristic algorithm that:
@@ -82,5 +90,6 @@ To simplify the workspace, `expent_core` re-exports common crates:
 - `expent_core::better_auth`
 - `expent_core::auth`
 - `expent_core::upload`
+- `expent_core::budgets`
 
 This allows the `api` routes to use `expent_core` as a single source of truth for types and traits.

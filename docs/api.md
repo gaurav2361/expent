@@ -136,7 +136,34 @@ Managed by **`expent_core::services::subscriptions`**.
 
 ---
 
-## 7. Authentication
+## 7. Budgets
+
+Managed by **`expent_core::services::budgets`**.
+
+### `GET /api/budgets`
+
+- **Purpose**: List all active spending limits.
+
+### `POST /api/budgets`
+
+- **Purpose**: Create a new budget limit for a category or overall.
+- **Payload**: `{ category_id: string | null, amount: Decimal, period: BudgetPeriod }`.
+
+### `PATCH /api/budgets/:id`
+
+- **Purpose**: Update an existing budget's limit or cycle.
+
+### `DELETE /api/budgets/:id`
+
+- **Purpose**: Stop tracking a budget.
+
+### `GET /api/budgets/health`
+
+- **Purpose**: Retrieve calculated spending progress (consumption percentage) for all budgets.
+
+---
+
+## 8. Authentication
 
 Powered by `better-auth` re-exports.
 

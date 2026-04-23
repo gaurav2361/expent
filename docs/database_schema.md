@@ -65,6 +65,10 @@ erDiagram
     %% Wallets & Edits
     USERS ||--o{ WALLETS : "owns"
     TRANSACTIONS ||--o{ TRANSACTION_EDITS : "has edit history"
+
+    %% Budgets
+    USERS ||--o{ BUDGETS : "sets"
+    CATEGORIES ||--o{ BUDGETS : "limited by"
 ```
 
 ---
@@ -79,8 +83,9 @@ Shared enums are stored as `String(20)` in the database and serialized as `SCREA
 | `TransactionSource`    | `MANUAL`, `OCR`, `STATEMENT`, `P2P`                         | `transactions.source`            |
 | `TransactionStatus`    | `COMPLETED`, `PENDING`, `CANCELLED`                         | `transactions.status`            |
 | `IdentifierType`       | `UPI`, `PHONE`, `BANK_ACC`                                  | `contact_identifiers.type`       |
-| `TxnPartyRole`         | `SENDER`, `RECEIVER`                                        | `txn_parties.role`               |
+| `TxnPartyRole`         | `SENDER`, `RECEIVER`, `COUNTERPARTY`                        | `txn_parties.role`               |
 | `SubscriptionCycle`    | `WEEKLY`, `MONTHLY`, `YEARLY`                               | `subscriptions.cycle`            |
+| `BudgetPeriod`         | `WEEKLY`, `MONTHLY`, `YEARLY`                               | `budgets.period`                 |
 | `AlertChannel`         | `EMAIL`, `PUSH`                                             | `sub_alerts.channel`             |
 | `P2pRequestStatus`     | `PENDING`, `MAPPED`, `REJECTED`, `APPROVED`, `GROUP_INVITE` | `p2p_requests.status`            |
 | `GroupRole`            | `ADMIN`, `MEMBER`                                           | `user_groups.role`, `users.role` |
@@ -129,7 +134,16 @@ The **`expent_core::services::transactions`** module contains the critical rules
 
 ---
 
-## 7. Receipts & Itemization
+## 7. Budgets & Limits
+
+### `budgets`
+
+- **Purpose**: Allows users to set spending ceilings for specific categories or overall.
+- **Health Engine**: Data from this table is processed by the `budgets` crate to calculate consumption velocity.
+
+---
+
+## 8. Receipts & Itemization
 
 These tables handle deep item-level logging when the user uploads a shopping receipt.
 

@@ -30,6 +30,7 @@ _The following operations are already mapped to `db::entities::_`and`docs/databa
 | `m20260401_000001`  | **Indexing Boost**     | Performance indices for lookup columns.                      |
 | `m20260403_000001`  | **Financial Refactor** | `amount` mapping to fixed decimal parsing.                   |
 | `m20260404_000001+` | **Feature Extensions** | Categories, notes, reconciliation fixes, and OCR jobs.       |
+| `m20260422_000001`  | **Smart Budgeting**    | Creation of the `budgets` table and related cycle enums.     |
 
 ---
 
