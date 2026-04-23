@@ -1,0 +1,85 @@
+# Expent Development Guide
+
+This document provides technical instructions for setting up the Expent monorepo, running services locally, and following project-wide engineering standards.
+
+## 1. Prerequisites
+
+Ensure you have the following installed:
+- **Node.js**: v24+ ([pnpm](https://pnpm.io/) is required)
+- **Rust**: Latest stable (via [rustup](https://rustup.rs/))
+- **Python**: v3.13+ ([uv](https://docs.astral.sh/uv/) for dependency management)
+- **PostgreSQL**: Local or cloud instance.
+- **S3 / Cloudflare R2**: Access keys and a bucket for file uploads.
+
+---
+
+## 2. Local Setup
+
+### Step 1: Install Dependencies
+```bash
+# Node.js workspace
+pnpm install
+
+# Rust workspace
+cargo build
+
+# Python OCR worker
+cd apps/ocr
+uv sync
+```
+
+### Step 2: Configuration
+Copy `.env.example` to `.env` in the project root and fill in the required values.
+
+### Step 3: Database Migrations
+Initialize the schema and seed system data:
+```bash
+cargo run -p migration -- up
+```
+
+---
+
+## 3. Development Workflow
+
+### Running Services
+The project uses [Turborepo](https://turbo.build/) to manage parallel execution.
+
+```bash
+# Run all services (API, Dashboard, OCR)
+pnpm dev
+
+# Run a specific application
+pnpm dev:dashboard
+pnpm dev:app
+```
+
+### Formatting & Linting
+Expent enforces strict styling via Biome (JS/TS), Cargo Fmt (Rust), and Ruff (Python).
+
+```bash
+# Format everything
+pnpm fmt-all
+
+# Check for linting errors
+pnpm check
+```
+
+---
+
+## 4. Engineering Mandates
+
+1.  **Architecture**: All business logic must reside in `crates/expent_core`. The `apps/api` should remain a thin routing layer.
+2.  **Type Safety**: Never use `any` in TypeScript. Use the models generated from Rust found in `packages/types/src/db`.
+3.  **Database**: All schema changes must be performed via new files in `crates/migration`. Never modify existing migrations.
+4.  **Security**: Always use the `AuthSession` extractor in Axum handlers to ensure endpoints are authenticated and scoped to the user.
+
+---
+
+## 5. Helpful Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm clean` | Wipe all build artifacts, node_modules, and caches. |
+| `cargo test -p db` | Regenerate TypeScript types for the frontend. |
+| `cargo run -p migration -- fresh` | Reset the database to a clean state. |
+| `pnpm build` | Production release check for the entire stack. |

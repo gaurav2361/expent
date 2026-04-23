@@ -80,6 +80,14 @@ The core doesn't just "read text"; it orchestrates a pipeline:
 2.  Passes it to the Python worker.
 3.  **Auto-Contact Creation**: If the OCR identifies a new UPI ID, the core automatically creates a new `Contact` and links it to the user's address book before saving the transaction.
 
+### P2P Mirroring & State Machine
+
+Located in `crates/groups` and `crates/transactions`, integrated via `expent_core::services::p2p`:
+
+- **Mirrored Entries**: When a user accepts a P2P request, the core automatically generates an identical transaction for the recipient (with inverse direction).
+- **Relational Integrity**: Transactions are linked to their originating `p2p_requests`, ensuring that settlement status is always accurately reflected across both users' ledgers.
+- **Group RBAC**: All collaborative actions are validated against the `user_groups` role system, preventing unauthorized members from modifying shared financial history.
+
 ---
 
 ## 5. Dependency Management
