@@ -8,7 +8,7 @@ use ts_rs::TS;
 pub struct Entity;
 
 impl EntityName for Entity {
-    fn table_name(&self) -> &str {
+    fn table_name(&self) -> &'static str {
         "categories"
     }
 }
@@ -60,11 +60,8 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::String(StringLen::None).def(),
-            Self::UserId => ColumnType::String(StringLen::None).def(),
-            Self::Name => ColumnType::String(StringLen::None).def(),
-            Self::Icon => ColumnType::String(StringLen::None).def().null(),
-            Self::Color => ColumnType::String(StringLen::None).def().null(),
+            Self::Id | Self::UserId | Self::Name => ColumnType::String(StringLen::None).def(),
+            Self::Icon | Self::Color => ColumnType::String(StringLen::None).def().null(),
         }
     }
 }

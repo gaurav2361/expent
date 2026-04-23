@@ -21,7 +21,7 @@ pub async fn create_group(
     let user_group = entities::user_groups::ActiveModel {
         user_id: Set(user_id.to_string()),
         group_id: Set(result.id.clone()),
-        role: Set(GroupRole::Admin.to_string()),
+        role: Set(GroupRole::Admin),
     };
     user_group.insert(db).await?;
 

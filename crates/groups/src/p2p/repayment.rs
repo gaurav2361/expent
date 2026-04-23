@@ -68,11 +68,11 @@ pub async fn register_repayment(
 
             if total_paid >= tab.target_amount {
                 let mut tab_active: entities::ledger_tabs::ActiveModel = tab.into();
-                tab_active.status = Set(LedgerTabStatus::Settled.to_string());
+                tab_active.status = Set(LedgerTabStatus::Settled);
                 tab_active.update(txn_db).await?;
             } else if total_paid > Decimal::ZERO {
                 let mut tab_active: entities::ledger_tabs::ActiveModel = tab.into();
-                tab_active.status = Set(LedgerTabStatus::PartiallyPaid.to_string());
+                tab_active.status = Set(LedgerTabStatus::PartiallyPaid);
                 tab_active.update(txn_db).await?;
             }
 

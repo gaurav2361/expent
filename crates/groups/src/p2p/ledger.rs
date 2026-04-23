@@ -18,11 +18,11 @@ pub async fn create_ledger_tab(
         id: Set(uuid::Uuid::now_v7().to_string()),
         creator_id: Set(creator_id.to_string()),
         counterparty_id: Set(counterparty_id),
-        tab_type: Set(tab_type.to_string()),
+        tab_type: Set(tab_type),
         title: Set(title.to_string()),
         description: Set(description),
         target_amount: Set(target_amount),
-        status: Set(LedgerTabStatus::Open.to_string()),
+        status: Set(LedgerTabStatus::Open),
         created_at: Set(Utc::now().into()),
         updated_at: Set(Utc::now().into()),
     };

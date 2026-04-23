@@ -56,7 +56,7 @@ pub async fn create_p2p_request(
         sender_user_id: Set(sender_id.to_string()),
         receiver_email: Set(receiver_email.to_string()),
         transaction_data: Set(txn_json),
-        status: Set(P2PRequestStatus::Pending.to_string()),
+        status: Set(P2PRequestStatus::Pending),
         linked_txn_id: Set(None),
     };
 
@@ -82,13 +82,13 @@ pub async fn accept_p2p_request(
                 .await?
                 .ok_or_else(|| AppError::not_found("Request not found"))?;
 
-            if request.status != P2PRequestStatus::Pending.to_string()
-                && request.status != P2PRequestStatus::GroupInvite.to_string()
+            if request.status != P2PRequestStatus::Pending
+                && request.status != P2PRequestStatus::GroupInvite
             {
                 return Err(AppError::unauthorized("Request is not pending"));
             }
 
-            if request.status == P2PRequestStatus::GroupInvite.to_string() {
+            if request.status == P2PRequestStatus::GroupInvite {
                 let metadata: serde_json::Value =
                     serde_json::from_value(request.transaction_data.clone()).map_err(|e| {
                         AppError::Generic(format!("Failed to parse invite data: {e}"))
@@ -101,12 +101,12 @@ pub async fn accept_p2p_request(
                 let user_group = entities::user_groups::ActiveModel {
                     user_id: Set(receiver_id.clone()),
                     group_id: Set(group_id.to_string()),
-                    role: Set(db::entities::enums::GroupRole::Member.to_string()),
+                    role: Set(db::entities::enums::GroupRole::Member),
                 };
                 user_group.insert(txn_db).await?;
 
                 let mut request: entities::p2p_requests::ActiveModel = request.into();
-                request.status = Set(P2PRequestStatus::Approved.to_string());
+                request.status = Set(P2PRequestStatus::Approved);
                 return request.update(txn_db).await.map_err(AppError::from);
             }
 
@@ -149,7 +149,7 @@ pub async fn accept_p2p_request(
                 .await?;
 
             let mut request: entities::p2p_requests::ActiveModel = request.into();
-            request.status = Set(P2PRequestStatus::Mapped.to_string());
+            request.status = Set(P2PRequestStatus::Mapped);
             request.linked_txn_id = Set(Some(result_txn.id));
 
             request.update(txn_db).await.map_err(AppError::from)
@@ -174,7 +174,7 @@ pub async fn reject_p2p_request(
             .ok_or_else(|| AppError::not_found("Request not found"))?
             .into();
 
-    request.status = Set("REJECTED".to_string());
+    request.status = Set(P2PRequestStatus::Rejected);
     request.update(db).await?;
     Ok(())
 }

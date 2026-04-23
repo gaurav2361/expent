@@ -1,6 +1,7 @@
 use chrono::{DateTime, FixedOffset};
 use db::AppError;
 use db::entities;
+use db::entities::enums::{AlertChannel, SubscriptionCycle};
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;
 
@@ -36,7 +37,7 @@ impl SubscriptionsManager {
         user_id: &str,
         name: String,
         amount: Decimal,
-        cycle: String,
+        cycle: SubscriptionCycle,
         start_date: DateTime<FixedOffset>,
         next_charge_date: DateTime<FixedOffset>,
         keywords: Option<serde_json::Value>,
@@ -62,7 +63,7 @@ impl SubscriptionsManager {
         &self,
         sub_id: &str,
         days_before: i32,
-        channel: String,
+        channel: AlertChannel,
     ) -> Result<entities::sub_alerts::Model, AppError> {
         ops::configure_subscription_alert(&self.db, sub_id, days_before, channel).await
     }

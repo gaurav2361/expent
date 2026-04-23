@@ -49,7 +49,7 @@ pub async fn invite_to_group(
             "group_id": group.id,
             "group_name": group.name
         })),
-        status: Set(P2PRequestStatus::GroupInvite.to_string()),
+        status: Set(P2PRequestStatus::GroupInvite),
         linked_txn_id: Set(None),
     };
 
@@ -69,7 +69,7 @@ pub async fn remove_group_member(
             .await?
             .ok_or_else(|| AppError::unauthorized("Admin not in group"))?;
 
-    if admin_membership.role != GroupRole::Admin.to_string() {
+    if admin_membership.role != GroupRole::Admin {
         return Err(AppError::unauthorized("Insufficient permissions"));
     }
 
@@ -93,7 +93,7 @@ pub async fn update_member_role(
             .await?
             .ok_or_else(|| AppError::unauthorized("Admin not in group"))?;
 
-    if admin_membership.role != GroupRole::Admin.to_string() {
+    if admin_membership.role != GroupRole::Admin {
         return Err(AppError::unauthorized("Insufficient permissions"));
     }
 
@@ -107,7 +107,7 @@ pub async fn update_member_role(
         .ok_or_else(|| AppError::not_found("Member not found"))?
         .into();
 
-    membership.role = Set(new_role.to_string());
+    membership.role = Set(new_role);
     membership.update(db).await?;
     Ok(())
 }

@@ -19,7 +19,7 @@ pub async fn create_wallet(
         id: Set(uuid::Uuid::now_v7().to_string()),
         user_id: Set(user_id.to_string()),
         name: Set(name.to_string()),
-        r#type: Set(wallet_type.to_string()),
+        r#type: Set(wallet_type),
         balance: Set(initial_balance),
         created_at: Set(Utc::now().into()),
         updated_at: Set(Utc::now().into()),

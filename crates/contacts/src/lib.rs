@@ -1,6 +1,7 @@
 use db::AppError;
 use db::ContactDetail;
 use db::entities;
+use db::entities::enums::IdentifierType;
 use sea_orm::{ConnectionTrait, DatabaseConnection};
 
 pub mod ops;
@@ -56,7 +57,7 @@ impl ContactsManager {
         &self,
         user_id: &str,
         contact_id: &str,
-        r#type: String,
+        r#type: IdentifierType,
         value: String,
     ) -> Result<entities::contact_identifiers::Model, AppError> {
         ops::add_contact_identifier(&self.db, user_id, contact_id, r#type, value).await

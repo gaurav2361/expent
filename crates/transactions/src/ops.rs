@@ -1,7 +1,9 @@
 use chrono::{DateTime, FixedOffset, Utc};
 use db::AppError;
 use db::entities;
-use db::entities::enums::{TransactionDirection, TransactionSource, TransactionStatus};
+use db::entities::enums::{
+    P2PRequestStatus, TransactionDirection, TransactionSource, TransactionStatus, TxnPartyRole,
+};
 use db::{PaginatedTransactions, SplitDetail, TransactionWithDetail};
 use rust_decimal::Decimal;
 use sea_orm::prelude::DateTimeWithTimeZone;
@@ -58,7 +60,7 @@ pub async fn create_transaction(
                     transaction_id: Set(result.id.clone()),
                     user_id: Set(None),
                     contact_id: Set(Some(c_id)),
-                    role: Set("COUNTERPARTY".to_string()),
+                    role: Set(TxnPartyRole::Counterparty),
                 };
                 party.insert(txn_db).await?;
             }
@@ -295,7 +297,7 @@ pub async fn update_transaction(
                         transaction_id: Set(result.id.clone()),
                         user_id: Set(None),
                         contact_id: Set(Some(c_id)),
-                        role: Set("COUNTERPARTY".to_string()),
+                        role: Set(TxnPartyRole::Counterparty),
                     };
                     party.insert(txn_db).await?;
                 }
@@ -378,7 +380,7 @@ pub async fn split_transaction(
                         "date": txn.date,
                         "purpose": format!("Split for {}", txn.purpose_tag.as_deref().unwrap_or("Expense"))
                     })),
-                    status: Set(db::entities::enums::P2PRequestStatus::Pending.to_string()),
+                    status: Set(P2PRequestStatus::Pending),
                     linked_txn_id: Set(None),
                 };
                 let result = request.insert(txn_db).await?;

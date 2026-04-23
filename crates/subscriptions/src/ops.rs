@@ -1,7 +1,7 @@
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use db::AppError;
 use db::entities;
-use db::entities::enums::SubscriptionCycle;
+use db::entities::enums::{AlertChannel, SubscriptionCycle};
 use rust_decimal::Decimal;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::str::FromStr;
@@ -90,7 +90,7 @@ pub async fn detect_subscriptions(
                         .purpose_tag
                         .unwrap_or_else(|| "Unknown".to_string()),
                     amount: group_txn.amount,
-                    cycle: cycle.to_string(),
+                    cycle,
                     start_date: dates[0],
                     next_charge_date: next_charge,
                     detection_keywords: None,
@@ -119,7 +119,7 @@ pub async fn confirm_subscription(
     user_id: &str,
     name: String,
     amount: Decimal,
-    cycle: String,
+    cycle: SubscriptionCycle,
     start_date: DateTime<FixedOffset>,
     next_charge_date: DateTime<FixedOffset>,
     keywords: Option<serde_json::Value>,
@@ -128,7 +128,7 @@ pub async fn confirm_subscription(
     let existing = entities::subscriptions::Entity::find()
         .filter(entities::subscriptions::Column::UserId.eq(user_id))
         .filter(entities::subscriptions::Column::Name.eq(name.clone()))
-        .filter(entities::subscriptions::Column::Cycle.eq(cycle.clone()))
+        .filter(entities::subscriptions::Column::Cycle.eq(cycle))
         .one(db)
         .await?;
 
@@ -167,7 +167,7 @@ pub async fn configure_subscription_alert(
     db: &DatabaseConnection,
     sub_id: &str,
     days_before: i32,
-    channel: String,
+    channel: AlertChannel,
 ) -> Result<entities::sub_alerts::Model, AppError> {
     let alert = entities::sub_alerts::ActiveModel {
         id: Set(uuid::Uuid::now_v7().to_string()),

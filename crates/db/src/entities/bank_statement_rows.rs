@@ -8,7 +8,7 @@ use ts_rs::TS;
 pub struct Entity;
 
 impl EntityName for Entity {
-    fn table_name(&self) -> &str {
+    fn table_name(&self) -> &'static str {
         "bank_statement_rows"
     }
 }
@@ -70,11 +70,9 @@ impl ColumnTrait for Column {
         match self {
             Self::Id => ColumnType::String(StringLen::None).def().null(),
             Self::Date => ColumnType::TimestampWithTimeZone.def(),
-            Self::Description => ColumnType::String(StringLen::None).def(),
-            Self::Debit => ColumnType::Decimal(None).def().null(),
-            Self::Credit => ColumnType::Decimal(None).def().null(),
+            Self::Description | Self::UserId => ColumnType::String(StringLen::None).def(),
+            Self::Debit | Self::Credit => ColumnType::Decimal(None).def().null(),
             Self::Balance => ColumnType::Decimal(None).def(),
-            Self::UserId => ColumnType::String(StringLen::None).def(),
             Self::IsMatched => ColumnType::Boolean.def(),
         }
     }

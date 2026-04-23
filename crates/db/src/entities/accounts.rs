@@ -8,7 +8,7 @@ use ts_rs::TS;
 pub struct Entity;
 
 impl EntityName for Entity {
-    fn table_name(&self) -> &str {
+    fn table_name(&self) -> &'static str {
         "accounts"
     }
 }
@@ -75,19 +75,19 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::String(StringLen::None).def().null(),
-            Self::AccountId => ColumnType::String(StringLen::None).def(),
-            Self::ProviderId => ColumnType::String(StringLen::None).def(),
-            Self::UserId => ColumnType::String(StringLen::None).def(),
-            Self::AccessToken => ColumnType::String(StringLen::None).def().null(),
-            Self::RefreshToken => ColumnType::String(StringLen::None).def().null(),
-            Self::IdToken => ColumnType::String(StringLen::None).def().null(),
-            Self::AccessTokenExpiresAt => ColumnType::TimestampWithTimeZone.def().null(),
-            Self::RefreshTokenExpiresAt => ColumnType::TimestampWithTimeZone.def().null(),
-            Self::Scope => ColumnType::String(StringLen::None).def().null(),
-            Self::Password => ColumnType::String(StringLen::None).def().null(),
-            Self::CreatedAt => ColumnType::TimestampWithTimeZone.def(),
-            Self::UpdatedAt => ColumnType::TimestampWithTimeZone.def(),
+            Self::Id
+            | Self::AccessToken
+            | Self::RefreshToken
+            | Self::IdToken
+            | Self::Scope
+            | Self::Password => ColumnType::String(StringLen::None).def().null(),
+            Self::AccountId | Self::ProviderId | Self::UserId => {
+                ColumnType::String(StringLen::None).def()
+            }
+            Self::AccessTokenExpiresAt | Self::RefreshTokenExpiresAt => {
+                ColumnType::TimestampWithTimeZone.def().null()
+            }
+            Self::CreatedAt | Self::UpdatedAt => ColumnType::TimestampWithTimeZone.def(),
         }
     }
 }
