@@ -1,33 +1,85 @@
-# Smart Budgeting System Plan
+# Smart Budgeting System
 
-## Objective
-Implement a core financial feature that allows users to set monthly spending limits per category and visualize their progress against these limits on the dashboard.
+The Smart Budgeting System allows users to set spending limits per category (or overall) and track their financial health in real-time. It calculates spending velocity against defined limits for specific periods (Weekly, Monthly, Yearly).
 
-## Phase 1: Database Infrastructure
-1.  **Migration**: Create a new table `budgets` with columns:
-    *   `id` (String, primary key)
-    *   `user_id` (String, foreign key to `users`)
-    *   `category_id` (String, optional foreign key to `categories`)
-    *   `amount` (Decimal)
-    *   `period` (String enum: `MONTHLY`, `WEEKLY`, `YEARLY` - defaulting to `MONTHLY`)
-    *   `created_at` (DateTime)
-    *   `updated_at` (DateTime)
-2.  **Entities**: Update SeaORM entities in `crates/db/src/entities` to include the new `budgets` entity and establish relationships.
+## 1. Architectural Overview
 
-## Phase 2: Backend Logic (`crates/budgets`)
-1.  **Crate Creation**: Set up a new `budgets` crate.
-2.  **CRUD Operations**: Implement functions to create, read, update, and delete budgets.
-3.  **Health Calculation**: Implement a `get_budget_health` function that calculates the total spending for a given category in the current period and returns the percentage consumed.
-4.  **Integration**: Ensure `crates/expent_core` can utilize the new `budgets` crate.
-5.  **API Routes**: Create Axum endpoints in `apps/api` (e.g., `GET /api/budgets`, `POST /api/budgets`, `GET /api/budgets/health`).
+Managed by **`expent_core::services::budgets`** (via the `budgets` crate).
 
-## Phase 3: Frontend Integration
-1.  **API Client**: Add budget-related types to `@expent/types` and implement fetching hooks (`useBudgets`) in the dashboard.
-2.  **Settings Panel**: Add a "Budgets" tab in the Settings section to manage limits per category.
-3.  **Dashboard Widget**: Create a "Budget Health" widget (e.g., a progress bar or burn-down chart) on the main overview page to visualize spending against limits.
+- **Logic Hub**: The `BudgetsManager` in `crates/budgets` calculates "Budget Health" by aggregating actual outbound transactions against user-defined limits.
+- **Period Handling**: Supports dynamic date range calculation for Weekly (Monday-start), Monthly, and Yearly cycles.
+- **Consumption Tracking**: Calculates `percentage_consumed` to drive visual indicators (Green/Amber/Red) in the UI.
 
-## Validation
-- Run unit tests in `crates/budgets/src/tests.rs`.
-- Run formatting and linting across the stack.
+---
 
-> **Note**: `process_entities.py` has been removed to avoid formatting issues. If you regenerate database entities using SeaORM CLI in the future, you must manually re-add the `TS` derive trait and `#[ts(export, ...)]` attributes to maintain TypeScript type generation.
+## 2. Database Schema
+
+### `budgets`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | `String` | Unique identifier (UUID v7). |
+| `user_id` | `String` | Owner of the budget. |
+| `category_id` | `Option<String>` | Specific category limit, or `null` for total spending limit. |
+| `amount` | `Decimal` | The defined spending limit. |
+| `period` | `BudgetPeriod` | Cycle type: `WEEKLY`, `MONTHLY`, `YEARLY`. |
+
+### Enums Reference
+
+| Enum Name | Values | Used By |
+|-----------|--------|---------|
+| `BudgetPeriod` | `WEEKLY`, `MONTHLY`, `YEARLY` | `budgets.period` |
+
+---
+
+## 3. API Reference (`/api/budgets`)
+
+### `GET /api/budgets`
+- **Purpose**: List all active budgets for the authenticated user.
+
+### `POST /api/budgets`
+- **Purpose**: Create a new spending limit.
+- **Payload**: `{ category_id?, amount, period }`.
+
+### `PATCH /api/budgets/:id`
+- **Purpose**: Update an existing budget's limit or period.
+
+### `DELETE /api/budgets/:id`
+- **Purpose**: Remove a budget tracking entry.
+
+### `GET /api/budgets/health`
+- **Purpose**: Fetch calculated spending progress for all budgets.
+- **Response**: Array of `BudgetHealth` objects:
+  ```typescript
+  {
+    budget_id: string;
+    category_name: string;
+    limit_amount: string;
+    spent_amount: string;
+    remaining_amount: string;
+    percentage_consumed: string;
+    period: "WEEKLY" | "MONTHLY" | "YEARLY";
+  }
+  ```
+
+---
+
+## 4. Frontend Integration
+
+### Dashboard Widgets
+- **Budget Health Widget**: A specialized card on the main overview that displays progress bars for the top 4 budgets.
+- **Visual Feedback**:
+  - **Blue/Primary**: Safe (< 85% consumed).
+  - **Amber**: Warning (> 85% consumed).
+  - **Red**: Over-limit (> 100% consumed).
+
+### Management UI
+- Found in **Settings > Budgets**.
+- Allows detailed management of limits and displays precise "Remaining" vs "Spent" breakdowns.
+
+---
+
+## 5. Maintenance Note
+
+> [!WARNING]
+> If database entities are regenerated using `sea-orm-cli`, the `TS` derive traits and `#[ts(export)]` attributes in `crates/db/src/entities/budgets.rs` must be manually restored to maintain TypeScript type safety, as the automated `process_entities.py` script has been deprecated to ensure clean formatting.
