@@ -27,5 +27,7 @@ Implement a core financial feature that allows users to set monthly spending lim
 3.  **Dashboard Widget**: Create a "Budget Health" widget (e.g., a progress bar or burn-down chart) on the main overview page to visualize spending against limits.
 
 ## Validation
-- Add unit tests in `crates/budgets/src/tests.rs`.
+- Run unit tests in `crates/budgets/src/tests.rs`.
 - Run formatting and linting across the stack.
+
+> **Note**: `process_entities.py` has been removed to avoid formatting issues. If you regenerate database entities using SeaORM CLI in the future, you must manually re-add the `TS` derive trait and `#[ts(export, ...)]` attributes to maintain TypeScript type generation.
