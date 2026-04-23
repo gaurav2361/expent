@@ -80,10 +80,8 @@ for filename in files_to_process:
     # 2. Add TS to derive block
     # Matches #[derive(... DeriveModel ...)] and adds TS if missing
     derive_pattern = r"#\[derive\(([^)]*DeriveModel[^)]*)\)\]"
-
     def add_ts_to_derive(match):
-        traits = match.group(1).split(",")
-        traits = [t.strip() for t in traits]
+        traits = [t.strip() for t in match.group(1).split(",") if t.strip()]
         if "TS" not in traits:
             traits.append("TS")
         return f"#[derive({', '.join(traits)})]"

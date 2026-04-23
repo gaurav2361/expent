@@ -6,6 +6,6 @@
   "types": "src/index.ts",
   "license": "MIT",
   "scripts": {
-    "clean": "rm -rf src/*"
+    "clean": "find src/db -name '*.ts' ! -name 'index.ts' -delete || true"
   }
 }

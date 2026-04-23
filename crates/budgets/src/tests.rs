@@ -1,5 +1,7 @@
 use super::*;
-use ::db::entities::enums::BudgetPeriod;
+use ::db::entities::enums::{
+    BudgetPeriod, TransactionDirection, TransactionSource, TransactionStatus,
+};
 use migration::{Migrator, MigratorTrait};
 use rust_decimal_macros::dec;
 use sea_orm::{Database, DatabaseConnection, EntityTrait, Set};
@@ -123,10 +125,10 @@ async fn test_budget_health() {
         id: Set("txn_1".to_string()),
         user_id: Set(user.id.clone()),
         amount: Set(dec!(200)),
-        direction: Set("OUT".to_string()),
+        direction: Set(TransactionDirection::Out),
         date: Set(now.into()),
-        source: Set("MANUAL".to_string()),
-        status: Set("COMPLETED".to_string()),
+        source: Set(TransactionSource::Manual),
+        status: Set(TransactionStatus::Completed),
         category_id: Set(Some("cat_1".to_string())),
         ..Default::default()
     };
@@ -140,10 +142,10 @@ async fn test_budget_health() {
         id: Set("txn_2".to_string()),
         user_id: Set(user.id.clone()),
         amount: Set(dec!(300)),
-        direction: Set("OUT".to_string()),
+        direction: Set(TransactionDirection::Out),
         date: Set(now.into()),
-        source: Set("MANUAL".to_string()),
-        status: Set("COMPLETED".to_string()),
+        source: Set(TransactionSource::Manual),
+        status: Set(TransactionStatus::Completed),
         category_id: Set(None),
         ..Default::default()
     };
