@@ -1,6 +1,6 @@
 "use client";
 
-import type { P2PRequestWithSender } from "@expent/types";
+import type { P2pRequestWithSender } from "@expent/types";
 import { toast } from "@expent/ui/components/goey-toaster";
 import { Skeleton } from "@expent/ui/components/skeleton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -45,7 +45,7 @@ export default function PendingPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {p2pRequests.map((req: P2PRequestWithSender) => (
+          {p2pRequests.map((req: P2pRequestWithSender) => (
             <ApprovalCard
               key={req.id}
               id={req.id}

@@ -126,10 +126,10 @@ pub struct SplitDetail {
 #[derive(Debug, Serialize, Deserialize, Clone, TS)]
 #[ts(
     export,
-    rename = "P2PRequestWithSender",
-    export_to = "../../../packages/types/src/db/P2PRequestWithSender.ts"
+    rename = "P2pRequestWithSender",
+    export_to = "../../../packages/types/src/db/P2pRequestWithSender.ts"
 )]
-pub struct P2PRequestWithSender {
+pub struct P2pRequestWithSender {
     #[serde(flatten)]
     pub request: entities::p2p_requests::Model,
     pub sender_name: Option<String>,

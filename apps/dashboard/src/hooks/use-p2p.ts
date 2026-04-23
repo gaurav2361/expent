@@ -2,7 +2,7 @@ import type {
   Group,
   LedgerTab,
   P2pRequest,
-  P2PRequestWithSender,
+  P2pRequestWithSender,
   Transaction,
   User,
   GroupMemberDetail,
@@ -16,9 +16,9 @@ export function useP2P() {
   const session = useSession();
   const queryClient = useQueryClient();
 
-  const query = useQuery({
+  const pendingRequestsQuery = useQuery({
     queryKey: ["p2p-pending"],
-    queryFn: () => api.get<P2PRequestWithSender[]>("/api/p2p/pending"),
+    queryFn: () => api.get<P2pRequestWithSender[]>("/api/p2p/pending"),
     enabled: !!session.data,
   });
 
@@ -45,9 +45,9 @@ export function useP2P() {
   });
 
   return {
-    p2pRequests: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
+    p2pRequests: pendingRequestsQuery.data,
+    isLoading: pendingRequestsQuery.isLoading,
+    error: pendingRequestsQuery.error,
     acceptMutation,
     rejectMutation,
   };

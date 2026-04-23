@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "dotenv -- turbo build",
+    "clean": "cargo clean && pnpm -r --if-present clean && rm -rf .turbo .venv .pytest_cache .ruff_cache",
     "dev": "dotenv -- turbo dev",
     "check": "biome check --no-errors-on-unmatched --files-ignore-unknown=true",
     "lint": "biome lint --write --no-errors-on-unmatched",

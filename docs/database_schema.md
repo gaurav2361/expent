@@ -82,7 +82,7 @@ Shared enums are stored as `String(20)` in the database and serialized as `SCREA
 | `TxnPartyRole`         | `SENDER`, `RECEIVER`                                        | `txn_parties.role`               |
 | `SubscriptionCycle`    | `WEEKLY`, `MONTHLY`, `YEARLY`                               | `subscriptions.cycle`            |
 | `AlertChannel`         | `EMAIL`, `PUSH`                                             | `sub_alerts.channel`             |
-| `P2PRequestStatus`     | `PENDING`, `MAPPED`, `REJECTED`, `APPROVED`, `GROUP_INVITE` | `p2p_requests.status`            |
+| `P2pRequestStatus`     | `PENDING`, `MAPPED`, `REJECTED`, `APPROVED`, `GROUP_INVITE` | `p2p_requests.status`            |
 | `GroupRole`            | `ADMIN`, `MEMBER`                                           | `user_groups.role`, `users.role` |
 | `WalletType`           | `CASH`, `BANK`, `CREDIT_CARD`, `UPI_WALLET`                 | `wallets.type`                   |
 | `LedgerTabType`        | `LENT`, `BORROWED`                                          | `ledger_tabs.tab_type`           |

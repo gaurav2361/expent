@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bacon dev"
+    "dev": "bacon dev",
+    "check": "bacon check",
+    "test": "bacon test",
+    "build": "cargo build --release"
   }
 }

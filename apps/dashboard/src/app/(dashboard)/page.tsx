@@ -1,6 +1,6 @@
 "use client";
 
-import type { P2PRequestWithSender, TransactionWithDetail, TypedProcessedOcr } from "@expent/types";
+import type { P2pRequestWithSender, TransactionWithDetail, TypedProcessedOcr } from "@expent/types";
 import { Button } from "@expent/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@expent/ui/components/card";
 import {
@@ -332,7 +332,7 @@ export default function DashboardPage() {
                   <Share2Icon className="h-4 w-4 text-primary" /> Pending Approvals
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {(p2pRequests as P2PRequestWithSender[]).map((req) => (
+                  {(p2pRequests as P2pRequestWithSender[]).map((req) => (
                     <ApprovalCard
                       key={req.id}
                       id={req.id}

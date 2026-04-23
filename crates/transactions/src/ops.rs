@@ -2,7 +2,7 @@ use chrono::{DateTime, FixedOffset, Utc};
 use db::AppError;
 use db::entities;
 use db::entities::enums::{
-    P2PRequestStatus, TransactionDirection, TransactionSource, TransactionStatus, TxnPartyRole,
+    P2pRequestStatus, TransactionDirection, TransactionSource, TransactionStatus, TxnPartyRole,
 };
 use db::{PaginatedTransactions, SplitDetail, TransactionWithDetail};
 use rust_decimal::Decimal;
@@ -380,7 +380,7 @@ pub async fn split_transaction(
                         "date": txn.date,
                         "purpose": format!("Split for {}", txn.purpose_tag.as_deref().unwrap_or("Expense"))
                     })),
-                    status: Set(P2PRequestStatus::Pending),
+                    status: Set(P2pRequestStatus::Pending),
                     linked_txn_id: Set(None),
                 };
                 let result = request.insert(txn_db).await?;

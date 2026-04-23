@@ -220,10 +220,10 @@ pub enum AlertChannel {
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
 #[ts(
     export,
-    export_to = "../../../packages/types/src/db/P2PRequestStatus.ts"
+    export_to = "../../../packages/types/src/db/P2pRequestStatus.ts"
 )]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum P2PRequestStatus {
+pub enum P2pRequestStatus {
     #[sea_orm(string_value = "PENDING")]
     Pending,
     #[sea_orm(string_value = "MAPPED")]

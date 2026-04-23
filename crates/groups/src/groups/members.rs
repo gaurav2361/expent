@@ -1,7 +1,7 @@
 use db::AppError;
 use db::GroupMemberDetail;
 use db::entities;
-use db::entities::enums::{GroupRole, P2PRequestStatus};
+use db::entities::enums::{GroupRole, P2pRequestStatus};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter,
     QuerySelect, RelationTrait, Set,
@@ -49,7 +49,7 @@ pub async fn invite_to_group(
             "group_id": group.id,
             "group_name": group.name
         })),
-        status: Set(P2PRequestStatus::GroupInvite),
+        status: Set(P2pRequestStatus::GroupInvite),
         linked_txn_id: Set(None),
     };
 
