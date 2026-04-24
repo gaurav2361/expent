@@ -2,7 +2,9 @@ use std::collections::HashSet;
 
 use db::AppError;
 use db::entities;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, Set,
+};
 
 pub async fn ensure_system_categories(db: &DatabaseConnection) -> Result<(), AppError> {
     // Ensure a "system" user exists so the FK constraint is satisfied
@@ -40,10 +42,12 @@ pub async fn ensure_system_categories(db: &DatabaseConnection) -> Result<(), App
 
     let existing_ids: HashSet<String> = entities::categories::Entity::find()
         .filter(entities::categories::Column::Id.is_in(ids))
+        .select_only()
+        .column(entities::categories::Column::Id)
+        .into_tuple::<String>()
         .all(db)
         .await?
         .into_iter()
-        .map(|c| c.id)
         .collect();
 
     let to_insert: Vec<entities::categories::ActiveModel> = system_cats
