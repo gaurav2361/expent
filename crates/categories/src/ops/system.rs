@@ -1,6 +1,10 @@
+use std::collections::HashSet;
+
 use db::AppError;
 use db::entities;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, Set,
+};
 
 pub async fn ensure_system_categories(db: &DatabaseConnection) -> Result<(), AppError> {
     // Ensure a "system" user exists so the FK constraint is satisfied
@@ -34,20 +38,36 @@ pub async fn ensure_system_categories(db: &DatabaseConnection) -> Result<(), App
         ("cat-hth-0007", "Health & Medical", "activity", "#ef4444"),
     ];
 
-    for (id, name, icon, color) in system_cats {
-        let exists = entities::categories::Entity::find_by_id(id.to_string())
-            .one(db)
-            .await?;
-        if exists.is_none() {
-            let cat = entities::categories::ActiveModel {
+    let ids: Vec<String> = system_cats.iter().map(|(id, ..)| id.to_string()).collect();
+
+    let existing_ids: HashSet<String> = entities::categories::Entity::find()
+        .filter(entities::categories::Column::Id.is_in(ids))
+        .select_only()
+        .column(entities::categories::Column::Id)
+        .into_tuple::<String>()
+        .all(db)
+        .await?
+        .into_iter()
+        .collect();
+
+    let to_insert: Vec<entities::categories::ActiveModel> = system_cats
+        .into_iter()
+        .filter(|(id, ..)| !existing_ids.contains(*id))
+        .map(
+            |(id, name, icon, color)| entities::categories::ActiveModel {
                 id: Set(id.to_string()),
                 user_id: Set("system".to_string()),
                 name: Set(name.to_string()),
                 icon: Set(Some(icon.to_string())),
                 color: Set(Some(color.to_string())),
-            };
-            cat.insert(db).await?;
-        }
+            },
+        )
+        .collect();
+
+    if !to_insert.is_empty() {
+        entities::categories::Entity::insert_many(to_insert)
+            .exec(db)
+            .await?;
     }
     Ok(())
 }
