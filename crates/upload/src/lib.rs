@@ -391,7 +391,16 @@ impl UploadProcessor {
             if ct == "application/pdf" {
                 return FileCategory::Pdf;
             }
-            if ct.starts_with("image/") {
+            if [
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/gif",
+                "image/heic",
+                "image/heif",
+            ]
+            .contains(&ct)
+            {
                 return FileCategory::Image;
             }
             if ct == "text/csv" || ct == "application/csv" {
@@ -419,7 +428,8 @@ impl UploadProcessor {
             match kind.mime_type() {
                 "application/pdf" => return FileCategory::Pdf,
                 "text/csv" | "application/csv" => return FileCategory::Csv,
-                m if m.starts_with("image/") => return FileCategory::Image,
+                "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "image/heic"
+                | "image/heif" => return FileCategory::Image,
                 _ => {}
             }
         }
