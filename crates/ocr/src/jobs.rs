@@ -183,8 +183,8 @@ pub async fn process_job(
     let trace_id = job.trace_id.clone();
 
     // Use raw_key if it's already a high-res attempt or if we want to try high-res
-    let key = if job.is_high_res && job.raw_key.is_some() {
-        job.raw_key.clone().unwrap()
+    let key = if job.is_high_res {
+        job.raw_key.as_ref().unwrap_or(&job.r2_key).clone()
     } else {
         job.r2_key.clone()
     };
@@ -284,7 +284,9 @@ pub async fn process_job(
                             if let Some(c_id) = job.category_id.clone() {
                                 gpay.category_id = Some(c_id);
                             }
-                            processed_ocr.data.0 = serde_json::to_value(gpay).unwrap();
+                            processed_ocr.data.0 = serde_json::to_value(gpay).map_err(|e| {
+                                AppError::Ocr(format!("Failed to serialize GPAY data: {}", e))
+                            })?;
                         }
                     }
                     "GENERIC" => {
@@ -295,7 +297,9 @@ pub async fn process_job(
                             if let Some(c_id) = job.category_id.clone() {
                                 generic.category_id = Some(c_id);
                             }
-                            processed_ocr.data.0 = serde_json::to_value(generic).unwrap();
+                            processed_ocr.data.0 = serde_json::to_value(generic).map_err(|e| {
+                                AppError::Ocr(format!("Failed to serialize GENERIC data: {}", e))
+                            })?;
                         }
                     }
                     _ => {}
@@ -375,7 +379,9 @@ pub async fn process_job(
                     db,
                     &job_id,
                     &status,
-                    Some(serde_json::to_value(processed).unwrap()),
+                    Some(serde_json::to_value(processed).map_err(|e| {
+                        AppError::Ocr(format!("Failed to serialize processed OCR data: {}", e))
+                    })?),
                     None,
                     tx_id,
                     None,
@@ -502,7 +508,9 @@ pub async fn confirm_ocr_job(
 
     let ocr_data = if let Some(data) = manual_data {
         if let Some(orig_data) = job.processed_data {
-            let corrected_json = serde_json::to_value(&data).unwrap();
+            let corrected_json = serde_json::to_value(&data).map_err(|e| {
+                AppError::Ocr(format!("Failed to serialize corrected data: {}", e))
+            })?;
             log_ocr_edits(db, user_id, job_id, &orig_data, &corrected_json).await?;
         }
         data
@@ -563,13 +571,15 @@ pub async fn resolve_contact_collision(
             let mut gpay: db::GPayExtraction = serde_json::from_value(ocr_data.data.0.clone())
                 .map_err(|e| AppError::Ocr(format!("Failed to parse GPAY data: {}", e)))?;
             gpay.contact_id = Some(contact_id.to_string());
-            ocr_data.data.0 = serde_json::to_value(gpay).unwrap();
+            ocr_data.data.0 = serde_json::to_value(gpay)
+                .map_err(|e| AppError::Ocr(format!("Failed to serialize GPAY data: {}", e)))?;
         }
         "GENERIC" => {
             let mut generic: db::OcrResult = serde_json::from_value(ocr_data.data.0.clone())
                 .map_err(|e| AppError::Ocr(format!("Failed to parse GENERIC data: {}", e)))?;
             generic.contact_id = Some(contact_id.to_string());
-            ocr_data.data.0 = serde_json::to_value(generic).unwrap();
+            ocr_data.data.0 = serde_json::to_value(generic)
+                .map_err(|e| AppError::Ocr(format!("Failed to serialize GENERIC data: {}", e)))?;
         }
         _ => return Err(AppError::validation("Unknown document type")),
     }
