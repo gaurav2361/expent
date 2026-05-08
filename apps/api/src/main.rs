@@ -116,8 +116,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let allowed_origins = std::env::var("ALLOWED_ORIGINS")
         .unwrap_or_else(|_| "http://localhost:3000,http://127.0.0.1:3000".to_string())
         .split(',')
-        .map(|s| s.parse::<HeaderValue>().unwrap())
-        .collect::<Vec<_>>();
+        .map(|s| s.parse::<HeaderValue>())
+        .collect::<Result<Vec<_>, _>>()?;
 
     let app = Router::new()
         .nest("/api/auth", auth_router.with_state(core.auth.clone()))
