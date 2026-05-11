@@ -11,7 +11,8 @@ sys.modules["google.genai"] = MagicMock()
 # Add parent directory to path to allow absolute imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from apps.ocr.check_quota import check_gemini_quota # noqa: E402
+from apps.ocr.check_quota import check_gemini_quota  # noqa: E402
+
 
 @patch("apps.ocr.check_quota.load_dotenv")
 @patch("apps.ocr.check_quota.os.getenv")
@@ -20,7 +21,7 @@ def test_check_gemini_quota_success(mock_client_class, mock_getenv, mock_load_do
     # Setup mocks
     mock_getenv.side_effect = lambda key, default=None: {
         "GOOGLE_API_KEY": "fake_key",
-        "GEMINI_MODEL": "gemini-2.5-flash"
+        "GEMINI_MODEL": "gemini-2.5-flash",
     }.get(key, default)
 
     mock_client = MagicMock()
@@ -38,6 +39,7 @@ def test_check_gemini_quota_success(mock_client_class, mock_getenv, mock_load_do
         model="gemini-2.5-flash", contents="Say 'OK' if you can hear me."
     )
 
+
 @patch("apps.ocr.check_quota.load_dotenv")
 @patch("apps.ocr.check_quota.os.getenv")
 def test_check_gemini_quota_no_api_key(mock_getenv, mock_load_dotenv):
@@ -50,6 +52,7 @@ def test_check_gemini_quota_no_api_key(mock_getenv, mock_load_dotenv):
     # Verify
     assert result is False
 
+
 @patch("apps.ocr.check_quota.load_dotenv")
 @patch("apps.ocr.check_quota.os.getenv")
 @patch("apps.ocr.check_quota.genai.Client")
@@ -57,7 +60,7 @@ def test_check_gemini_quota_exceeded(mock_client_class, mock_getenv, mock_load_d
     # Setup mocks
     mock_getenv.side_effect = lambda key, default=None: {
         "GOOGLE_API_KEY": "fake_key",
-        "GEMINI_MODEL": "gemini-2.5-flash"
+        "GEMINI_MODEL": "gemini-2.5-flash",
     }.get(key, default)
 
     mock_client = MagicMock()
@@ -70,6 +73,7 @@ def test_check_gemini_quota_exceeded(mock_client_class, mock_getenv, mock_load_d
     # Verify
     assert result is False
 
+
 @patch("apps.ocr.check_quota.load_dotenv")
 @patch("apps.ocr.check_quota.os.getenv")
 @patch("apps.ocr.check_quota.genai.Client")
@@ -77,7 +81,7 @@ def test_check_gemini_quota_permission_denied(mock_client_class, mock_getenv, mo
     # Setup mocks
     mock_getenv.side_effect = lambda key, default=None: {
         "GOOGLE_API_KEY": "fake_key",
-        "GEMINI_MODEL": "gemini-2.5-flash"
+        "GEMINI_MODEL": "gemini-2.5-flash",
     }.get(key, default)
 
     mock_client = MagicMock()
@@ -90,6 +94,7 @@ def test_check_gemini_quota_permission_denied(mock_client_class, mock_getenv, mo
     # Verify
     assert result is False
 
+
 @patch("apps.ocr.check_quota.load_dotenv")
 @patch("apps.ocr.check_quota.os.getenv")
 @patch("apps.ocr.check_quota.genai.Client")
@@ -97,7 +102,7 @@ def test_check_gemini_quota_unknown_error(mock_client_class, mock_getenv, mock_l
     # Setup mocks
     mock_getenv.side_effect = lambda key, default=None: {
         "GOOGLE_API_KEY": "fake_key",
-        "GEMINI_MODEL": "gemini-2.5-flash"
+        "GEMINI_MODEL": "gemini-2.5-flash",
     }.get(key, default)
 
     mock_client = MagicMock()
@@ -110,6 +115,7 @@ def test_check_gemini_quota_unknown_error(mock_client_class, mock_getenv, mock_l
     # Verify
     assert result is False
 
+
 @patch("apps.ocr.check_quota.load_dotenv")
 @patch("apps.ocr.check_quota.os.getenv")
 @patch("apps.ocr.check_quota.genai.Client")
@@ -117,7 +123,7 @@ def test_check_gemini_quota_retry_info(mock_client_class, mock_getenv, mock_load
     # Setup mocks
     mock_getenv.side_effect = lambda key, default=None: {
         "GOOGLE_API_KEY": "fake_key",
-        "GEMINI_MODEL": "gemini-2.5-flash"
+        "GEMINI_MODEL": "gemini-2.5-flash",
     }.get(key, default)
 
     mock_client = MagicMock()

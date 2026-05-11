@@ -508,9 +508,8 @@ pub async fn confirm_ocr_job(
 
     let ocr_data = if let Some(data) = manual_data {
         if let Some(orig_data) = job.processed_data {
-            let corrected_json = serde_json::to_value(&data).map_err(|e| {
-                AppError::Ocr(format!("Failed to serialize corrected data: {}", e))
-            })?;
+            let corrected_json = serde_json::to_value(&data)
+                .map_err(|e| AppError::Ocr(format!("Failed to serialize corrected data: {}", e)))?;
             log_ocr_edits(db, user_id, job_id, &orig_data, &corrected_json).await?;
         }
         data

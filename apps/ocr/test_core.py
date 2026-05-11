@@ -30,8 +30,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 with patch.dict(os.environ, {"GOOGLE_API_KEY": "fake_key"}):
     from apps.ocr.core import OCREngine
 
+
 def run_async(coro):
     return asyncio.run(coro)
+
 
 def test_classify_image_gpay():
     engine = OCREngine(api_key="fake_key")
@@ -45,6 +47,7 @@ def test_classify_image_gpay():
 
     assert result == "GPAY"
     engine.client.models.generate_content.assert_called_once()
+
 
 def test_classify_image_generic():
     engine = OCREngine(api_key="fake_key")
@@ -61,6 +64,7 @@ def test_classify_image_generic():
     assert result == "GENERIC"
     engine.client.models.generate_content.assert_called_once()
 
+
 def test_classify_image_exception_generic():
     engine = OCREngine(api_key="fake_key")
 
@@ -71,6 +75,7 @@ def test_classify_image_exception_generic():
 
     # Should fallback to GENERIC
     assert result == "GENERIC"
+
 
 def test_classify_image_quota_error_429():
     engine = OCREngine(api_key="fake_key")
@@ -83,6 +88,7 @@ def test_classify_image_quota_error_429():
         run_async(engine.classify_image(b"fake_data", "image/png"))
 
     assert error_msg in str(excinfo.value)
+
 
 def test_classify_image_quota_error_word():
     engine = OCREngine(api_key="fake_key")
