@@ -66,7 +66,7 @@ where
             .await?;
 
         if let Some(ident) = identifier {
-            let score = matches.entry(ident.contact_id.clone()).or_insert(0.0);
+            let score = matches.entry(ident.contact_id).or_insert(0.0);
             *score += 0.5;
         }
     }
@@ -81,7 +81,7 @@ where
             .await?;
 
         if let Some(c) = contact {
-            let score = matches.entry(c.id.clone()).or_insert(0.0);
+            let score = matches.entry(c.id).or_insert(0.0);
             *score += 0.3;
         }
     }
@@ -95,7 +95,7 @@ where
             .await?;
 
         if let Some(ident) = identifier {
-            let score = matches.entry(ident.contact_id.clone()).or_insert(0.0);
+            let score = matches.entry(ident.contact_id).or_insert(0.0);
             *score += 0.1;
         }
     }
@@ -112,10 +112,11 @@ where
             .await?;
 
         for c in contacts {
-            let normalized_target = c
-                .normalized_name
-                .as_ref()
-                .map_or_else(|| normalize_name(&c.name), |n| n.clone());
+            let normalized_target = c.normalized_name.as_deref().map_or_else(
+                || std::borrow::Cow::Owned(normalize_name(&c.name)),
+                std::borrow::Cow::Borrowed,
+            );
+
             let similarity = jaro_winkler(&normalized_input, &normalized_target) as f32;
 
             let mut match_score = 0.0;
@@ -125,19 +126,20 @@ where
             }
 
             // Phonetic check
-            let phonetic_target = c
-                .phonetic_name
-                .as_ref()
-                .map_or_else(|| phonetic_encode(&c.name), |p| p.clone());
+            let phonetic_target = c.phonetic_name.as_deref().map_or_else(
+                || std::borrow::Cow::Owned(phonetic_encode(&c.name)),
+                std::borrow::Cow::Borrowed,
+            );
+
             if !phonetic_input.is_empty()
                 && !phonetic_target.is_empty()
-                && phonetic_input == phonetic_target
+                && phonetic_input == *phonetic_target
             {
                 match_score += 0.05;
             }
 
             if match_score > 0.0 {
-                let score = matches.entry(c.id.clone()).or_insert(0.0);
+                let score = matches.entry(c.id).or_insert(0.0);
                 *score += match_score;
             }
         }

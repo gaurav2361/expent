@@ -1,15 +1,18 @@
 use db::AppError;
 use db::entities;
 use db::entities::enums::IdentifierType;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait, Set};
 
-pub async fn add_contact_identifier(
-    db: &DatabaseConnection,
+pub async fn add_contact_identifier<C>(
+    db: &C,
     user_id: &str,
     contact_id: &str,
     r#type: IdentifierType,
     value: String,
-) -> Result<entities::contact_identifiers::Model, AppError> {
+) -> Result<entities::contact_identifiers::Model, AppError>
+where
+    C: ConnectionTrait,
+{
     let _link =
         entities::contact_links::Entity::find_by_id((user_id.to_string(), contact_id.to_string()))
             .one(db)

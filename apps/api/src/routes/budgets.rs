@@ -1,7 +1,7 @@
 use axum::{
     Json, Router,
     extract::{Path, State},
-    routing::{delete, get, patch, post},
+    routing::{get, patch},
 };
 use db::entities::enums::BudgetPeriod;
 use expent_core::auth::AuthSession;

@@ -1,14 +1,17 @@
 use crate::ops::resolve::{normalize_name, phonetic_encode};
 use db::AppError;
 use db::entities;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
+use sea_orm::{ActiveModelTrait, ConnectionTrait, Set};
 
-pub async fn create_contact(
-    db: &DatabaseConnection,
+pub async fn create_contact<C>(
+    db: &C,
     user_id: &str,
     name: String,
     phone: Option<String>,
-) -> Result<entities::contacts::Model, AppError> {
+) -> Result<entities::contacts::Model, AppError>
+where
+    C: ConnectionTrait,
+{
     let normalized_name = normalize_name(&name);
     let phonetic_name = phonetic_encode(&name);
 

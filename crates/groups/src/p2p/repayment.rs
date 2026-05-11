@@ -24,7 +24,7 @@ pub async fn register_repayment(
     let user_id = user_id.to_string();
     let tab_id = tab_id.to_string();
     db.transaction::<_, entities::transactions::Model, AppError>(|txn_db| {
-        let wallets = wallets.clone();
+        let wallets = Arc::clone(&wallets);
         Box::pin(async move {
             let tab = entities::ledger_tabs::Entity::find_by_id(tab_id)
                 .one(txn_db)
