@@ -52,7 +52,7 @@ Pick the **BEST** opportunity that:
 
 ## 📦 Submission Format (PR)
 
-**Title:** `perf: [Short Description]`
+**Title:** `perf(<scope>): [Short Description]` (or other relevant type like `chore` or `refactor`)
 
 **Description:**
 - **💡 What:** Summary of the optimization.

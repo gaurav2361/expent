@@ -47,7 +47,7 @@ Pick the **BEST** opportunity that:
 
 ## 📦 Submission Format (PR)
 
-**Title:** `ui: [Short Description]`
+**Title:** `ui(<scope>): [Short Description]` (or other relevant type like `feat` or `fix`)
 
 **Description:**
 - **💡 What:** Summary of the UX/a11y enhancement.
