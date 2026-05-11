@@ -71,10 +71,19 @@ pub async fn upload_avatar_handler(
             file_name = field.file_name().unwrap_or("avatar").to_string();
             content_type = field.content_type().unwrap_or("image/png").to_string();
 
-            // Validate it's an image content type
-            if !content_type.starts_with("image/") {
+            // Validate it's an allowed image content type
+            let allowed_types = [
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/gif",
+                "image/heic",
+                "image/heif",
+            ];
+            if !allowed_types.contains(&content_type.as_str()) {
                 return Err(ApiError::BadRequest(
-                    "Only image files are allowed for avatars".to_string(),
+                    "Only JPEG, PNG, WebP, GIF, and HEIC images are allowed for avatars"
+                        .to_string(),
                 ));
             }
 
