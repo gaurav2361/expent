@@ -17,9 +17,16 @@ fn normalize_name(name: &str) -> String {
 
 fn main() {
     let names = vec![
-        "John Doe", "Jane Smith", "Robert De Niro", "Al Pacino",
-        "Christopher Nolan", "Quentin Tarantino", "Steven Spielberg",
-        "Martin Scorsese", "Leonardo DiCaprio", "Brad Pitt"
+        "John Doe",
+        "Jane Smith",
+        "Robert De Niro",
+        "Al Pacino",
+        "Christopher Nolan",
+        "Quentin Tarantino",
+        "Steven Spielberg",
+        "Martin Scorsese",
+        "Leonardo DiCaprio",
+        "Brad Pitt",
     ];
 
     let iterations = 10000;
@@ -32,6 +39,14 @@ fn main() {
     }
 
     let duration = start.elapsed();
-    println!("Time taken for {} iterations of {} names: {:?}", iterations, names.len(), duration);
-    println!("Average time per normalization: {:?}", duration / (iterations * names.len() as u32));
+    println!(
+        "Time taken for {} iterations of {} names: {:?}",
+        iterations,
+        names.len(),
+        duration
+    );
+    println!(
+        "Average time per normalization: {:?}",
+        duration / (iterations * names.len() as u32)
+    );
 }

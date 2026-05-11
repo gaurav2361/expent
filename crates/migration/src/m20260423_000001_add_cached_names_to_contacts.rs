@@ -10,16 +10,8 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Contacts::Table)
-                    .add_column(
-                        ColumnDef::new(Contacts::NormalizedName)
-                            .string()
-                            .null(),
-                    )
-                    .add_column(
-                        ColumnDef::new(Contacts::PhoneticName)
-                            .string()
-                            .null(),
-                    )
+                    .add_column(ColumnDef::new(Contacts::NormalizedName).string().null())
+                    .add_column(ColumnDef::new(Contacts::PhoneticName).string().null())
                     .to_owned(),
             )
             .await
