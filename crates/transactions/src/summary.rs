@@ -4,8 +4,8 @@ use db::entities::enums::TransactionDirection;
 use db::{AppError, DashboardSummary, MonthlyTrend, NamedAmount};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, FromQueryResult, PaginatorTrait, QueryFilter,
-    QueryOrder, QuerySelect, RelationTrait,
+    ColumnTrait, DatabaseConnection, DbBackend, EntityTrait, FromQueryResult, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, RelationTrait,
 };
 
 pub async fn get_dashboard_summary(
@@ -121,7 +121,7 @@ pub async fn get_dashboard_summary(
     // 6. Top Sources (by contact)
     #[derive(FromQueryResult)]
     struct TopSource {
-        contact_id: String,
+        contact_name: String,
         amount: Decimal,
     }
 
@@ -130,6 +130,7 @@ pub async fn get_dashboard_summary(
         user_id: &str,
         direction: &str,
     ) -> Result<Vec<NamedAmount>, AppError> {
+        // Optimized: Join with contacts to get names in a single query
         let results: Vec<TopSource> = entities::transactions::Entity::find()
             .filter(entities::transactions::Column::UserId.eq(user_id))
             .filter(entities::transactions::Column::Direction.eq(direction))
@@ -140,36 +141,24 @@ pub async fn get_dashboard_summary(
             )
             .filter(entities::txn_parties::Column::Role.eq("COUNTERPARTY"))
             .filter(entities::txn_parties::Column::ContactId.is_not_null())
+            .join(
+                sea_orm::JoinType::InnerJoin,
+                entities::txn_parties::Relation::Contacts.def(),
+            )
             .select_only()
-            .column(entities::txn_parties::Column::ContactId)
+            .column_as(entities::contacts::Column::Name, "contact_name")
             .column_as(entities::transactions::Column::Amount.sum(), "amount")
-            .group_by(entities::txn_parties::Column::ContactId)
+            .group_by(entities::contacts::Column::Name)
             .order_by_desc(entities::transactions::Column::Amount.sum())
             .limit(5)
             .into_model::<TopSource>()
             .all(db)
             .await?;
 
-        if results.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let contact_ids: Vec<String> = results.iter().map(|r| r.contact_id.clone()).collect();
-        let contacts = entities::contacts::Entity::find()
-            .filter(entities::contacts::Column::Id.is_in(contact_ids))
-            .all(db)
-            .await?;
-
-        let contact_map: std::collections::HashMap<String, String> =
-            contacts.into_iter().map(|c| (c.id, c.name)).collect();
-
         Ok(results
             .into_iter()
             .map(|r| NamedAmount {
-                name: contact_map
-                    .get(&r.contact_id)
-                    .cloned()
-                    .unwrap_or_else(|| "Unknown".to_string()),
+                name: r.contact_name,
                 amount: r.amount,
             })
             .collect())
@@ -199,6 +188,12 @@ async fn get_monthly_trends(
     let now = Utc::now();
     let six_months_ago = now - Duration::days(180);
 
+    let backend = db.get_database_backend();
+    let date_expr = match backend {
+        DbBackend::Postgres => "to_char(date, 'YYYY-MM')",
+        _ => "strftime('%Y-%m', date)",
+    };
+
     #[derive(FromQueryResult)]
     struct TrendResult {
         date_key: String,
@@ -211,13 +206,10 @@ async fn get_monthly_trends(
         .filter(entities::transactions::Column::Date.gte(six_months_ago))
         .filter(entities::transactions::Column::DeletedAt.is_null())
         .select_only()
-        .column_as(
-            sea_orm::sea_query::Expr::cust("strftime('%Y-%m', date)"),
-            "date_key",
-        )
+        .column_as(sea_orm::sea_query::Expr::cust(date_expr), "date_key")
         .column(entities::transactions::Column::Direction)
         .column_as(entities::transactions::Column::Amount.sum(), "total_amount")
-        .group_by(sea_orm::sea_query::Expr::cust("strftime('%Y-%m', date)"))
+        .group_by(sea_orm::sea_query::Expr::cust(date_expr))
         .group_by(entities::transactions::Column::Direction)
         .into_model::<TrendResult>()
         .all(db)
@@ -276,6 +268,12 @@ async fn get_weekly_trends(
     let now = Utc::now();
     let seven_days_ago = now - Duration::days(7);
 
+    let backend = db.get_database_backend();
+    let date_expr = match backend {
+        DbBackend::Postgres => "to_char(date, 'YYYY-MM-DD')",
+        _ => "strftime('%Y-%m-%d', date)",
+    };
+
     #[derive(FromQueryResult)]
     struct TrendResult {
         date_key: String,
@@ -288,13 +286,10 @@ async fn get_weekly_trends(
         .filter(entities::transactions::Column::Date.gte(seven_days_ago))
         .filter(entities::transactions::Column::DeletedAt.is_null())
         .select_only()
-        .column_as(
-            sea_orm::sea_query::Expr::cust("strftime('%Y-%m-%d', date)"),
-            "date_key",
-        )
+        .column_as(sea_orm::sea_query::Expr::cust(date_expr), "date_key")
         .column(entities::transactions::Column::Direction)
         .column_as(entities::transactions::Column::Amount.sum(), "total_amount")
-        .group_by(sea_orm::sea_query::Expr::cust("strftime('%Y-%m-%d', date)"))
+        .group_by(sea_orm::sea_query::Expr::cust(date_expr))
         .group_by(entities::transactions::Column::Direction)
         .into_model::<TrendResult>()
         .all(db)

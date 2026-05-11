@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 auth.workspace           = true
+budgets.workspace        = true
 categories.workspace     = true
 contacts.workspace       = true
 db.workspace             = true
