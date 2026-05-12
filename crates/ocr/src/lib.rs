@@ -93,6 +93,7 @@ pub struct OcrManager {
     pub db: DatabaseConnection,
     pub upload: upload::UploadClient,
     pub ocr_tx: tokio::sync::broadcast::Sender<OcrUpdate>,
+    pub semaphore: Arc<tokio::sync::Semaphore>,
 }
 
 #[derive(Debug)]
@@ -119,6 +120,7 @@ impl OcrManager {
             db,
             upload,
             ocr_tx,
+            semaphore: Arc::new(tokio::sync::Semaphore::new(10)),
         }
     }
 
@@ -145,8 +147,10 @@ impl OcrManager {
         let service = Arc::clone(&self.service);
         let upload = self.upload.clone();
         let ocr_tx = self.ocr_tx.clone();
+        let semaphore = self.semaphore.clone();
 
         tokio::spawn(async move {
+            let _permit = semaphore.acquire().await.ok();
             if let Err(e) =
                 ops::process::process_job(&db, service, &upload, ocr_tx, processor, job_id).await
             {
@@ -163,6 +167,7 @@ impl OcrManager {
             self.upload.clone(),
             self.ocr_tx.clone(),
             processor,
+            self.semaphore.clone(),
         ));
     }
 

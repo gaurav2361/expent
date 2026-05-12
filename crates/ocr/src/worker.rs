@@ -23,9 +23,9 @@ pub async fn start_processor_worker(
     upload_client: UploadClient,
     ocr_tx: tokio::sync::broadcast::Sender<OcrUpdate>,
     processor: Arc<dyn crate::OcrProcessor>,
+    semaphore: Arc<Semaphore>,
 ) {
     let mut interval = tokio::time::interval(Duration::from_secs(10)); // Poll every 10 seconds
-    let semaphore = Arc::new(Semaphore::new(4)); // Limit to 4 concurrent background OCR tasks
 
     loop {
         interval.tick().await;
