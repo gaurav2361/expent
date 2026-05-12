@@ -31,7 +31,8 @@ pub async fn add_user_upi(
     label: Option<String>,
 ) -> Result<entities::user_upi_ids::Model, AppError> {
     // 1. Basic UPI Format Validation (handle@bank)
-    if !UPI_REGEX.is_match(&upi_id) { // Use the lazy_static regex
+    if !UPI_REGEX.is_match(&upi_id) {
+        // Use the lazy_static regex
         return Err(AppError::validation(format!(
             "Invalid UPI ID format: '{upi_id}'"
         )));

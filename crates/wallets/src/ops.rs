@@ -215,3 +215,57 @@ where
 
     wallet.insert(db).await.map_err(AppError::from)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sea_orm::{DatabaseBackend, MockDatabase};
+
+    #[tokio::test]
+    async fn test_list_wallets() {
+        let user_id = "user_123";
+        let mock_wallets = vec![
+            entities::wallets::Model {
+                id: "wallet_1".to_string(),
+                user_id: user_id.to_string(),
+                name: "Cash".to_string(),
+                r#type: WalletType::Cash,
+                balance: Decimal::from(100),
+                created_at: Utc::now().into(),
+                updated_at: Utc::now().into(),
+            },
+            entities::wallets::Model {
+                id: "wallet_2".to_string(),
+                user_id: user_id.to_string(),
+                name: "Bank".to_string(),
+                r#type: WalletType::Bank,
+                balance: Decimal::from(5000),
+                created_at: Utc::now().into(),
+                updated_at: Utc::now().into(),
+            },
+        ];
+
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results(vec![mock_wallets.clone()])
+            .into_connection();
+
+        let result = list_wallets(&db, user_id).await.unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].id, "wallet_1");
+        assert_eq!(result[1].id, "wallet_2");
+        assert_eq!(result[0].user_id, user_id);
+        assert_eq!(result[1].user_id, user_id);
+
+        // Verify the query was filtered by user_id
+        let log = db.into_transaction_log();
+        assert_eq!(log.len(), 1);
+        let query = &log[0];
+        if let sea_orm::Transaction::Query(q) = query {
+            assert!(q.sql.contains("\"user_id\" = $1"));
+            assert_eq!(q.values, vec![user_id.into()]);
+        } else {
+            panic!("Expected a query");
+        }
+    }
+}
