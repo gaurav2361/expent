@@ -7,6 +7,12 @@ use sea_orm::{
     Set,
 };
 
+use lazy_static::lazy_static; // Add this import
+
+lazy_static! {
+    static ref UPI_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$").unwrap();
+}
+
 pub async fn list_user_upi(
     db: &DatabaseConnection,
     user_id: &str,
@@ -25,8 +31,10 @@ pub async fn add_user_upi(
     label: Option<String>,
 ) -> Result<entities::user_upi_ids::Model, AppError> {
     // 1. Basic UPI Format Validation (handle@bank)
-    let upi_regex = Regex::new(r"^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$").unwrap();
-    if !upi_regex.is_match(&upi_id) {
+    if !UPI_REGEX.is_match(&upi_id) { // Use the lazy_static regex
+        return Err(AppError::validation(format!(
+            "Invalid UPI ID format: '{upi_id}'"
+        )));
         return Err(AppError::validation(format!(
             "Invalid UPI ID format: '{upi_id}'"
         )));
