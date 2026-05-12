@@ -15,5 +15,9 @@ serde_json.workspace   = true
 tracing.workspace      = true
 uuid.workspace         = true
 
+[dev-dependencies]
+sea-orm = { workspace = true, features = ["mock"] }
+tokio = { workspace = true, features = ["full"] }
+
 [lints]
 workspace = true
