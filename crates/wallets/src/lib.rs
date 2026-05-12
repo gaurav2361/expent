@@ -57,6 +57,18 @@ impl WalletsManager {
         ops::get_balance(&self.db, wallet_id).await
     }
 
+    pub async fn resolve<C>(
+        &self,
+        conn: &C,
+        user_id: &str,
+        params: ops::ResolveWalletParams,
+    ) -> Result<entities::wallets::Model, AppError>
+    where
+        C: ConnectionTrait,
+    {
+        ops::resolve_wallet(conn, user_id, params).await
+    }
+
     /// Atomically adjusts the balance of a wallet.
     /// Can accept either a `DatabaseConnection` or a `DatabaseTransaction`.
     pub async fn adjust_balance<C>(

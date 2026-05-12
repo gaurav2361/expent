@@ -1,4 +1,5 @@
 use ::contacts::ContactsManager;
+use ::wallets::WalletsManager;
 use chrono::{DateTime, Utc};
 use db::entities;
 use db::entities::enums::{IdentifierType, TransactionDirection, TransactionStatus, TxnPartyRole};
@@ -15,6 +16,7 @@ use std::sync::Arc;
 pub async fn process_ocr(
     db: &DatabaseConnection,
     contacts_manager: Arc<ContactsManager>,
+    wallets_manager: Arc<WalletsManager>,
     user_id: &str,
     processed: ProcessedOcr,
 ) -> Result<OcrTransactionResponse, AppError> {
@@ -54,6 +56,18 @@ pub async fn process_ocr(
                         AppError::Ocr(format!("Failed to parse bank statement data: {}", e))
                     })?;
 
+                // Resolve/Create Wallet for this Bank
+                let wallet = wallets_manager
+                    .resolve(
+                        txn_db,
+                        &user_id,
+                        ::wallets::ops::ResolveWalletParams {
+                            bank_name: bank_result.bank_data.bank_name.clone(),
+                            account_number: bank_result.bank_data.account_number.clone(),
+                        },
+                    )
+                    .await?;
+
                 let mut last_txn = None;
                 let mut total_processed = 0;
 
@@ -74,11 +88,6 @@ pub async fn process_ocr(
                                 },
                             )
                             .await?;
-
-                        if resolution.is_collision {
-                            // For batch processing, we might want to skip or flag collisions
-                            // but for now let's just create a new one if it's not clear
-                        }
 
                         if let Some(c_id) = resolution.contact_id {
                             current_contact_id = Some(c_id);
@@ -127,7 +136,7 @@ pub async fn process_ocr(
                         direction: Set(direction),
                         status: Set(TransactionStatus::Completed),
                         date: Set(timestamp.into()),
-                        source_wallet_id: Set(bt.wallet_id.clone()),
+                        source_wallet_id: Set(bt.wallet_id.clone().or(Some(wallet.id.clone()))),
                         category_id: Set(bt.category_id.clone()),
                         notes: Set(Some(bt.description.clone())),
                         ..Default::default()

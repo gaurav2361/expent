@@ -29,6 +29,8 @@ pub struct Model {
     pub r#type: WalletType,
     #[ts(type = "string")]
     pub balance: Decimal,
+    pub bank_name: Option<String>,
+    pub account_number: Option<String>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -40,6 +42,8 @@ pub enum Column {
     Name,
     Type,
     Balance,
+    BankName,
+    AccountNumber,
     CreatedAt,
     UpdatedAt,
 }
@@ -68,6 +72,9 @@ impl ColumnTrait for Column {
             Self::Id => ColumnType::String(StringLen::None).def().null(),
             Self::UserId | Self::Name | Self::Type => ColumnType::String(StringLen::None).def(),
             Self::Balance => ColumnType::Decimal(None).def(),
+            Self::BankName | Self::AccountNumber => {
+                ColumnType::String(StringLen::None).def().null()
+            }
             Self::CreatedAt | Self::UpdatedAt => ColumnType::TimestampWithTimeZone.def(),
         }
     }

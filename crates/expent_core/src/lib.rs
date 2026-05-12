@@ -102,7 +102,10 @@ impl OcrProcessor for Core {
         let db = db.clone();
         let user_id = user_id.to_string();
         let contacts = self.contacts.clone();
-        Box::pin(async move { bridge::process_ocr(&db, contacts, &user_id, processed).await })
+        let wallets = self.wallets.clone();
+        Box::pin(
+            async move { bridge::process_ocr(&db, contacts, wallets, &user_id, processed).await },
+        )
     }
 }
 
