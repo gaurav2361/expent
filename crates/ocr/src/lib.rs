@@ -5,13 +5,15 @@ use serde_json::Value;
 use std::sync::Arc;
 use tracing::info;
 
-pub mod jobs;
+pub mod ops;
 pub mod worker;
 
-pub use jobs::*;
-pub use worker::*;
+pub use ops::confirm::{confirm_ocr_job, resolve_contact_collision};
+pub use ops::lifecycle::{create_ocr_job, get_ocr_job, list_pending_ocr_jobs, update_ocr_job};
+pub use ops::process::{OcrProcessor, process_job};
+pub use worker::{start_processor_worker, start_recovery_worker};
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub struct OcrUpdate {
     pub user_id: String,
     pub job_id: String,
@@ -30,7 +32,6 @@ impl OcrService {
         let mut url =
             std::env::var("OCR_WORKER_URL").unwrap_or_else(|_| "http://localhost:8090".to_string());
 
-        // Intelligently determine if we need to append /extract
         if !url.contains("/extract") && !url.contains("/ocr") && !url.contains("/process") {
             if !url.ends_with('/') {
                 url.push('/');
@@ -92,6 +93,19 @@ pub struct OcrManager {
     pub db: DatabaseConnection,
     pub upload: upload::UploadClient,
     pub ocr_tx: tokio::sync::broadcast::Sender<OcrUpdate>,
+    pub semaphore: Arc<tokio::sync::Semaphore>,
+}
+
+#[derive(Debug)]
+pub struct OcrJobCreateParams {
+    pub user_id: String,
+    pub trace_id: Option<String>,
+    pub key: String,
+    pub raw_key: Option<String>,
+    pub p_hash: Option<String>,
+    pub auto_confirm: bool,
+    pub wallet_id: Option<String>,
+    pub category_id: Option<String>,
 }
 
 impl OcrManager {
@@ -106,55 +120,54 @@ impl OcrManager {
             db,
             upload,
             ocr_tx,
+            semaphore: Arc::new(tokio::sync::Semaphore::new(10)),
         }
     }
 
     pub async fn start_job(
         &self,
-        user_id: &str,
-        trace_id: Option<String>,
-        key: &str,
-        raw_key: Option<String>,
-        p_hash: Option<String>,
-        auto_confirm: bool,
-        wallet_id: Option<String>,
-        category_id: Option<String>,
+        params: OcrJobCreateParams,
     ) -> Result<db::entities::ocr_jobs::Model, db::AppError> {
-        create_ocr_job(
+        ops::lifecycle::create_ocr_job(
             &self.db,
-            user_id,
-            trace_id,
-            key,
-            raw_key,
-            p_hash,
-            auto_confirm,
-            wallet_id,
-            category_id,
+            &params.user_id,
+            params.trace_id,
+            &params.key,
+            params.raw_key,
+            params.p_hash,
+            params.auto_confirm,
+            params.wallet_id,
+            params.category_id,
         )
         .await
     }
 
     pub async fn process_immediately(&self, processor: Arc<dyn OcrProcessor>, job_id: String) {
         let db = self.db.clone();
-        let service = self.service.clone();
+        let service = Arc::clone(&self.service);
         let upload = self.upload.clone();
         let ocr_tx = self.ocr_tx.clone();
+        let semaphore = self.semaphore.clone();
 
         tokio::spawn(async move {
-            if let Err(e) = process_job(&db, service, &upload, ocr_tx, processor, job_id).await {
+            let _permit = semaphore.acquire().await.ok();
+            if let Err(e) =
+                ops::process::process_job(&db, service, &upload, ocr_tx, processor, job_id).await
+            {
                 tracing::error!("❌ Immediate OCR processing failed: {}", e);
             }
         });
     }
 
     pub fn spawn_workers(&self, processor: Arc<dyn OcrProcessor>) {
-        tokio::spawn(start_recovery_worker(self.db.clone()));
-        tokio::spawn(start_processor_worker(
+        tokio::spawn(worker::start_recovery_worker(self.db.clone()));
+        tokio::spawn(worker::start_processor_worker(
             self.db.clone(),
-            self.service.clone(),
+            Arc::clone(&self.service),
             self.upload.clone(),
             self.ocr_tx.clone(),
             processor,
+            self.semaphore.clone(),
         ));
     }
 
@@ -165,13 +178,24 @@ impl OcrManager {
         job_id: &str,
         manual_data: Option<db::ProcessedOcr>,
     ) -> Result<db::OcrTransactionResponse, db::AppError> {
-        confirm_ocr_job(
+        let data = if let Some(d) = manual_data {
+            serde_json::to_value(d)
+                .map_err(|e| db::AppError::Ocr(format!("Serialization failed: {}", e)))?
+        } else {
+            let job = ops::lifecycle::get_ocr_job(&self.db, job_id)
+                .await?
+                .ok_or_else(|| db::AppError::not_found("OCR Job not found"))?;
+            job.processed_data
+                .ok_or_else(|| db::AppError::validation("Job has no processed data"))?
+        };
+
+        ops::confirm::confirm_ocr_job(
             &self.db,
-            &self.upload,
+            self.ocr_tx.clone(),
             processor,
             user_id,
             job_id,
-            manual_data,
+            data,
         )
         .await
     }
@@ -183,9 +207,9 @@ impl OcrManager {
         job_id: &str,
         contact_id: &str,
     ) -> Result<db::OcrTransactionResponse, db::AppError> {
-        resolve_contact_collision(
+        ops::confirm::resolve_contact_collision(
             &self.db,
-            &self.upload,
+            self.ocr_tx.clone(),
             processor,
             user_id,
             job_id,

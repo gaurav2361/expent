@@ -32,7 +32,7 @@ pub async fn create_transaction(
 ) -> Result<entities::transactions::Model, AppError> {
     let user_id = user_id.to_string();
     db.transaction::<_, entities::transactions::Model, AppError>(|txn_db| {
-        let wallets = wallets.clone();
+        let wallets = Arc::clone(&wallets);
         Box::pin(async move {
             let txn = entities::transactions::ActiveModel {
                 id: Set(uuid::Uuid::now_v7().to_string()),
@@ -233,7 +233,7 @@ pub async fn update_transaction(
     let user_id = user_id.to_string();
     let txn_id = txn_id.to_string();
     db.transaction::<_, entities::transactions::Model, AppError>(|txn_db| {
-        let wallets = wallets.clone();
+        let wallets = Arc::clone(&wallets);
         Box::pin(async move {
             let txn_model = entities::transactions::Entity::find_by_id(txn_id)
                 .one(txn_db)
@@ -324,7 +324,7 @@ pub async fn delete_transaction(
     let user_id = user_id.to_string();
     let txn_id = txn_id.to_string();
     db.transaction::<_, u64, AppError>(|txn_db| {
-        let wallets = wallets.clone();
+        let wallets = Arc::clone(&wallets);
         Box::pin(async move {
             let txn_model = entities::transactions::Entity::find_by_id(txn_id)
                 .one(txn_db)

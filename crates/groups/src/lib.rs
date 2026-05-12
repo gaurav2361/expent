@@ -163,7 +163,7 @@ impl GroupsManager {
     ) -> Result<entities::transactions::Model, AppError> {
         p2p::register_repayment(
             &self.db,
-            self.wallets.clone(),
+            Arc::clone(&self.wallets),
             user_id,
             tab_id,
             amount,

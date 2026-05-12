@@ -9,6 +9,10 @@ dependencies = [
   "python-dotenv",
   "pymupdf",
   "google-genai",
+  "pandas",
+  "openpyxl",
+  "numpy",
+  "pillow",
 ]
 description = "Add your description here"
 name = "expent"

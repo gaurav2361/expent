@@ -43,7 +43,7 @@ impl TransactionsManager {
     ) -> Result<entities::transactions::Model, AppError> {
         ops::create_transaction(
             &self.db,
-            self.wallets.clone(),
+            Arc::clone(&self.wallets),
             user_id,
             amount,
             direction,
@@ -85,7 +85,7 @@ impl TransactionsManager {
     ) -> Result<entities::transactions::Model, AppError> {
         ops::update_transaction(
             &self.db,
-            self.wallets.clone(),
+            Arc::clone(&self.wallets),
             user_id,
             txn_id,
             amount,
@@ -102,7 +102,7 @@ impl TransactionsManager {
     }
 
     pub async fn delete(&self, user_id: &str, txn_id: &str) -> Result<u64, AppError> {
-        ops::delete_transaction(&self.db, self.wallets.clone(), user_id, txn_id).await
+        ops::delete_transaction(&self.db, Arc::clone(&self.wallets), user_id, txn_id).await
     }
 
     pub async fn split(

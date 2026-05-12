@@ -102,7 +102,27 @@ impl OcrProcessor for Core {
         let db = db.clone();
         let user_id = user_id.to_string();
         let contacts = self.contacts.clone();
-        Box::pin(async move { bridge::process_ocr(&db, contacts, &user_id, processed).await })
+        let wallets = self.wallets.clone();
+        Box::pin(
+            async move { bridge::process_ocr(&db, contacts, wallets, &user_id, processed).await },
+        )
+    }
+
+    fn enrich_ocr(
+        &self,
+        db: &DatabaseConnection,
+        user_id: &str,
+        processed: db::ProcessedOcr,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<db::ProcessedOcr, AppError>> + Send>,
+    > {
+        let db = db.clone();
+        let user_id = user_id.to_string();
+        let contacts = self.contacts.clone();
+        let wallets = self.wallets.clone();
+        Box::pin(
+            async move { bridge::enrich_ocr(&db, contacts, wallets, &user_id, processed).await },
+        )
     }
 }
 
@@ -121,10 +141,11 @@ impl Core {
     ) -> Result<Self, anyhow::Error> {
         // 1. Resilient Database Connection
         let mut opt = ConnectOptions::new(config.database_url);
-        opt.max_connections(20)
-            .min_connections(5)
+        opt.max_connections(100)
+            .min_connections(2)
             .connect_timeout(Duration::from_secs(10))
-            .idle_timeout(Duration::from_secs(10))
+            .acquire_timeout(Duration::from_secs(10))
+            .idle_timeout(Duration::from_secs(30))
             .max_lifetime(Duration::from_secs(30 * 60))
             .sqlx_logging(true);
 

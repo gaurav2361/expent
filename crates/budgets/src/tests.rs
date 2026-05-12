@@ -32,8 +32,8 @@ async fn create_test_user(db: &DatabaseConnection, id: &str) -> db::entities::us
     let now = chrono::Utc::now();
     let user = db::entities::users::ActiveModel {
         id: Set(id.to_string()),
-        email: Set(format!("{}@example.com", id)),
-        name: Set(format!("User {}", id)),
+        email: Set(format!("{id}@example.com")),
+        name: Set(format!("User {id}")),
         created_at: Set(now.into()),
         updated_at: Set(now.into()),
         ..Default::default()

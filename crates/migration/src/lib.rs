@@ -22,6 +22,8 @@ pub mod m20260417_000007_create_ocr_job_edits;
 pub mod m20260417_000008_add_ocr_trace_id;
 pub mod m20260422_000001_create_budgets_table;
 pub mod m20260423_000001_add_cached_names_to_contacts;
+pub mod m20260511_114743_update_wallet_type_enum_values;
+pub mod m20260512_000001_add_bank_details_to_wallets;
 
 pub struct Migrator;
 
@@ -51,6 +53,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260417_000008_add_ocr_trace_id::Migration),
             Box::new(m20260422_000001_create_budgets_table::Migration),
             Box::new(m20260423_000001_add_cached_names_to_contacts::Migration),
+            Box::new(m20260511_114743_update_wallet_type_enum_values::Migration),
+            Box::new(m20260512_000001_add_bank_details_to_wallets::Migration),
         ]
     }
 }

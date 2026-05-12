@@ -116,7 +116,7 @@ impl UploadClient {
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("unnamed");
-        let key = format!("{}/{}-{}", user_id, Uuid::new_v4(), sanitized_name);
+        let key = format!("{}/{}-{}", user_id, Uuid::now_v7(), sanitized_name);
 
         let presigning_config = PresigningConfig::expires_in(expires_in)
             .map_err(|e| UploadError::Internal(e.to_string()))?;
@@ -330,7 +330,7 @@ impl UploadProcessor {
         let category =
             Self::determine_category(&data, original_name.as_deref(), content_type.as_deref());
 
-        let id = Uuid::new_v4();
+        let id = Uuid::now_v7();
 
         // Perform category-specific processing
         match category {
@@ -521,7 +521,7 @@ mod tests {
     fn test_s3_key_path_traversal_mitigated() {
         let user_id = "user123";
         let file_name = "../dangerous.txt";
-        let id = Uuid::new_v4();
+        let id = Uuid::now_v7();
 
         // Simulate the fixed key generation
         let sanitized_name = Path::new(file_name)

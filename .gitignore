@@ -3,7 +3,8 @@ node_modules
 .direnv
 .pnp
 .pnp.js
-/target
+target/
+target-nix/
 .venv/
 venv/
 __pycache__/
@@ -42,4 +43,4 @@ pnpm-debug.log*
 .content-collections
 .DS_Store
 *.pem
-/expent.db
+expent.db
