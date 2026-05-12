@@ -13,6 +13,110 @@ use sea_orm::{
 };
 use std::sync::Arc;
 
+pub async fn enrich_ocr(
+    db: &DatabaseConnection,
+    contacts_manager: Arc<ContactsManager>,
+    wallets_manager: Arc<WalletsManager>,
+    user_id: &str,
+    mut processed: ProcessedOcr,
+) -> Result<ProcessedOcr, AppError> {
+    if processed.doc_type == "BANK_STATEMENT" {
+        let mut bank_result: BankExtractionResult =
+            serde_json::from_value(processed.data.0.clone()).map_err(|e| {
+                AppError::Ocr(format!("Failed to parse bank statement data: {}", e))
+            })?;
+
+        // 1. Resolve Wallet (suggested)
+        let wallet = wallets_manager
+            .resolve(
+                db,
+                user_id,
+                ::wallets::ops::ResolveWalletParams {
+                    bank_name: bank_result.bank_data.bank_name.clone(),
+                    account_number: bank_result.bank_data.account_number.clone(),
+                },
+            )
+            .await?;
+
+        // 2. Resolve Contacts for each transaction
+        for bt in &mut bank_result.bank_data.transactions {
+            // Suggest wallet if not explicitly set
+            if bt.wallet_id.is_none() {
+                bt.wallet_id = Some(wallet.id.clone());
+            }
+
+            if let Some(contact_name) = &bt.contact_name {
+                let resolution = contacts_manager
+                    .resolve(
+                        db,
+                        user_id,
+                        ::contacts::ops::ResolveParams {
+                            name: Some(contact_name.clone()),
+                            phone: None,
+                            email: None,
+                            upi_id: bt.upi_id.clone(),
+                        },
+                    )
+                    .await?;
+
+                if let Some(c_id) = resolution.contact_id {
+                    bt.contact_id = Some(c_id);
+                }
+            }
+        }
+
+        processed.data.0 = serde_json::to_value(bank_result).unwrap();
+    } else if processed.doc_type == "GPAY" {
+        let mut gpay: GPayExtraction = serde_json::from_value(processed.data.0.clone())
+            .map_err(|e| AppError::Ocr(format!("Failed to parse GPAY data: {}", e)))?;
+
+        let resolution = contacts_manager
+            .resolve(
+                db,
+                user_id,
+                ::contacts::ops::ResolveParams {
+                    name: Some(gpay.counterparty_name.clone()),
+                    phone: gpay.counterparty_phone.clone(),
+                    email: None,
+                    upi_id: gpay.counterparty_upi_id.clone(),
+                },
+            )
+            .await?;
+
+        if let Some(c_id) = resolution.contact_id {
+            gpay.contact_id = Some(c_id);
+        }
+
+        processed.data.0 = serde_json::to_value(gpay).unwrap();
+    } else {
+        let mut generic: OcrResult = serde_json::from_value(processed.data.0.clone())
+            .map_err(|e| AppError::Ocr(format!("Failed to parse generic data: {}", e)))?;
+
+        if let Some(vendor) = &generic.vendor {
+            let resolution = contacts_manager
+                .resolve(
+                    db,
+                    user_id,
+                    ::contacts::ops::ResolveParams {
+                        name: Some(vendor.clone()),
+                        phone: None,
+                        email: None,
+                        upi_id: generic.upi_id.clone(),
+                    },
+                )
+                .await?;
+
+            if let Some(c_id) = resolution.contact_id {
+                generic.contact_id = Some(c_id);
+            }
+        }
+
+        processed.data.0 = serde_json::to_value(generic).unwrap();
+    }
+
+    Ok(processed)
+}
+
 pub async fn process_ocr(
     db: &DatabaseConnection,
     contacts_manager: Arc<ContactsManager>,

@@ -103,6 +103,7 @@ pub struct BankTransaction {
     pub reference_number: Option<String>,
     pub category_id: Option<String>,
     pub wallet_id: Option<String>,
+    pub contact_id: Option<String>,
     pub metadata: Option<ExportedJsonValue>,
 }
 

@@ -9,8 +9,8 @@ use std::sync::Arc;
 use upload::UploadClient;
 
 /// Helper function to bridge with expent_core for processing transactions.
-/// This will be provided by a trait or callback to keep the ocr crate decoupled.
 pub trait OcrProcessor: Send + Sync {
+    /// Full processing (includes DB insertion)
     fn process_ocr(
         &self,
         db: &DatabaseConnection,
@@ -18,6 +18,16 @@ pub trait OcrProcessor: Send + Sync {
         processed: db::ProcessedOcr,
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = Result<db::OcrTransactionResponse, AppError>> + Send>,
+    >;
+
+    /// Enrichment only (resolves suggestions without DB insertion)
+    fn enrich_ocr(
+        &self,
+        db: &DatabaseConnection,
+        user_id: &str,
+        processed: db::ProcessedOcr,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<db::ProcessedOcr, AppError>> + Send>,
     >;
 }
 
@@ -95,13 +105,11 @@ pub async fn process_job(
             }
             "image/jpeg"
         } else if bytes.starts_with(b"PK\x03\x04") {
-            // PK\x03\x04 is common for ZIP-based formats like .xlsx or .docx
             if !filename.to_lowercase().ends_with(".xlsx") {
                 filename.push_str(".xlsx");
             }
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         } else {
-            // Fallback to filename extension check or default to text/csv if it looks like text
             let ext = filename.split('.').last().unwrap_or("").to_lowercase();
             match ext.as_str() {
                 "pdf" => "application/pdf",
@@ -112,7 +120,6 @@ pub async fn process_job(
                 "png" => "image/png",
                 "jpg" | "jpeg" => "image/jpeg",
                 _ => {
-                    // If no extension, check if it looks like CSV
                     if bytes.len() > 10
                         && (bytes.contains(&b',') || bytes.contains(&b'\t'))
                         && bytes.iter().take(100).all(|&b| b.is_ascii() || b > 127)
@@ -122,7 +129,7 @@ pub async fn process_job(
                         }
                         "text/csv"
                     } else {
-                        "image/png" // Default fallback
+                        "image/png"
                     }
                 }
             }
@@ -135,6 +142,10 @@ pub async fn process_job(
         let mut processed_ocr: db::ProcessedOcr = serde_json::from_value(ocr_json.clone())?;
         processed_ocr.r2_key = Some(job.r2_key.clone());
         processed_ocr.is_high_res = job.is_high_res;
+
+        // --- SMART ENRICHMENT ---
+        // Pre-resolve wallet/contacts/categories
+        processed_ocr = processor.enrich_ocr(db, &user_id, processed_ocr).await?;
 
         // Extract confidence from the inner data
         let confidence_score = match processed_ocr.doc_type.as_str() {
@@ -178,53 +189,6 @@ pub async fn process_job(
         let mut collision_data = None;
 
         if job.auto_confirm {
-            if let Some(w_id) = job.wallet_id {
-                match processed_ocr.doc_type.as_str() {
-                    "GPAY" => {
-                        if let Ok(mut gpay) = serde_json::from_value::<db::GPayExtraction>(
-                            processed_ocr.data.0.clone(),
-                        ) {
-                            gpay.wallet_id = Some(w_id);
-                            if let Some(c_id) = job.category_id.clone() {
-                                gpay.category_id = Some(c_id);
-                            }
-                            processed_ocr.data.0 = serde_json::to_value(gpay).map_err(|e| {
-                                AppError::Ocr(format!("Failed to serialize GPAY data: {}", e))
-                            })?;
-                        }
-                    }
-                    "GENERIC" => {
-                        if let Ok(mut generic) =
-                            serde_json::from_value::<db::OcrResult>(processed_ocr.data.0.clone())
-                        {
-                            generic.wallet_id = Some(w_id);
-                            if let Some(c_id) = job.category_id.clone() {
-                                generic.category_id = Some(c_id);
-                            }
-                            processed_ocr.data.0 = serde_json::to_value(generic).map_err(|e| {
-                                AppError::Ocr(format!("Failed to serialize GENERIC data: {}", e))
-                            })?;
-                        }
-                    }
-                    "BANK_STATEMENT" => {
-                        if let Ok(mut bank) = serde_json::from_value::<db::BankExtractionResult>(
-                            processed_ocr.data.0.clone(),
-                        ) {
-                            for tx in &mut bank.bank_data.transactions {
-                                tx.wallet_id = Some(w_id.clone());
-                                if let Some(c_id) = job.category_id.clone() {
-                                    tx.category_id = Some(c_id);
-                                }
-                            }
-                            processed_ocr.data.0 = serde_json::to_value(bank).map_err(|e| {
-                                AppError::Ocr(format!("Failed to serialize bank data: {}", e))
-                            })?;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
             match processor
                 .process_ocr(db, &user_id, processed_ocr.clone())
                 .await

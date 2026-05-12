@@ -107,6 +107,23 @@ impl OcrProcessor for Core {
             async move { bridge::process_ocr(&db, contacts, wallets, &user_id, processed).await },
         )
     }
+
+    fn enrich_ocr(
+        &self,
+        db: &DatabaseConnection,
+        user_id: &str,
+        processed: db::ProcessedOcr,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<db::ProcessedOcr, AppError>> + Send>,
+    > {
+        let db = db.clone();
+        let user_id = user_id.to_string();
+        let contacts = self.contacts.clone();
+        let wallets = self.wallets.clone();
+        Box::pin(
+            async move { bridge::enrich_ocr(&db, contacts, wallets, &user_id, processed).await },
+        )
+    }
 }
 
 pub struct CoreConfig {

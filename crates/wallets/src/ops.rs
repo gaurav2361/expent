@@ -177,8 +177,14 @@ where
         .filter(entities::wallets::Column::UserId.eq(user_id))
         .filter(
             Condition::any()
-                .add(entities::wallets::Column::Name.ilike(format!("%{}%", params.bank_name)))
-                .add(entities::wallets::Column::BankName.ilike(format!("%{}%", params.bank_name))),
+                .add(
+                    entities::wallets::Column::Name
+                        .like(format!("%{}%", params.bank_name.to_lowercase())),
+                )
+                .add(
+                    entities::wallets::Column::BankName
+                        .like(format!("%{}%", params.bank_name.to_lowercase())),
+                ),
         )
         .one(db)
         .await?;

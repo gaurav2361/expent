@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { toast } from "@expent/ui/components/goey-toaster";
 import type { TypedProcessedOcr } from "@expent/types";
 import { api } from "@/lib/api-client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export type UploadStepStatus = "pending" | "in-progress" | "completed" | "failed";
 
@@ -15,6 +16,7 @@ export interface UploadStep {
 }
 
 export function useOcrUpload() {
+  const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSteps, setUploadSteps] = useState<UploadStep[]>([]);
   const [processedOcr, setProcessedOcr] = useState<TypedProcessedOcr | null>(null);
@@ -101,6 +103,10 @@ export function useOcrUpload() {
       );
 
       const result = await pollJobStatus(job_id);
+
+      // Invalidate queries to pick up any auto-created wallets or contacts
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
 
       setUploadSteps((prev) => prev.map((s) => (s.id === "3" ? { ...s, status: "completed" } : s)));
 
