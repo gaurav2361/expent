@@ -3,10 +3,11 @@ use db::AppError;
 use db::entities::{budgets, categories, enums::BudgetPeriod, transactions};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder, QuerySelect,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, FromQueryResult,
+    QueryFilter, QueryOrder, QuerySelect,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use ts_rs::TS;
 use uuid::Uuid;
 
@@ -29,6 +30,13 @@ pub struct BudgetHealth {
 #[derive(Clone)]
 pub struct BudgetsManager {
     db: DatabaseConnection,
+}
+
+#[derive(FromQueryResult)]
+struct TxnData {
+    category_id: Option<String>,
+    date: chrono::DateTime<Utc>,
+    amount: Decimal,
 }
 
 impl BudgetsManager {
@@ -104,36 +112,69 @@ impl BudgetsManager {
         user_id: &str,
     ) -> Result<Vec<BudgetHealth>, AppError> {
         let budgets = self.list(user_id).await?;
-        let mut health_results = Vec::new();
+        if budgets.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut health_results = Vec::with_capacity(budgets.len());
+
+        let min_start_date = budgets
+            .iter()
+            .map(|b| get_period_bounds(b.period).0)
+            .min()
+            .unwrap_or_else(|| Utc::now());
+
+        let txns: Vec<TxnData> = transactions::Entity::find()
+            .filter(transactions::Column::UserId.eq(user_id))
+            .filter(transactions::Column::Direction.eq("OUT"))
+            .filter(transactions::Column::Date.gte(min_start_date))
+            .filter(transactions::Column::DeletedAt.is_null())
+            .select_only()
+            .column(transactions::Column::CategoryId)
+            .column(transactions::Column::Date)
+            .column(transactions::Column::Amount)
+            .into_model::<TxnData>()
+            .all(&self.db)
+            .await?;
+
+        let mut category_ids: Vec<String> = budgets
+            .iter()
+            .filter_map(|b| b.category_id.clone())
+            .collect();
+
+        category_ids.sort();
+        category_ids.dedup();
+
+        let categories = if !category_ids.is_empty() {
+            categories::Entity::find()
+                .filter(categories::Column::Id.is_in(category_ids))
+                .all(&self.db)
+                .await?
+        } else {
+            Vec::new()
+        };
+
+        let mut category_names = HashMap::new();
+        for cat in categories {
+            category_names.insert(cat.id, cat.name);
+        }
 
         for budget in budgets {
             let (start_date, end_date) = get_period_bounds(budget.period);
 
-            // Sum transactions in this period for this category
-            let mut query = transactions::Entity::find()
-                .filter(transactions::Column::UserId.eq(user_id))
-                .filter(transactions::Column::Direction.eq("OUT"))
-                .filter(transactions::Column::Date.gte(start_date))
-                .filter(transactions::Column::Date.lt(end_date))
-                .filter(transactions::Column::DeletedAt.is_null());
+            let spent = txns
+                .iter()
+                .filter(|t| {
+                    let within_period = t.date >= start_date && t.date < end_date;
+                    let matches_category = match &budget.category_id {
+                        Some(cat_id) => t.category_id.as_ref() == Some(cat_id),
+                        None => true,
+                    };
+                    within_period && matches_category
+                })
+                .map(|t| t.amount)
+                .sum::<Decimal>();
 
-            if let Some(ref cat_id) = budget.category_id {
-                query = query.filter(transactions::Column::CategoryId.eq(cat_id));
-            }
-
-            #[derive(sea_orm::FromQueryResult)]
-            struct SumResult {
-                total: Option<Decimal>,
-            }
-
-            let res: Option<SumResult> = query
-                .select_only()
-                .column_as(transactions::Column::Amount.sum(), "total")
-                .into_model::<SumResult>()
-                .one(&self.db)
-                .await?;
-
-            let spent = res.and_then(|r| r.total).unwrap_or(Decimal::ZERO);
             let remaining = budget.amount - spent;
             let percentage = if budget.amount.is_zero() {
                 Decimal::ZERO
@@ -141,12 +182,8 @@ impl BudgetsManager {
                 (spent / budget.amount) * Decimal::from(100)
             };
 
-            // Get category name if it exists
             let category_name = if let Some(ref cat_id) = budget.category_id {
-                categories::Entity::find_by_id(cat_id)
-                    .one(&self.db)
-                    .await?
-                    .map(|c| c.name)
+                category_names.get(cat_id).cloned()
             } else {
                 Some("All Categories".to_string())
             };
@@ -173,7 +210,6 @@ fn get_period_bounds(period: BudgetPeriod) -> (chrono::DateTime<Utc>, chrono::Da
     let now = Utc::now();
     match period {
         BudgetPeriod::Weekly => {
-            // Monday of this week
             let weekday = now.weekday().num_days_from_monday();
             let start = Utc
                 .with_ymd_and_hms(now.year(), now.month(), now.day(), 0, 0, 0)
