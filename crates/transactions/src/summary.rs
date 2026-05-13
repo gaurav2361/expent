@@ -246,7 +246,11 @@ async fn get_monthly_trends(
 
     let mut result = Vec::new();
     for (key, (inc, exp)) in trends_map {
-        let month_num = key.split('-').nth(1).unwrap().parse::<u32>().unwrap();
+        let month_num = key
+            .split('-')
+            .nth(1)
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(0);
         let month_name = match month_num {
             1 => "Jan",
             2 => "Feb",
@@ -326,11 +330,24 @@ async fn get_weekly_trends(
 
     let mut result = Vec::new();
     for (key, (inc, exp)) in trends_map {
-        let y = key.split('-').next().unwrap().parse::<i32>().unwrap();
-        let m = key.split('-').nth(1).unwrap().parse::<u32>().unwrap();
-        let d = key.split('-').nth(2).unwrap().parse::<u32>().unwrap();
+        let parts: Vec<&str> = key.split('-').collect();
+        let y = parts
+            .get(0)
+            .and_then(|s| s.parse::<i32>().ok())
+            .unwrap_or(0);
+        let m = parts
+            .get(1)
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(0);
+        let d = parts
+            .get(2)
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(0);
 
-        let date = Utc.with_ymd_and_hms(y, m, d, 0, 0, 0).unwrap();
+        let date = Utc
+            .with_ymd_and_hms(y, m, d, 0, 0, 0)
+            .single()
+            .unwrap_or_else(Utc::now);
         result.push(MonthlyTrend {
             month: date.format("%a").to_string(),
             income: inc,

@@ -65,7 +65,8 @@ pub async fn enrich_ocr(
             }
         }
 
-        processed.data.0 = serde_json::to_value(bank_result).unwrap();
+        processed.data.0 = serde_json::to_value(bank_result)
+            .map_err(|e| AppError::Ocr(format!("Serialization error: {}", e)))?;
     } else if processed.doc_type == "GPAY" {
         let mut gpay: GPayExtraction = serde_json::from_value(processed.data.0.clone())
             .map_err(|e| AppError::Ocr(format!("Failed to parse GPAY data: {}", e)))?;
@@ -87,7 +88,8 @@ pub async fn enrich_ocr(
             gpay.contact_id = Some(c_id);
         }
 
-        processed.data.0 = serde_json::to_value(gpay).unwrap();
+        processed.data.0 = serde_json::to_value(gpay)
+            .map_err(|e| AppError::Ocr(format!("Serialization error: {}", e)))?;
     } else {
         let mut generic: OcrResult = serde_json::from_value(processed.data.0.clone())
             .map_err(|e| AppError::Ocr(format!("Failed to parse generic data: {}", e)))?;
@@ -111,7 +113,8 @@ pub async fn enrich_ocr(
             }
         }
 
-        processed.data.0 = serde_json::to_value(generic).unwrap();
+        processed.data.0 = serde_json::to_value(generic)
+            .map_err(|e| AppError::Ocr(format!("Serialization error: {}", e)))?;
     }
 
     Ok(processed)
@@ -314,7 +317,9 @@ pub async fn process_ocr(
 
                     if resolution.is_collision {
                         return Err(AppError::ContactCollision(
-                            serde_json::to_value(resolution.collision_candidates).unwrap(),
+                            serde_json::to_value(resolution.collision_candidates).map_err(|e| {
+                                AppError::Ocr(format!("Serialization error: {}", e))
+                            })?,
                         ));
                     }
 
@@ -435,7 +440,9 @@ pub async fn process_ocr(
 
                     if resolution.is_collision {
                         return Err(AppError::ContactCollision(
-                            serde_json::to_value(resolution.collision_candidates).unwrap(),
+                            serde_json::to_value(resolution.collision_candidates).map_err(|e| {
+                                AppError::Ocr(format!("Serialization error: {}", e))
+                            })?,
                         ));
                     }
 

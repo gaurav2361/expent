@@ -15,10 +15,12 @@ pub struct UserRateLimiter {
 impl UserRateLimiter {
     /// Create a new limiter with a specific quota (e.g. 5 requests per minute with a burst of 10).
     pub fn new(requests_per_minute: u32, burst: u32) -> Self {
+        let rpm = NonZeroU32::new(requests_per_minute)
+            .unwrap_or(unsafe { NonZeroU32::new_unchecked(60) });
+        let b = NonZeroU32::new(burst).unwrap_or(unsafe { NonZeroU32::new_unchecked(10) });
         Self {
             limiters: Arc::new(DashMap::new()),
-            quota: Quota::per_minute(NonZeroU32::new(requests_per_minute).unwrap())
-                .allow_burst(NonZeroU32::new(burst).unwrap()),
+            quota: Quota::per_minute(rpm).allow_burst(b),
         }
     }
 
