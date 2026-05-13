@@ -89,6 +89,10 @@ where
 }
 
 #[allow(clippy::too_many_lines)]
+/// Attempts to resolve a contact based on provided identifiers (UPI, Phone, Email) and name.
+///
+/// # Errors
+/// Returns `AppError::Db` if any database query fails.
 pub async fn resolve_contact<C>(
     db: &C,
     user_id: &str,

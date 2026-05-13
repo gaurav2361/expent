@@ -8,6 +8,11 @@ use sea_orm::{
     PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait,
 };
 
+/// Retrieves a comprehensive summary for the user's dashboard.
+///
+/// # Errors
+/// Returns `AppError::Db` if any database query fails.
+/// Returns `AppError::NotFound` if the user is not found.
 pub async fn get_dashboard_summary(
     db: &DatabaseConnection,
     user_id: &str,
