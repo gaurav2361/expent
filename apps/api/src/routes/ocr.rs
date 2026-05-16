@@ -217,7 +217,7 @@ pub async fn bulk_confirm_ocr_jobs_handler(
         .core
         .jobs
         .enqueue(
-            crate::background_tasks::BulkConfirmOcrJobArgs {
+            crate::background_tasks::BulkConfirmOcrJob {
                 user_id: session.user.id.clone(),
                 job_ids: payload.job_ids,
             },
@@ -225,7 +225,7 @@ pub async fn bulk_confirm_ocr_jobs_handler(
             None,
         )
         .await
-        .map_err(|e| ApiError::InternalServerError(e.to_string()))?;
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     Ok(StatusCode::ACCEPTED)
 }

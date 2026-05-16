@@ -1,31 +1,29 @@
 use ::anyhow::Result;
 use ::async_trait::async_trait;
-use ::jobs::{JobArgs, JobHandler};
+use ::jobs::{Handler, Job};
 use expent_core::Core;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
-pub struct BulkConfirmOcrJobArgs {
+pub struct BulkConfirmOcrJob {
     pub user_id: String,
     pub job_ids: Vec<String>,
 }
 
-impl JobArgs for BulkConfirmOcrJobArgs {
-    const JOB_TYPE: &'static str = "BULK_CONFIRM_OCR";
+impl Job for BulkConfirmOcrJob {
+    const NAME: &'static str = "BULK_CONFIRM_OCR";
 }
 
-pub struct BulkConfirmOcrJobHandler {
-    pub core: Arc<Core>,
-}
+pub struct BulkConfirmOcrJobHandler;
 
 #[async_trait]
-impl JobHandler<BulkConfirmOcrJobArgs> for BulkConfirmOcrJobHandler {
-    async fn handle(&self, args: BulkConfirmOcrJobArgs) -> Result<()> {
+impl Handler<BulkConfirmOcrJob, Arc<Core>> for BulkConfirmOcrJobHandler {
+    async fn handle(&self, core: &Arc<Core>, job: BulkConfirmOcrJob) -> Result<()> {
         use futures::StreamExt;
-        let stream = futures::stream::iter(args.job_ids).map(|job_id| {
-            let core = self.core.clone();
-            let user_id = args.user_id.clone();
+        let stream = futures::stream::iter(job.job_ids).map(|job_id| {
+            let core = core.clone();
+            let user_id = job.user_id.clone();
             async move {
                 let res = core
                     .ocr_manager
