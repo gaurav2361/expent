@@ -21,8 +21,16 @@ pub async fn upload_statement_batch(
         return Ok(());
     }
 
-    let min_date = rows.iter().map(|r| r.date).min().expect("rows must not be empty");
-    let max_date = rows.iter().map(|r| r.date).max().expect("rows must not be empty");
+    let min_date = rows
+        .iter()
+        .map(|r| r.date)
+        .min()
+        .expect("rows must not be empty");
+    let max_date = rows
+        .iter()
+        .map(|r| r.date)
+        .max()
+        .expect("rows must not be empty");
 
     let existing_rows = entities::bank_statement_rows::Entity::find()
         .filter(entities::bank_statement_rows::Column::UserId.eq(user_id))
@@ -32,11 +40,15 @@ pub async fn upload_statement_batch(
         .await?;
 
     use std::collections::HashSet;
-    let existing_set: HashSet<(DateTime<FixedOffset>, String, Option<Decimal>, Option<Decimal>)> =
-        existing_rows
-            .into_iter()
-            .map(|r| (r.date, r.description, r.debit, r.credit))
-            .collect();
+    let existing_set: HashSet<(
+        DateTime<FixedOffset>,
+        String,
+        Option<Decimal>,
+        Option<Decimal>,
+    )> = existing_rows
+        .into_iter()
+        .map(|r| (r.date, r.description, r.debit, r.credit))
+        .collect();
 
     let mut to_insert = Vec::new();
 
