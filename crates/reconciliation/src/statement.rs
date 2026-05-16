@@ -31,6 +31,13 @@ pub async fn upload_statement_batch(
         .all(db)
         .await?;
 
+    use std::collections::HashSet;
+    let existing_set: HashSet<(DateTime<FixedOffset>, String, Option<Decimal>, Option<Decimal>)> =
+        existing_rows
+            .into_iter()
+            .map(|r| (r.date, r.description, r.debit, r.credit))
+            .collect();
+
     let mut to_insert = Vec::new();
 
     for row in rows {
@@ -40,14 +47,7 @@ pub async fn upload_statement_batch(
             (None, Some(row.amount))
         };
 
-        let is_duplicate = existing_rows.iter().any(|existing| {
-            existing.date == row.date
-                && existing.description == row.description
-                && existing.debit == debit
-                && existing.credit == credit
-        });
-
-        if is_duplicate {
+        if existing_set.contains(&(row.date, row.description.clone(), debit, credit)) {
             tracing::info!("⏭️ Skipping duplicate statement row: {}", row.description);
             continue;
         }
