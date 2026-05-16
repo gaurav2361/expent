@@ -3,7 +3,7 @@ use ::contacts::ContactsManager;
 use ::wallets::WalletsManager;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use db::entities::enums::{IdentifierType, TransactionDirection, TransactionStatus, TxnPartyRole};
+use db::entities::enums::{IdentifierType, TransactionDirection, TransactionStatus};
 use db::{AppError, GPayExtraction, OcrTransactionResponse, ProcessedOcr};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DatabaseTransaction, Set};
 use std::sync::Arc;
@@ -150,10 +150,7 @@ impl OcrExtractionStrategy for GPayStrategy {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 transaction_id: Set(result.id.clone()),
                 contact_id: Set(Some(c_id)),
-                role: Set(match direction {
-                    TransactionDirection::In => TxnPartyRole::Sender,
-                    TransactionDirection::Out => TxnPartyRole::Receiver,
-                }),
+                role: Set(direction.counterparty_role()),
                 ..Default::default()
             };
             party.insert(txn_db).await?;

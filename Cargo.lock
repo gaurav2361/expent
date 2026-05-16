@@ -2130,7 +2130,6 @@ dependencies = [
  "rstest",
  "rust_decimal",
  "sea-orm",
- "serde_json",
  "subscriptions",
  "tokio",
  "tracing",

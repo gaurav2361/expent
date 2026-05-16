@@ -3,7 +3,7 @@ use ::contacts::ContactsManager;
 use ::wallets::WalletsManager;
 use async_trait::async_trait;
 use chrono::Utc;
-use db::entities::enums::{TransactionDirection, TransactionStatus, TxnPartyRole};
+use db::entities::enums::{TransactionDirection, TransactionStatus};
 use db::{AppError, OcrResult, OcrTransactionResponse, ProcessedOcr};
 use rust_decimal::Decimal;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DatabaseTransaction, Set};
@@ -117,7 +117,7 @@ impl OcrExtractionStrategy for GenericStrategy {
                 id: Set(uuid::Uuid::now_v7().to_string()),
                 transaction_id: Set(result.id.clone()),
                 contact_id: Set(Some(c_id)),
-                role: Set(TransactionDirection::Out.receiver_role()), // Receiver for Outgoing
+                role: Set(TransactionDirection::Out.counterparty_role()), // Receiver for Outgoing
                 ..Default::default()
             };
             party.insert(txn_db).await?;

@@ -3,10 +3,10 @@ use ::contacts::ContactsManager;
 use ::wallets::WalletsManager;
 use async_trait::async_trait;
 use chrono::Utc;
-use db::entities::enums::{IdentifierType, TransactionDirection, TransactionStatus, TxnPartyRole};
+use db::entities::enums::{IdentifierType, TransactionDirection, TransactionStatus};
 use db::{AppError, BankExtractionResult, OcrTransactionResponse, ProcessedOcr};
 use rust_decimal::Decimal;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, DatabaseTransaction, Set};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -149,9 +149,7 @@ impl OcrExtractionStrategy for BankStatementStrategy {
 
             let amount = bt
                 .debit_amount
-                .as_ref()
-                .or(bt.credit_amount.as_ref())
-                .and_then(|s| s.parse::<Decimal>().ok())
+                .or(bt.credit_amount)
                 .unwrap_or(Decimal::ZERO);
 
             let direction = if bt.debit_amount.is_some() {
@@ -183,10 +181,7 @@ impl OcrExtractionStrategy for BankStatementStrategy {
                     id: Set(uuid::Uuid::now_v7().to_string()),
                     transaction_id: Set(result.id.clone()),
                     contact_id: Set(Some(c_id)),
-                    role: Set(match direction {
-                        TransactionDirection::In => TxnPartyRole::Sender,
-                        TransactionDirection::Out => TxnPartyRole::Receiver,
-                    }),
+                    role: Set(direction.counterparty_role()),
                     ..Default::default()
                 };
                 party.insert(txn_db).await?;

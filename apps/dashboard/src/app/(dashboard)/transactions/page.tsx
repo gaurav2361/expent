@@ -72,10 +72,9 @@ export default function TransactionsPage() {
   const [activeTab, setActiveTab] = React.useState("all");
 
   const {
-    transactions: rawTransactions,
+    data: rawTransactions,
     totalCount,
     isLoading: isTxnsLoading,
-    isFetching: isTxnsFetching,
     updateMutation,
     deleteMutation,
   } = useTransactions({
@@ -616,7 +615,7 @@ export default function TransactionsPage() {
                 <TableBody>
                   {isTxnsLoading && !rawTransactions ? (
                     Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
+                      <TableRow key={`skeleton-${i}`}>
                         <TableCell colSpan={columns.length} className="p-0">
                           <Skeleton className="h-12 w-full" />
                         </TableCell>
