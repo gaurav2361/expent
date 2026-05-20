@@ -17,6 +17,7 @@ members = [
   "crates/categories",
   "crates/users",
   "crates/jobs",
+  "crates/wasm",
 ]
 resolver = "2"
 

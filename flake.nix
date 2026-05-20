@@ -46,6 +46,7 @@
               cargo
               rustfmt
               rust-src
+              targets.wasm32-unknown-unknown.stable.rust-std
             ]
           );
 

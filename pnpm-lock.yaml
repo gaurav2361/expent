@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  mupdf:
+    hash: 25046d12279b8c460bf8dc0cbb54fc2a6540f81ee5a55131eaf72be3d756f769
+    path: patches/mupdf.patch
+
 importers:
 
   .:
@@ -37,6 +42,9 @@ importers:
       '@expent/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@expent/wasm':
+        specifier: workspace:*
+        version: link:../../packages/wasm
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.76.0(react@19.2.6))
@@ -79,6 +87,9 @@ importers:
       motion:
         specifier: ^12.38.0
         version: 12.38.0(@emotion/is-prop-valid@0.8.8)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      mupdf:
+        specifier: ^1.27.0
+        version: 1.27.0(patch_hash=25046d12279b8c460bf8dc0cbb54fc2a6540f81ee5a55131eaf72be3d756f769)
       next:
         specifier: 16.2.6
         version: 16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -140,8 +151,6 @@ importers:
       zod:
         specifier: ^4.4.3
         version: 4.4.3
-
-  apps/ocr: {}
 
   packages/types: {}
 
@@ -241,6 +250,8 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+
+  packages/wasm: {}
 
 packages:
 
@@ -3655,6 +3666,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  mupdf@1.27.0:
+    resolution: {integrity: sha512-vEPUYwZeu5NgiFLz4e20R7Vp2pNY7szirGEvTxHyQQpQs6ab4DeGdonwT6sH1JZG5EhyHSrojZrZn2/0ee6qZQ==}
 
   mute-stream@2.0.0:
     resolution: {integrity: sha512-WWdIxpyjEn+FhQJQQv9aQAYlHoNVdzIzUySNV1gHUPDSdZJ3yZn7pAAbQcV7B56Mvu881q9FZV+0Vx2xC44VWA==}
@@ -7925,6 +7939,8 @@ snapshots:
       typescript: 6.0.3
     transitivePeerDependencies:
       - '@types/node'
+
+  mupdf@1.27.0(patch_hash=25046d12279b8c460bf8dc0cbb54fc2a6540f81ee5a55131eaf72be3d756f769): {}
 
   mute-stream@2.0.0: {}
 

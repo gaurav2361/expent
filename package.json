@@ -11,6 +11,7 @@
     "fmt": "biome format --write",
     "typecheck": "dotenv -- turbo typecheck",
     "type-generate": "cargo types",
+    "build:wasm": "pnpm --filter @expent/wasm build",
     "test": "dotenv -- turbo test",
     "test:core": "cargo test -p expent_core",
     "test:dashboard": "pnpm --filter @expent/dashboard test",
