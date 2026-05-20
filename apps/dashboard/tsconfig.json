@@ -24,6 +24,7 @@
       "@expent/ui/*": ["../../packages/ui/src/*"],
       "@expent/types": ["../../packages/types/src/index.ts"],
       "@expent/types/*": ["../../packages/types/src/*"],
+      "@expent/wasm": ["../../packages/wasm/src/index.ts"],
       "content-collections": ["./.content-collections/generated"]
     }
   },
