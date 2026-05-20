@@ -1,0 +1,14 @@
+[package]
+name    = "wasm"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = [ "cdylib" ]
+
+[dependencies]
+chrono             = { features = [ "serde", "wasmbind" ], version = "0.4" }
+rust_decimal       = { features = [ "serde-with-str" ], version = "1.42" }
+serde              = { features = [ "derive" ], version = "1.0" }
+serde-wasm-bindgen = "0.6"
+wasm-bindgen       = "0.2.121"
