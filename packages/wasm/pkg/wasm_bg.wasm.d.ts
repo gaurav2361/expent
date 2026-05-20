@@ -24,16 +24,7 @@ export const calculate_budget_percentage: (a: number, b: number, c: number, d: n
 export const calculate_spending_velocity: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
 export const get_period_bounds: (a: number, b: number) => number;
 export const is_transaction_in_period: (a: bigint, b: number, c: number) => number;
-export const project_savings_goal: (
-  a: number,
-  b: number,
-  c: number,
-  d: number,
-  e: number,
-  f: number,
-  g: number,
-  h: number,
-) => number;
+export const project_savings_goal: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => number;
 export const __wbg_get_spendingvelocity_daily_burn_rate: (a: number) => number;
 export const __wbg_set_spendingvelocity_daily_burn_rate: (a: number, b: number) => void;
 export const __wbindgen_externrefs: WebAssembly.Table;

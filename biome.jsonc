@@ -29,6 +29,7 @@
       "!**/nix/store",
       "!**/.pnpm-store",
       "!**/packages/types",
+      "!**/packages/wasm/pkg",
       "!**/*/generated",
       "!**/*/generated.ts",
       "!**/node_modules",
