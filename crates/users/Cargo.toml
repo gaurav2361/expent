@@ -3,6 +3,9 @@ name              = "users"
 version.workspace = true
 edition.workspace = true
 
+[lib]
+doctest = false
+
 [dependencies]
 db.workspace = true
 
@@ -16,5 +19,5 @@ uuid.workspace    = true
 workspace = true
 
 [dev-dependencies]
-sea-orm = { workspace = true, features = ["mock"] }
-tokio = { workspace = true, features = ["full"] }
+sea-orm = { features = [ "mock" ], workspace = true }
+tokio   = { features = [ "full" ], workspace = true }

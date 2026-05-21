@@ -4,8 +4,26 @@ const nextConfig: NextConfig = {
   /* config options here */
   output: "standalone",
   reactCompiler: true,
+  outputFileTracingIncludes: {
+    "/**": ["../../node_modules/mupdf/dist/*.wasm", "../../packages/wasm/pkg/*.wasm"],
+  },
   experimental: {
     viewTransition: true,
+  },
+  turbopack: {
+    resolveAlias: {
+      "wasm_bg.wasm": "../../packages/wasm/pkg/wasm_bg.wasm",
+      "mupdf-wasm.wasm": "../../node_modules/mupdf/dist/mupdf-wasm.wasm",
+    },
+  },
+  webpack(config, { isServer, webpack }) {
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+      layers: true,
+    };
+
+    return config;
   },
   async rewrites() {
     return [

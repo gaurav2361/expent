@@ -6,3 +6,5 @@ nodeLinker: hoisted
 onlyBuiltDependencies:
   - esbuild
   - msw
+patchedDependencies:
+  mupdf: patches/mupdf.patch

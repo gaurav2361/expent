@@ -2,7 +2,7 @@
   description = "A Nix-flake-based Rust, Python (uv), and Node.js development environment";
 
   inputs = {
-    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1"; # unstable Nixpkgs
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     fenix = {
       url = "https://flakehub.com/f/nix-community/fenix/0.1";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -46,6 +46,7 @@
               cargo
               rustfmt
               rust-src
+              targets.wasm32-unknown-unknown.stable.rust-std
             ]
           );
 
