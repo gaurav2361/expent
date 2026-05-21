@@ -298,7 +298,7 @@ pub async fn process_job(
             if new_retry_count < max_retries {
                 let base_delay = 10;
                 let backoff_secs = base_delay * (2_i64.pow(new_retry_count as u32));
-                let jitter = rand::thread_rng().gen_range(0..5);
+                let jitter = rand::rng().random_range(0..5);
                 let next_run =
                     chrono::Utc::now() + chrono::Duration::seconds(backoff_secs + jitter);
 

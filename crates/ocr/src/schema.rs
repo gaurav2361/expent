@@ -22,7 +22,7 @@ pub struct UnifiedExtraction {
 }
 
 pub fn generate_cleaned_schema() -> serde_json::Value {
-    let mut settings = schemars::r#gen::SchemaSettings::draft07();
+    let mut settings = schemars::generate::SchemaSettings::draft07();
     settings.inline_subschemas = true;
     let schema_gen = settings.into_generator();
     let schema = schema_gen.into_root_schema_for::<UnifiedExtraction>();

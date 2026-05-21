@@ -45,28 +45,28 @@ wallets        = { path = "crates/wallets", version = "0.2.0" }
 wasm           = { path = "crates/wasm", version = "0.2.0" }
 
 # External crates
-any_ascii = "0.1"
+any_ascii = "0.3"
 anyhow = "1.0"
 async-stream = "0.3"
 async-trait = "0.1"
 aws-config = "1.8"
 aws-sdk-s3 = "1.133"
 axum = { features = [ "multipart" ], version = "0.8" }
-better-auth = { features = [ "axum", "derive" ], version = "0.9.0" }
+better-auth = { features = [ "axum", "derive" ], version = "0.10.0" }
 chrono = { features = [ "serde" ], version = "0.4" }
 dashmap = "6.2"
 dotenvy = "0.15"
 futures = "0.3"
-governor = "0.8"
+governor = "0.10"
 mimalloc = "0.1"
 moka = { features = [ "future" ], version = "0.12" }
-rand = "0.8"
+rand = "0.9"
 regex = "1.12"
-reqwest = { features = [ "json", "multipart" ], version = "0.12" }
+reqwest = { features = [ "json", "multipart" ], version = "0.13" }
 rphonetic = "3.0"
 rust_decimal = { features = [ "serde-with-str" ], version = "1.42" }
 rust_decimal_macros = "1.40"
-schemars = "0.8"
+schemars = "1.2"
 sea-orm = { features = [
   "sqlx-postgres",
   "runtime-tokio-native-tls",
@@ -80,7 +80,7 @@ sea-orm-migration = { features = [
 ], version = "1.1.20" }
 serde = { features = [ "derive" ], version = "1.0" }
 serde_json = "1.0"
-strum = { features = [ "derive" ], version = "0.26" }
+strum = { features = [ "derive" ], version = "0.28" }
 thiserror = "2.0"
 tokio = { features = [ "full" ], version = "1.52" }
 tower-http = { features = [ "cors", "fs", "trace" ], version = "0.6" }
