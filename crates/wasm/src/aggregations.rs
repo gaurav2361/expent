@@ -80,7 +80,9 @@ pub fn detect_subscription_patterns(transactions: JsValue) -> Result<JsValue, Js
     Ok(serde_wasm_bindgen::to_value(&suspected)?)
 }
 
-pub fn detect_subscription_patterns_internal(mut txns: Vec<TxnPattern>) -> Vec<DetectedSubscription> {
+pub fn detect_subscription_patterns_internal(
+    mut txns: Vec<TxnPattern>,
+) -> Vec<DetectedSubscription> {
     // Sort by date
     txns.sort_by_key(|t| t.date.clone());
 
@@ -123,10 +125,7 @@ pub fn detect_subscription_patterns_internal(mut txns: Vec<TxnPattern>) -> Vec<D
 
         if is_monthly || is_weekly {
             suspected.push(DetectedSubscription {
-                name: group[0]
-                    .purpose_tag
-                    .clone()
-                    .unwrap_or_else(|| key.clone()),
+                name: group[0].purpose_tag.clone().unwrap_or_else(|| key.clone()),
                 amount: group[0].amount.clone(),
                 cycle: (if is_monthly { "MONTHLY" } else { "WEEKLY" }).to_string(),
                 last_date: group.last().unwrap().date.clone(),
